@@ -7,4 +7,4 @@ python -m pip install --upgrade pip
 python -m pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org -r requirements.txt
 
 # ゲームの起動（とりあえずAI機能なしで）
-python main.py
+cd src && python main.py

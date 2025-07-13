@@ -40,4 +40,11 @@ Thumbs.db
 *.log
 
 # ローカル設定
-config.local.json 
+config.local.json
+
+# テスト関連
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
+.hypothesis/

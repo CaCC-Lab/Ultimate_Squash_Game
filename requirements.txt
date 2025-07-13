@@ -1,3 +1,4 @@
-requests>=2.31.0
-ollama>=0.1.0
-tkinter
+requests>=2.27.0
+pytest>=6.0.0
+pytest-cov>=3.0.0
+# ollama>=0.1.0  # 後でインストール予定
