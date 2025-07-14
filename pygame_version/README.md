@@ -76,9 +76,11 @@ pygame_version/
 - **✅ エラーハンドリング強化**: JavaScript/Python両環境対応、自動リカバリ
 - **✅ 最終配布バンドル**: distribution/index.html（8.9KB、完全自己完結型）
 
-### 🚀 進行中（Phase 3C: デプロイメント）
-- **⏳ GitHub Pagesセットアップ**: 自動デプロイ準備
-- **⏳ CI/CDパイプライン**: GitHub Actions連携
+### ✅ 完了済み（Phase 3C: デプロイメント）
+- **✅ GitHub Pagesセットアップ**: docs/ディレクトリ、ランディングページ完成
+- **✅ ビルドスクリプト**: build.sh - 自動ビルド・最適化・デプロイ
+- **✅ CI/CDパイプライン**: GitHub Actions自動テスト・デプロイ設定済み
+- **✅ デプロイメントガイド**: DEPLOYMENT_GUIDE.md作成済み
 
 ## 🏃‍♂️ クイックスタート
 
@@ -174,12 +176,29 @@ python -m pytest test_optimized_web_view.py -v
 - **ドキュメント**: docstring + コメント
 - **リファクタリング**: 継続的改善
 
-## 🚀 将来の拡張予定
+## 🌐 デプロイメント
 
-### Phase 3B-C: デプロイメント
-- 本番用HTMLテンプレート
-- GitHub Pages自動デプロイ
-- CI/CD パイプライン構築
+### GitHub Pages
+1. リポジトリSettings → Pages → Source: `/docs`を選択
+2. または `./setup_github_pages.sh` を実行してガイドに従う
+
+### ビルド & デプロイ
+```bash
+# 自動ビルド
+./build.sh
+
+# 手動デプロイ
+git add docs/
+git commit -m "Deploy game"
+git push
+```
+
+### デプロイURL
+```
+https://[username].github.io/Ultimate_Squash_Game/
+```
+
+## 🚀 将来の拡張予定
 
 ### Phase 4: 機能拡張
 - マルチボール機能
@@ -226,6 +245,6 @@ MIT License - 詳細は LICENSE ファイルを参照
 
 ---
 
-*最終更新: 2025-07-14*  
-*Phase 3B完了: プロダクションビルド（配布バンドル完成）*  
-*Phase 3C開始: デプロイメント準備*
+*最終更新: 2025-07-15*  
+*Phase 3完了: 全デプロイメント準備完了*  
+*🎮 GitHub Pages有効化でプレイ可能！*

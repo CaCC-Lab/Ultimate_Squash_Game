@@ -1,0 +1,8 @@
+{
+    "buildDate": "2025-07-15 06:00:00",
+    "commitHash": "unknown",
+    "version": "1.0.0",
+    "pythonVersion": "3.12",
+    "pygameVersion": "2.5.0",
+    "pyodideVersion": "0.26.4"
+}
