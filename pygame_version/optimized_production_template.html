@@ -1,0 +1,391 @@
+<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="Ultimate Squash Game - Python/Pyodide WebAssembly版。ブラウザで動作する軽量(25KB)ゲーム"><meta name="keywords" content="squash,game,python,pyodide,webassembly,pygame"><meta name="author" content="Ultimate Squash Game Team"><!-- Open Graph / Facebook --><meta property="og:type" content="website"><meta property="og:title" content="Ultimate Squash Game - WebAssembly版"><meta property="og:description" content="ブラウザで動作する軽量(25KB)スカッシュゲーム"><meta property="og:url" content="https://your-domain.com/ultimate-squash"><!-- Twitter --><meta name="twitter:card" content="summary"><meta name="twitter:title" content="Ultimate Squash Game"><meta name="twitter:description" content="ブラウザで動作する軽量スカッシュゲーム"><title>Ultimate Squash Game - WebAssembly版</title><!-- Favicon --><link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIGZpbGw9IiMwMDQyNzQiLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjEyIiByPSI0IiBmaWxsPSIjZmZmZmZmIi8+PHJlY3QgeD0iMTQiIHk9IjIyIiB3aWR0aD0iNCIgaGVpZ2h0PSI4IiByeD0iMiIgZmlsbD0iIzAwZmYwMCIvPjxwYXRoIGQ9Ik0xMCAyMGgxMnYySDEweiIgZmlsbD0iI2NjY2NjYyIvPjwvc3ZnPg=="><style>* {margin: 0; padding: 0; box-sizing: border-box}body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%); color: #ffffff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center}.game-container {max-width: 800px; width: 100%; text-align: center; position: relative}.header {margin-bottom: 20px; opacity: 0; animation: fadeInUp 1s ease-out 0.5s forwards}.title {font-size: 2.5rem; font-weight: bold; background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 10px; text-shadow: 0 0 30px rgba(255, 255, 255, 0.3)}.subtitle {font-size: 1rem; color: #b0b0b0; font-weight: 300}.canvas-wrapper {position: relative; display: inline-block; border-radius: 15px; overflow: hidden; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5); opacity: 0; animation: scaleIn 1s ease-out 1s forwards}#gameCanvas {background: #000; display: block; border: 3px solid #333; border-radius: 12px}.loading-overlay {position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; transition: opacity 0.5s ease-out}.loading-spinner {width: 50px; height: 50px; border: 3px solid #333; border-top: 3px solid #4ecdc4; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px}.loading-text {font-size: 1.2rem; color: #4ecdc4; margin-bottom: 10px}.loading-progress {font-size: 0.9rem; color: #888}.controls {margin-top: 20px; opacity: 0; animation: fadeInUp 1s ease-out 1.5s forwards}.control-info {display: flex; justify-content: center; gap: 30px; font-size: 0.9rem; color: #999}.control-item {display: flex; align-items: center; gap: 8px}.key {background: #333; padding: 4px 8px; border-radius: 4px; font-family: monospace; border: 1px solid #555}.performance-info {position: absolute; top: 10px; left: 10px; font-size: 0.8rem; color: #666; background: rgba(0, 0, 0, 0.7); padding: 8px 12px; border-radius: 6px; opacity: 0; transition: opacity 0.3s ease}.game-container:hover .performance-info {opacity: 1}.error-modal {position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.8); display: none; align-items: center; justify-content: center; z-index: 1000}.error-content {background: #1a1a2e; padding: 30px; border-radius: 12px; border: 2px solid #ff6b6b; max-width: 500px; text-align: center}.error-title {color: #ff6b6b; font-size: 1.5rem; margin-bottom: 15px}.error-message {color: #ccc; margin-bottom: 20px; line-height: 1.5}.error-button {background: #ff6b6b; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 1rem; transition: background 0.3s ease}.error-button:hover {background: #ff5252}@keyframes fadeInUp {from {opacity: 0; transform: translateY(30px)}to {opacity: 1; transform: translateY(0)}}@keyframes scaleIn {from {opacity: 0; transform: scale(0.9)}to {opacity: 1; transform: scale(1)}}@keyframes spin {0% {transform: rotate(0deg)}100% {transform: rotate(360deg)}}@media (max-width: 768px) {.title {font-size: 2rem}.control-info {flex-direction: column; gap: 10px}#gameCanvas {width: 90vw; height: auto}}@media (prefers-color-scheme: dark) {body {background: linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%)}}</style></head><body><div class="game-container"><header class="header"><h1 class="title">Ultimate Squash Game</h1><p class="subtitle">Python/Pyodide WebAssembly版 - 軽量25KB</p></header><div class="canvas-wrapper"><canvas id="gameCanvas" width="640" height="480"></canvas><div class="loading-overlay" id="loadingOverlay"><div class="loading-spinner"></div><div class="loading-text">ゲーム読み込み中...</div><div class="loading-progress" id="loadingProgress">Pyodideを初期化中...</div></div><div class="performance-info" id="performanceInfo">
+                FPS: <span id="fpsCounter">60</span> | 
+                Memory: <span id="memoryUsage">1.2MB</span></div></div><div class="controls"><div class="control-info"><div class="control-item"><span class="key">←</span><span class="key">→</span><span>ラケット移動</span></div><div class="control-item"><span class="key">Space</span><span>ポーズ/再開</span></div><div class="control-item"><span class="key">R</span><span>リスタート</span></div></div></div></div><!-- エラーモーダル --><div class="error-modal" id="errorModal"><div class="error-content"><h2 class="error-title">エラーが発生しました</h2><p class="error-message" id="errorMessage">
+                ゲームの読み込み中にエラーが発生しました。
+            </p><button class="error-button" onclick="closeErrorModal()">再試行</button></div></div><!-- Pyodide読み込み --><script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script><script>
+        // グローバル変数
+        let pyodide = null;
+        let gameLoop = null;
+        let gameState = null;
+        let canvas = null;
+        let ctx = null;
+        let performanceMonitor = null;
+        
+        // パフォーマンス監視
+        class PerformanceMonitor {
+            constructor() {
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fps = 60;
+                this.memoryUsage = 0;
+            }
+            
+            update() {
+                this.frameCount++;
+                const currentTime = performance.now();
+                
+                if (currentTime - this.lastTime >= 1000) {
+                    this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastTime));
+                    this.frameCount = 0;
+                    this.lastTime = currentTime;
+                    
+                    // メモリ使用量を更新
+                    if (performance.memory) {
+                        this.memoryUsage = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                    }
+                    
+                    this.updateDisplay();
+                }
+            }
+            
+            updateDisplay() {
+                document.getElementById('fpsCounter').textContent = this.fps;
+                document.getElementById('memoryUsage').textContent = this.memoryUsage + 'MB';
+            }
+        }
+        
+        // エラーハンドリング
+        function showError(message, details = '') {
+            console.error('Game Error:', message, details);
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').style.display = 'flex';
+        }
+        
+        function closeErrorModal() {
+            document.getElementById('errorModal').style.display = 'none';
+            // 再試行
+            initializeGame();
+        }
+        
+        // ローディング状態の更新
+        function updateLoadingProgress(text) {
+            document.getElementById('loadingProgress').textContent = text;
+        }
+        
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 500);
+        }
+        
+        // Pyodide初期化とゲーム開始
+        async function initializeGame() {
+            try {
+                updateLoadingProgress('Pyodideを初期化中...');
+                
+                // Pyodide初期化
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                
+                updateLoadingProgress('Pygame-CEを読み込み中...');
+                
+                // 必要なパッケージをインストール
+                await pyodide.loadPackage(["pygame-ce"]);
+                
+                updateLoadingProgress('ゲームコードを読み込み中...');
+                
+                // ゲームコードを読み込み（最適化されたバージョン）
+                await loadGameCode();
+                
+                updateLoadingProgress('ゲームを初期化中...');
+                
+                // Canvasを初期化
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                
+                // パフォーマンス監視を開始
+                performanceMonitor = new PerformanceMonitor();
+                
+                // ゲーム状態を初期化
+                await initializeGameState();
+                
+                updateLoadingProgress('ゲーム開始準備完了');
+                
+                // ローディング画面を非表示
+                hideLoading();
+                
+                // ゲームループ開始
+                startGameLoop();
+                
+                console.log('🎮 Ultimate Squash Game loaded successfully!');
+                
+            } catch (error) {
+                showError(
+                    'ゲームの初期化に失敗しました。ブラウザが最新版か確認してください。',
+                    error.message
+                );
+            }
+        }
+        
+        // ゲームコードの読み込み
+        async function loadGameCode() {
+            // 最適化されたPythonコードを埋め込み
+            const gameModules = {
+                'model.pygame_game_state': `import time
+from typing import List, Dict, Optional, Callable
+from dataclasses import dataclass
+import math
+
+class PygameBall:
+    def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200, 
+                 radius: float = 10, color: tuple = (255, 255, 255)):
+        self.x = float(x)
+        self.y = float(y)
+        self.dx = float(dx)
+        self.dy = float(dy)
+        self.radius = float(radius)
+        self.color = color
+        self.trail = []
+        self.max_trail_length = 10
+
+class PygameRacket:
+    def __init__(self, x: float = 295, y: float = 450, size: float = 50, 
+                 height: float = 10, color: tuple = (0, 255, 0)):
+        self.x = float(x)
+        self.y = float(y)
+        self.size = float(size)
+        self.height = float(height)
+        self.color = color
+        self.speed = 300
+        self.left_bound = 0
+        self.right_bound = 640
+
+class PygameScore:
+    def __init__(self):
+        self.player_score = 0
+        self.level = 1
+        self.hits = 0
+        self.misses = 0
+        self.start_time = time.time()
+
+class PygameGameStateObserver:
+    def on_game_state_changed(self, game_state: 'PygameGameState'):
+        pass
+
+class PygameGameState:
+    def __init__(self):
+        self.balls = [PygameBall()]
+        self.racket = PygameRacket()
+        self.score = PygameScore()
+        self.is_paused = False
+        self.is_gameover = False
+        self.observers = []
+        self.canvas_width = 640
+        self.canvas_height = 480
+    
+    def add_observer(self, observer: PygameGameStateObserver):
+        self.observers.append(observer)
+    
+    def notify_observers(self):
+        for observer in self.observers:
+            observer.on_game_state_changed(self)
+    
+    def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
+        ball.x += ball.dx * dt
+        ball.y += ball.dy * dt
+        
+        if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
+            ball.dx = -ball.dx
+        if ball.y <= ball.radius:
+            ball.dy = -ball.dy
+        if ball.y >= self.canvas_height - ball.radius:
+            self.is_gameover = True
+        
+        if (ball.y + ball.radius >= self.racket.y and 
+            ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
+            ball.dy = -abs(ball.dy)
+            self.score.hits += 1
+        
+        self.notify_observers()
+    
+    def update_racket_position(self, x: float):
+        self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
+        self.notify_observers()`,
+                
+                'view.optimized_web_game_view': `import json
+from typing import Dict, List
+from model.pygame_game_state import PygameGameState, PygameGameStateObserver
+
+class OptimizedWebCanvasView(PygameGameStateObserver):
+    def __init__(self, canvas_id: str = "gameCanvas"):
+        self.canvas_id = canvas_id
+        self.canvas_width = 640
+        self.canvas_height = 480
+        self.frame_data = {}
+        
+    def on_game_state_changed(self, game_state: PygameGameState):
+        self.frame_data = self._convert_to_canvas_data(game_state)
+    
+    def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
+        draw_commands = []
+        
+        draw_commands.append({
+            'type': 'fillRect',
+            'x': 0, 'y': 0,
+            'width': self.canvas_width,
+            'height': self.canvas_height,
+            'color': '#000000'
+        })
+        
+        for ball in game_state.balls:
+            draw_commands.append({
+                'type': 'fillCircle',
+                'x': ball.x, 'y': ball.y,
+                'radius': ball.radius,
+                'color': f'rgb{ball.color}'
+            })
+        
+        if game_state.racket:
+            draw_commands.append({
+                'type': 'fillRect',
+                'x': game_state.racket.x,
+                'y': game_state.racket.y,
+                'width': game_state.racket.size,
+                'height': game_state.racket.height,
+                'color': f'rgb{game_state.racket.color}'
+            })
+        
+        draw_commands.append({
+            'type': 'fillText',
+            'text': f'Score: {game_state.score.player_score} | Level: {game_state.score.level}',
+            'x': 10, 'y': 30,
+            'color': 'white',
+            'font': '20px Arial'
+        })
+        
+        return {
+            'canvas_id': self.canvas_id,
+            'draw_commands': draw_commands,
+            'game_state': {
+                'paused': game_state.is_paused,
+                'gameover': game_state.is_gameover
+            }
+        }
+    
+    def get_javascript_interface_data(self) -> str:
+        return json.dumps(self.frame_data, ensure_ascii=False)`
+            };
+            
+            for (const [moduleName, moduleCode] of Object.entries(gameModules)) {
+                pyodide.runPython(moduleCode);
+            }
+        }
+        
+        // ゲーム状態の初期化
+        async function initializeGameState() {
+            pyodide.runPython(`
+from model.pygame_game_state import PygameGameState
+from view.optimized_web_game_view import OptimizedWebCanvasView
+
+game_state = PygameGameState()
+game_view = OptimizedWebCanvasView()
+game_state.add_observer(game_view)
+
+def update_game(dt=0.016):
+    if not game_state.is_paused and not game_state.is_gameover:
+        for ball in game_state.balls:
+            game_state.update_ball_position(ball, dt)
+    return game_view.get_javascript_interface_data()
+
+def handle_key_input(key):
+    if key == 'ArrowLeft' and game_state.racket.x > 0:
+        game_state.update_racket_position(game_state.racket.x - 20)
+    elif key == 'ArrowRight' and game_state.racket.x < 590:
+        game_state.update_racket_position(game_state.racket.x + 20)
+    elif key == ' ':
+        game_state.is_paused = not game_state.is_paused
+    elif key == 'r' or key == 'R':
+        restart_game()
+
+def restart_game():
+    global game_state
+    game_state = PygameGameState()
+    game_state.add_observer(game_view)
+            `);
+        }
+        
+        // Canvas描画関数
+        function drawFrame(frameData) {
+            try {
+                const data = JSON.parse(frameData);
+                const commands = data.draw_commands || [];
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                for (const cmd of commands) {
+                    switch (cmd.type) {
+                        case 'fillRect':
+                            ctx.fillStyle = cmd.color;
+                            ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                            break;
+                        case 'fillCircle':
+                            ctx.fillStyle = cmd.color;
+                            ctx.beginPath();
+                            ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
+                            ctx.fill();
+                            break;
+                        case 'fillText':
+                            ctx.fillStyle = cmd.color;
+                            ctx.font = cmd.font;
+                            ctx.fillText(cmd.text, cmd.x, cmd.y);
+                            break;
+                    }
+                }
+            } catch (error) {
+                console.error('Draw error:', error);
+            }
+        }
+        
+        // ゲームループ
+        function gameLoop() {
+            try {
+                const frameData = pyodide.runPython('update_game()');
+                drawFrame(frameData);
+                performanceMonitor.update();
+            } catch (error) {
+                console.error('Game loop error:', error);
+            }
+            
+            gameLoop = requestAnimationFrame(gameLoop);
+        }
+        
+        function startGameLoop() {
+            if (gameLoop) {
+                cancelAnimationFrame(gameLoop);
+            }
+            gameLoop = requestAnimationFrame(gameLoop);
+        }
+        
+        // キーボードイベント
+        document.addEventListener('keydown', function(event) {
+            if (pyodide) {
+                try {
+                    pyodide.runPython(`handle_key_input('${event.key}')`);
+                } catch (error) {
+                    console.error('Key input error:', error);
+                }
+            }
+        });
+        
+        // ウィンドウフォーカス管理
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && pyodide) {
+                pyodide.runPython('game_state.is_paused = True');
+            }
+        });
+        
+        // エラーハンドラー
+        window.addEventListener('error', function(event) {
+            showError('予期しないエラーが発生しました', event.error?.message || '');
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
+        });
+        
+        // ゲーム初期化開始
+        initializeGame();
+    </script></body></html>
