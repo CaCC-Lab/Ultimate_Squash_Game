@@ -1,0 +1,48 @@
+
+# メモリ使用量プロファイリングレポート
+
+## サマリー
+- 初期メモリ: 0.00 MB
+- 最終メモリ: 0.87 MB
+- ピーク使用量: 1.21 MB
+- メモリ増加: 0.87 MB
+- 測定時間: 0.24 秒
+
+## トップメモリ使用
+1.   File "/Users/ryu/.pyenv/versions/anaconda3-4.4.0/envs/ml/lib/python3.6/linecache.py", line 137
+   - サイズ: 0.32 MB
+   - オブジェクト数: 3335
+2.   File "profile_memory_usage.py", line 138
+   - サイズ: 0.23 MB
+   - オブジェクト数: 1998
+3.   File "profile_memory_usage.py", line 137
+   - サイズ: 0.11 MB
+   - オブジェクト数: 1991
+4.   File "profile_memory_usage.py", line 152
+   - サイズ: 0.03 MB
+   - オブジェクト数: 501
+5.   File "/Users/ryu/dev/ultimate_squash_game/pygame_version/src/profiler/memory_profiler.py", line 296
+   - サイズ: 0.03 MB
+   - オブジェクト数: 508
+
+## 潜在的なメモリリーク
+- initial -> after_init: 18.095 MB/秒
+- before_init -> before_gameplay: 26.561 MB/秒
+- after_init -> gameplay_frame_0: 23.242 MB/秒
+- before_gameplay -> gameplay_frame_100: 1.479 MB/秒
+- gameplay_frame_0 -> gameplay_frame_200: 0.217 MB/秒
+- gameplay_frame_100 -> gameplay_frame_300: 0.233 MB/秒
+- gameplay_frame_200 -> gameplay_frame_400: 0.261 MB/秒
+- gameplay_frame_300 -> gameplay_frame_500: 0.254 MB/秒
+- gameplay_frame_400 -> gameplay_frame_600: 0.382 MB/秒
+- gameplay_frame_500 -> gameplay_frame_700: 0.409 MB/秒
+- gameplay_frame_600 -> gameplay_frame_800: 0.264 MB/秒
+- gameplay_frame_700 -> gameplay_frame_900: 0.163 MB/秒
+- gameplay_frame_800 -> after_gameplay: 0.150 MB/秒
+- gameplay_frame_900 -> before_pool_test: 4.714 MB/秒
+- after_gameplay -> after_no_pool: 19.567 MB/秒
+- before_pool_test -> after_with_pool: 23.324 MB/秒
+
+## ガベージコレクション分析
+- 総コレクション数: 152
+- 回収オブジェクト数: 0
