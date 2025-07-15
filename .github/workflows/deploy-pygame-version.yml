@@ -108,7 +108,7 @@ jobs:
       uses: treosh/lighthouse-ci-action@v11
       with:
         urls: |
-          ${{ steps.deployment.outputs.page_url }}
-          ${{ steps.deployment.outputs.page_url }}/game.html
+          https://cacc-lab.github.io/Ultimate_Squash_Game/
+          https://cacc-lab.github.io/Ultimate_Squash_Game/game.html
         uploadArtifacts: true
         temporaryPublicStorage: true
