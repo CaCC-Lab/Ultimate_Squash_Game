@@ -320,21 +320,21 @@ this.optimizationStats = stats;
 updateDisplay() {
 // Optimize DOM updates - cache elements and update only text content
 if (!this._cachedElements) {
+const perfInfo = document.getElementById('performanceInfo');
+if (perfInfo && !perfInfo.querySelector('#perf-fps')) {
+perfInfo.innerHTML =
+'FPS: <span id="perf-fps">0</span> | Memory: <span id="perf-memory">0</span>MB' +
+'<span id="perf-skipped"></span><span id="perf-reuse"></span>';
+}
 this._cachedElements = {
 fpsCounter: document.getElementById('fpsCounter'),
 memoryUsage: document.getElementById('memoryUsage'),
-perfInfo: document.getElementById('performanceInfo')
+perfInfo: perfInfo,
+perfFps: document.getElementById('perf-fps'),
+perfMemory: document.getElementById('perf-memory'),
+perfSkipped: document.getElementById('perf-skipped'),
+perfReuse: document.getElementById('perf-reuse')
 };
-// Initialize performance info with proper structure for efficient updates
-if (this._cachedElements.perfInfo) {
-this._cachedElements.perfInfo.innerHTML = 
-'FPS: <span id="perf-fps">0</span> | Memory: <span id="perf-memory">0</span>MB' +
-'<span id="perf-skipped"></span><span id="perf-reuse"></span>';
-this._cachedElements.perfFps = document.getElementById('perf-fps');
-this._cachedElements.perfMemory = document.getElementById('perf-memory');
-this._cachedElements.perfSkipped = document.getElementById('perf-skipped');
-this._cachedElements.perfReuse = document.getElementById('perf-reuse');
-}
 }
 
 // Update individual text content instead of innerHTML
@@ -348,7 +348,7 @@ this._cachedElements.memoryUsage.textContent = this.memoryUsage + 'MB';
 // Update performance info with individual span updates
 if (this._cachedElements.perfFps) {
 this._cachedElements.perfFps.textContent = this.fps;
-this._cachedElements.perfMemory.textContent = this.memoryUsage;
+this._cachedElements.perfMemory.textContent = this.memoryUsage + 'MB';
 }
 
 // Display optimization stats if available
@@ -771,6 +771,9 @@ let accumulator = 0;
 
 function gameLoop(currentTime) {
     try {
+        // Reset skipFrame flag at the start of each frame
+        drawState.skipFrame = false;
+        
         // Frame rate limiting
         const deltaTime = currentTime - lastFrameTime;
         lastFrameTime = currentTime;
