@@ -13,8 +13,19 @@
 """
 
 import json
+import sys
+import os
 from typing import Dict, Any, List, Optional, Set
-from ..model.pygame_game_state import PygameGameState, PygameGameStateObserver
+
+# 相対インポートの代替案として絶対インポートを試行
+try:
+    from ..model.pygame_game_state import PygameGameState, PygameGameStateObserver
+except ImportError:
+    # CI環境などで相対インポートが失敗した場合の絶対インポートフォールバック
+    current_dir = os.path.dirname(__file__)
+    project_root = os.path.join(current_dir, '..', '..')
+    sys.path.insert(0, project_root)
+    from pygame_version.src.model.pygame_game_state import PygameGameState, PygameGameStateObserver
 
 
 class OptimizedWebCanvasView(PygameGameStateObserver):

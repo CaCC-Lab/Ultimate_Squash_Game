@@ -23,9 +23,13 @@ current_dir = os.path.dirname(__file__)
 src_dir = os.path.join(current_dir, '..', 'src')
 sys.path.insert(0, src_dir)
 
+# プロジェクトルートも追加
+project_root = os.path.join(current_dir, '..', '..')
+sys.path.insert(0, project_root)
+
 from typing import Dict, Any
-from view.optimized_web_game_view import OptimizedWebCanvasView
-from model.pygame_game_state import PygameGameState, PygameBall, PygameRacket, PygameScore
+from pygame_version.src.view.optimized_web_game_view import OptimizedWebCanvasView
+from pygame_version.src.model.pygame_game_state import PygameGameState, PygameBall, PygameRacket, PygameScore
 
 
 class TestOptimizedWebCanvasView(unittest.TestCase):
