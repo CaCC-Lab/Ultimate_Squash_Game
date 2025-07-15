@@ -285,7 +285,7 @@ Memory: <span id="memoryUsage">1.2MB</span>
 <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
 <script>
 let pyodide = null;
-let gameLoop = null;
+let gameLoopId = null;
 let gameState = null;
 let canvas = null;
 let ctx = null;
@@ -551,13 +551,13 @@ performanceMonitor.update();
 } catch (error) {
 console.error('Game loop error:', error);
 }
-gameLoop = requestAnimationFrame(gameLoop);
+gameLoopId = requestAnimationFrame(gameLoop);
 }
 function startGameLoop() {
-if (gameLoop) {
-cancelAnimationFrame(gameLoop);
+if (gameLoopId) {
+cancelAnimationFrame(gameLoopId);
 }
-gameLoop = requestAnimationFrame(gameLoop);
+gameLoopId = requestAnimationFrame(gameLoop);
 }
 document.addEventListener('keydown', function(event) {
 if (pyodide) {
@@ -579,7 +579,7 @@ showError('予期しないエラーが発生しました', event.error?.message 
 window.addEventListener('unhandledrejection', function(event) {
 showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
 });
-const originalUpdateGame = pyodide.runPython;
+// Audio handling function (currently not used)
 function handleGameAudio(gameState) {
 if (window.gameAudio && gameState) {
 if (gameState.includes('hits') && Math.random() < 0.3) {
