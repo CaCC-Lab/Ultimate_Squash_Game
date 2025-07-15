@@ -392,14 +392,33 @@ updateLoadingProgress('ゲームコードを読み込み中...');
 await loadGameCode();
 updateLoadingProgress('ゲームを初期化中...');
 canvas = document.getElementById('gameCanvas');
-ctx = canvas.getContext('2d', {
-    alpha: false, // Disable transparency for better performance
-    desynchronized: true, // Reduce latency
-    willReadFrequently: false // We're not reading pixels
-});
 
-// Set performance-oriented rendering settings
-ctx.imageSmoothingEnabled = false; // Disable antialiasing for pixel-perfect rendering
+// Safe canvas context creation with feature detection
+try {
+    // Try with all optimization options first
+    ctx = canvas.getContext('2d', {
+        alpha: false, // Disable transparency for better performance
+        desynchronized: true, // Reduce latency - EXPERIMENTAL
+        willReadFrequently: false // We're not reading pixels - EXPERIMENTAL
+    });
+} catch (e) {
+    console.warn('Failed to create canvas context with experimental options, trying fallback...', e);
+    try {
+        // Fallback to just alpha option (widely supported)
+        ctx = canvas.getContext('2d', {
+            alpha: false
+        });
+    } catch (e2) {
+        console.warn('Failed to create canvas context with alpha option, using default...', e2);
+        // Final fallback - basic context
+        ctx = canvas.getContext('2d');
+    }
+}
+
+// Set performance-oriented rendering settings (with feature detection)
+if (ctx.imageSmoothingEnabled !== undefined) {
+    ctx.imageSmoothingEnabled = false; // Disable antialiasing for pixel-perfect rendering
+}
 
 performanceMonitor = new PerformanceMonitor();
 await initializeGameState();
