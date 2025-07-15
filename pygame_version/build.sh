@@ -12,15 +12,20 @@ echo "📋 環境確認..."
 python --version
 pip --version
 
-# 2. テスト実行
-echo ""
-echo "🧪 テスト実行..."
-cd tests
-python -m pytest -v --tb=short || {
-    echo "❌ テスト失敗！ビルドを中止します。"
-    exit 1
-}
-cd ..
+# 2. テスト実行（CI環境では既に実行済みのためスキップ）
+if [ "${CI}" = "true" ]; then
+    echo ""
+    echo "🧪 テスト実行... (CI環境ではスキップ - 既に実行済み)"
+else
+    echo ""
+    echo "🧪 テスト実行..."
+    cd tests
+    python -m pytest -v --tb=short || {
+        echo "❌ テスト失敗！ビルドを中止します。"
+        exit 1
+    }
+    cd ..
+fi
 
 # 3. 最適化スクリプト実行
 echo ""
