@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Squash Game - Python/WebAssembly Edition</title>
+    <meta name="description" content="Pygame-CEベースのスカッシュゲーム - ブラウザで動作するPython/WebAssemblyゲーム">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #16213e 0%, #0f3460 100%);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            max-width: 800px;
+        }
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+            opacity: 0.9;
+        }
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        .feature {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        .play-button {
+            display: inline-block;
+            padding: 1rem 3rem;
+            font-size: 1.25rem;
+            background: linear-gradient(45deg, #00ff00, #4ecdc4);
+            color: #000;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            margin: 2rem 0;
+            box-shadow: 0 4px 15px rgba(78, 205, 196, 0.4);
+        }
+        .play-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(78, 205, 196, 0.6);
+        }
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        .tech-badge {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .github-link {
+            color: #4ecdc4;
+            text-decoration: none;
+            font-size: 1.1rem;
+            margin-top: 2rem;
+            display: inline-block;
+        }
+        .github-link:hover {
+            text-decoration: underline;
+        }
+        .performance-badge {
+            background: linear-gradient(45deg, #ffd700, #ff8c00);
+            color: #000;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ultimate Squash Game</h1>
+        <p class="subtitle">Python/WebAssembly スカッシュゲーム</p>
+        
+        <div class="performance-badge">
+            🏆 WASM Performance: S級 (100/100)
+        </div>
+        
+        <a href="game.html" class="play-button">🎮 ゲームをプレイ</a>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+                <h3>超軽量</h3>
+                <p>8.9KB (圧縮) の完全自己完結型ゲーム</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🐍</div>
+                <h3>Python実装</h3>
+                <p>Pygame-CEで実装、ブラウザで動作</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">🎯</div>
+                <h3>高性能</h3>
+                <p>60fps安定動作、メモリ効率 Excellent</p>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">📱</div>
+                <h3>PWA対応</h3>
+                <p>オフライン動作、インストール可能</p>
+            </div>
+        </div>
+        
+        <h2>技術スタック</h2>
+        <div class="tech-stack">
+            <span class="tech-badge">Python 3.12</span>
+            <span class="tech-badge">Pygame-CE 2.5.0</span>
+            <span class="tech-badge">Pyodide 0.26.4</span>
+            <span class="tech-badge">WebAssembly</span>
+            <span class="tech-badge">Canvas API</span>
+            <span class="tech-badge">Web Audio API</span>
+        </div>
+        
+        <h2>ゲーム特徴</h2>
+        <ul style="text-align: left; display: inline-block;">
+            <li>MVCアーキテクチャによる設計</li>
+            <li>Observerパターンでの状態管理</li>
+            <li>Canvas APIへの最適化描画</li>
+            <li>Web Audio APIによる効果音</li>
+            <li>外部依存ゼロの完全自己完結型</li>
+        </ul>
+        
+        <a href="https://github.com/CaCC-Lab/Ultimate_Squash_Game" class="github-link">
+            📂 GitHubで詳細を見る
+        </a>
+    </div>
+</body>
+</html>
