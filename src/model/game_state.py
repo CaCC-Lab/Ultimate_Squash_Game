@@ -221,8 +221,8 @@ class GameState:
         future_y = ball.y + ball.dy
         future_x = ball.x + ball.dx
         
-        # ラケット上面での衝突
-        if future_y > self.RACKET_Y and (
+        # ラケット上面での衝突（ラケット面に到達または超過した場合）
+        if future_y >= self.RACKET_Y and (
             self.racket.left_edge <= future_x <= self.racket.right_edge
         ):
             ball.dy *= -1
@@ -294,6 +294,30 @@ class GameState:
                 'combo': self.score.combo
             }
         }
+    
+    def get_ball_speed(self, ball):
+        """
+        ボールの速度の大きさを計算（ADA機能用）
+        
+        Args:
+            ball: Ballオブジェクト
+            
+        Returns:
+            float: 速度の大きさ (sqrt(dx^2 + dy^2))
+        """
+        return math.sqrt(ball.dx**2 + ball.dy**2)
+    
+    def get_ball_angle(self, ball):
+        """
+        ボールの速度角度を計算（ADA機能用）
+        
+        Args:
+            ball: Ballオブジェクト
+            
+        Returns:
+            float: 速度角度（度数法、-180〜180度）
+        """
+        return math.degrees(math.atan2(ball.dy, ball.dx))
     
     def update_frame(self):
         """フレーム更新（全ボールの位置更新）"""

@@ -1,0 +1,184 @@
+{
+  "summary": {
+    "total_runtime_sec": 0.17116022109985352,
+    "peak_memory_mb": 1.2129135131835938,
+    "final_memory_mb": 0.8698091506958008,
+    "memory_efficiency": "Excellent"
+  },
+  "phases": {
+    "initialization": {
+      "memory_used_mb": 0.014388084411621094,
+      "object_counts": {
+        "GameState": 1,
+        "OptimizedView": 1,
+        "RAFView": 1
+      }
+    },
+    "gameplay": {
+      "duration_sec": 0.17116022109985352,
+      "frames_processed": 1000,
+      "fps": 5842.479015124712,
+      "memory_growth_mb": 0.34183692932128906,
+      "gc_collections": 67,
+      "frame_data_samples": [
+        {
+          "frame": 0,
+          "standard_output_size": 1378,
+          "raf_output_size": 935,
+          "standard_commands": 9,
+          "raf_commands": 6
+        },
+        {
+          "frame": 100,
+          "standard_output_size": 770,
+          "raf_output_size": 519,
+          "standard_commands": 3,
+          "raf_commands": 2
+        },
+        {
+          "frame": 200,
+          "standard_output_size": 770,
+          "raf_output_size": 519,
+          "standard_commands": 3,
+          "raf_commands": 2
+        },
+        {
+          "frame": 300,
+          "standard_output_size": 771,
+          "raf_output_size": 518,
+          "standard_commands": 3,
+          "raf_commands": 2
+        },
+        {
+          "frame": 400,
+          "standard_output_size": 771,
+          "raf_output_size": 519,
+          "standard_commands": 3,
+          "raf_commands": 2
+        },
+        {
+          "frame": 500,
+          "standard_output_size": 771,
+          "raf_output_size": 519,
+          "standard_commands": 3,
+          "raf_commands": 2
+        },
+        {
+          "frame": 600,
+          "standard_output_size": 771,
+          "raf_output_size": 837,
+          "standard_commands": 3,
+          "raf_commands": 5
+        },
+        {
+          "frame": 700,
+          "standard_output_size": 772,
+          "raf_output_size": 839,
+          "standard_commands": 3,
+          "raf_commands": 5
+        },
+        {
+          "frame": 800,
+          "standard_output_size": 772,
+          "raf_output_size": 839,
+          "standard_commands": 3,
+          "raf_commands": 5
+        },
+        {
+          "frame": 900,
+          "standard_output_size": 772,
+          "raf_output_size": 840,
+          "standard_commands": 3,
+          "raf_commands": 5
+        }
+      ]
+    },
+    "optimization_effects": {
+      "pool_memory_saved": 0.499,
+      "static_frame_efficiency": "High",
+      "gc_effectiveness": 0
+    },
+    "memory_pools": {
+      "allocations": 1,
+      "reuses": 499,
+      "expansions": 46,
+      "peak_size": 500,
+      "current_pool_size": 500,
+      "in_use_count": 0,
+      "reuse_rate": 0.998
+    }
+  },
+  "top_memory_users": [
+    {
+      "filename": "  File \"/Users/ryu/.pyenv/versions/anaconda3-4.4.0/envs/ml/lib/python3.6/linecache.py\", line 137",
+      "size_mb": 0.318572998046875,
+      "count": 3335,
+      "average_size": 100.16431784107947
+    },
+    {
+      "filename": "  File \"profile_memory_usage.py\", line 138",
+      "size_mb": 0.22848987579345703,
+      "count": 1998,
+      "average_size": 119.91441441441441
+    },
+    {
+      "filename": "  File \"profile_memory_usage.py\", line 137",
+      "size_mb": 0.10619354248046875,
+      "count": 1991,
+      "average_size": 55.927674535409345
+    },
+    {
+      "filename": "  File \"profile_memory_usage.py\", line 152",
+      "size_mb": 0.0307159423828125,
+      "count": 501,
+      "average_size": 64.2874251497006
+    },
+    {
+      "filename": "  File \"/Users/ryu/dev/ultimate_squash_game/pygame_version/src/profiler/memory_profiler.py\", line 296",
+      "size_mb": 0.02743244171142578,
+      "count": 508,
+      "average_size": 56.624015748031496
+    }
+  ],
+  "gc_analysis": {
+    "total_collections": 151,
+    "total_collected": 0,
+    "generations": [
+      {
+        "generation": 0,
+        "collections": 137,
+        "collected_objects": 0,
+        "uncollectable_objects": 0,
+        "efficiency": 0.0
+      },
+      {
+        "generation": 1,
+        "collections": 12,
+        "collected_objects": 0,
+        "uncollectable_objects": 0,
+        "efficiency": 0.0
+      },
+      {
+        "generation": 2,
+        "collections": 2,
+        "collected_objects": 0,
+        "uncollectable_objects": 0,
+        "efficiency": 0.0
+      }
+    ],
+    "current_counts": [
+      228,
+      3,
+      1
+    ],
+    "threshold": [
+      700,
+      10,
+      10
+    ]
+  },
+  "recommendations": [
+    "GCが頻繁に発生しています。オブジェクトの再利用を増やしてください。",
+    "潜在的なメモリリークが検出されました。長時間実行時の監視を強化してください。"
+  ]
+}

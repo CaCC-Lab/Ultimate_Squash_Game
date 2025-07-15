@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Squash Game - RAF最適化版</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(45deg, #fff, #0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .game-wrapper {
+            position: relative;
+            margin: 20px auto;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #gameCanvas {
+            display: block;
+            border: 2px solid #0ff;
+            background: #000;
+            cursor: crosshair;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #2196F3, #00BCD4);
+            color: white;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        
+        .performance-monitor {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .perf-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        .perf-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        .perf-label {
+            font-size: 12px;
+            color: #888;
+            margin-bottom: 5px;
+        }
+        
+        .perf-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #0ff;
+        }
+        
+        .quality-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+        
+        .quality-0 { background: #f44336; }
+        .quality-1 { background: #ff9800; }
+        .quality-2 { background: #ffeb3b; }
+        .quality-3 { background: #4caf50; }
+        
+        .console {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            height: 150px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #0f0;
+            margin-top: 20px;
+            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .console-line {
+            margin: 2px 0;
+            padding: 2px 5px;
+            border-left: 3px solid transparent;
+        }
+        
+        .console-info { border-left-color: #2196F3; }
+        .console-success { border-left-color: #4CAF50; }
+        .console-warning { border-left-color: #FF9800; }
+        .console-error { border-left-color: #F44336; }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .loading-content {
+            text-align: center;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid #333;
+            border-top-color: #0ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .fps-graph {
+            width: 100%;
+            height: 60px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 5px;
+            margin-top: 10px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .fps-line {
+            position: absolute;
+            bottom: 0;
+            width: 2px;
+            background: #0ff;
+            transition: height 0.1s ease;
+        }
+        
+        .quality-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: center;
+            margin: 10px 0;
+        }
+        
+        select {
+            padding: 8px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid #0ff;
+        }
+        
+        input[type="range"] {
+            width: 150px;
+        }
+        
+        label {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <h2>🎮 RAF最適化版を読み込み中...</h2>
+            <p id="loadingStatus">Pyodideを初期化しています...</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <h1>🏓 Ultimate Squash Game - RAF最適化版</h1>
+        
+        <div class="game-wrapper">
+            <canvas id="gameCanvas" width="640" height="480"></canvas>
+        </div>
+        
+        <div class="controls">
+            <button id="startBtn" disabled>🚀 ゲーム開始</button>
+            <button id="pauseBtn" disabled>⏸️ ポーズ</button>
+            <button id="resetBtn" disabled>🔄 リセット</button>
+            <button id="perfBtn" disabled>📊 パフォーマンス</button>
+        </div>
+        
+        <div class="quality-controls">
+            <label>品質レベル:</label>
+            <select id="qualitySelect">
+                <option value="auto">自動</option>
+                <option value="0">最低</option>
+                <option value="1">低</option>
+                <option value="2">中</option>
+                <option value="3">高</option>
+            </select>
+            
+            <label>目標FPS:</label>
+            <input type="range" id="fpsSlider" min="15" max="120" value="60">
+            <span id="fpsValue">60</span>
+        </div>
+        
+        <div class="performance-monitor" id="perfMonitor" style="display: none;">
+            <h3>📊 パフォーマンスモニター</h3>
+            <div class="perf-grid">
+                <div class="perf-item">
+                    <div class="perf-label">FPS</div>
+                    <div class="perf-value" id="perfFPS">0</div>
+                </div>
+                <div class="perf-item">
+                    <div class="perf-label">フレーム時間</div>
+                    <div class="perf-value" id="perfFrameTime">0ms</div>
+                </div>
+                <div class="perf-item">
+                    <div class="perf-label">品質レベル</div>
+                    <div class="perf-value">
+                        <span id="perfQuality">3</span>
+                        <span class="quality-indicator quality-3" id="qualityIndicator"></span>
+                    </div>
+                </div>
+                <div class="perf-item">
+                    <div class="perf-label">スキップフレーム</div>
+                    <div class="perf-value" id="perfSkipped">0</div>
+                </div>
+                <div class="perf-item">
+                    <div class="perf-label">CPU使用率</div>
+                    <div class="perf-value" id="perfCPU">0%</div>
+                </div>
+                <div class="perf-item">
+                    <div class="perf-label">バジェット使用率</div>
+                    <div class="perf-value" id="perfBudget">0%</div>
+                </div>
+            </div>
+            <div class="fps-graph" id="fpsGraph"></div>
+        </div>
+        
+        <div class="console" id="console">
+            <div class="console-line console-info">🎮 RAF最適化デモコンソール</div>
+        </div>
+    </div>
+
+    <script>
+        // グローバル変数
+        let pyodide = null;
+        let gameController = null;
+        let isGameRunning = false;
+        let rafId = null;
+        let lastFrameTime = 0;
+        let fpsHistory = [];
+        
+        // UI要素
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d', { 
+            alpha: false,
+            desynchronized: true 
+        });
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const perfBtn = document.getElementById('perfBtn');
+        const perfMonitor = document.getElementById('perfMonitor');
+        const consoleDiv = document.getElementById('console');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loadingStatus = document.getElementById('loadingStatus');
+        
+        // 品質コントロール
+        const qualitySelect = document.getElementById('qualitySelect');
+        const fpsSlider = document.getElementById('fpsSlider');
+        const fpsValue = document.getElementById('fpsValue');
+        
+        // パフォーマンス表示
+        const perfElements = {
+            fps: document.getElementById('perfFPS'),
+            frameTime: document.getElementById('perfFrameTime'),
+            quality: document.getElementById('perfQuality'),
+            qualityIndicator: document.getElementById('qualityIndicator'),
+            skipped: document.getElementById('perfSkipped'),
+            cpu: document.getElementById('perfCPU'),
+            budget: document.getElementById('perfBudget')
+        };
+        
+        // コンソールログ
+        function logToConsole(message, type = 'info') {
+            const line = document.createElement('div');
+            line.className = `console-line console-${type}`;
+            line.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            consoleDiv.appendChild(line);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+        
+        // Pyodide初期化
+        async function initPyodide() {
+            try {
+                loadingStatus.textContent = 'Pyodideをダウンロード中...';
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                
+                loadingStatus.textContent = 'ゲームコードを読み込み中...';
+                
+                // RAF最適化版のコードを読み込み
+                await pyodide.runPython(`
+import json
+import random
+import math
+from typing import Dict, List, Optional, Tuple
+
+# RAF最適化版のViewをインポート（実際の実装を簡略化）
+class RAFOptimizedWebCanvasView:
+    def __init__(self, canvas_id="gameCanvas"):
+        self.canvas_id = canvas_id
+        self.canvas_width = 640
+        self.canvas_height = 480
+        self.target_fps = 60
+        self.quality_level = 3
+        self.auto_quality_adjustment = True
+        self.frame_count = 0
+        self.skipped_frames = 0
+        self.performance_stats = {}
+        
+    def prepare_frame(self, frame_data, delta_time):
+        commands = []
+        
+        # 品質レベルに応じた描画
+        if self.quality_level >= 2:
+            # 背景グラデーション
+            commands.append({
+                'type': 'gradient',
+                'x1': 0, 'y1': 0,
+                'x2': 0, 'y2': self.canvas_height,
+                'colors': ['#000428', '#004e92']
+            })
+        else:
+            # 単色背景
+            commands.append({
+                'type': 'clear',
+                'color': '#000'
+            })
+        
+        # ゲーム要素の描画
+        for ball in frame_data.get('balls', []):
+            if self.quality_level >= 3:
+                # 影付き
+                commands.append({
+                    'type': 'shadow',
+                    'blur': 10,
+                    'color': 'rgba(0,0,0,0.5)'
+                })
+            
+            commands.append({
+                'type': 'circle',
+                'x': ball['x'],
+                'y': ball['y'],
+                'radius': ball['radius'],
+                'color': '#fff'
+            })
+        
+        # ラケット
+        for racket in frame_data.get('rackets', []):
+            if self.quality_level >= 2:
+                # グロウエフェクト
+                commands.append({
+                    'type': 'glow',
+                    'x': racket['x'],
+                    'y': racket['y'],
+                    'width': racket['width'],
+                    'height': racket['height'],
+                    'color': '#0f0'
+                })
+            
+            commands.append({
+                'type': 'rect',
+                'x': racket['x'],
+                'y': racket['y'],
+                'width': racket['width'],
+                'height': racket['height'],
+                'color': racket.get('color', '#0f0')
+            })
+        
+        # パフォーマンス統計
+        self.frame_count += 1
+        self.performance_stats = {
+            'fps': min(60, 1 / max(0.001, delta_time)) if delta_time > 0 else 60,
+            'frame_time': delta_time * 1000,
+            'quality_level': self.quality_level,
+            'skipped_frames': self.skipped_frames
+        }
+        
+        return json.dumps({
+            'commands': commands,
+            'stats': self.performance_stats
+        })
+    
+    def set_quality_level(self, level):
+        self.quality_level = max(0, min(3, level))
+        self.auto_quality_adjustment = False
+    
+    def set_target_fps(self, fps):
+        self.target_fps = max(15, min(120, fps))
+
+# 簡易ゲームステート
+class GameState:
+    def __init__(self):
+        self.balls = [{
+            'x': 320,
+            'y': 240,
+            'dx': random.choice([-5, 5]),
+            'dy': random.choice([-3, 3]),
+            'radius': 10
+        }]
+        self.rackets = [
+            {'x': 50, 'y': 200, 'width': 10, 'height': 80, 'color': '#0f0'},
+            {'x': 580, 'y': 200, 'width': 10, 'height': 80, 'color': '#f00'}
+        ]
+        self.running = True
+        self.paused = False
+        
+    def update(self, delta_time):
+        if self.paused or not self.running:
+            return
+            
+        for ball in self.balls:
+            # ボールの移動
+            ball['x'] += ball['dx'] * delta_time * 60
+            ball['y'] += ball['dy'] * delta_time * 60
+            
+            # 壁との衝突
+            if ball['x'] <= ball['radius'] or ball['x'] >= 640 - ball['radius']:
+                ball['dx'] *= -1
+            if ball['y'] <= ball['radius'] or ball['y'] >= 480 - ball['radius']:
+                ball['dy'] *= -1
+    
+    def get_frame_data(self):
+        return {
+            'balls': self.balls,
+            'rackets': self.rackets,
+            'running': self.running,
+            'paused': self.paused
+        }
+
+# ゲームコントローラー
+class GameController:
+    def __init__(self):
+        self.game_state = GameState()
+        self.raf_view = RAFOptimizedWebCanvasView()
+        self.last_update_time = 0
+        
+    def update_and_render(self, current_time):
+        # デルタ時間計算（秒単位）
+        delta_time = (current_time - self.last_update_time) / 1000.0 if self.last_update_time > 0 else 0.016
+        self.last_update_time = current_time
+        
+        # ゲーム更新
+        self.game_state.update(delta_time)
+        
+        # フレーム準備
+        frame_data = self.game_state.get_frame_data()
+        return self.raf_view.prepare_frame(frame_data, delta_time)
+    
+    def handle_mouse_motion(self, x):
+        # マウスでラケット制御
+        if 0 <= x <= 640:
+            self.game_state.rackets[0]['y'] = max(0, min(400, x * 480 / 640 - 40))
+    
+    def toggle_pause(self):
+        self.game_state.paused = not self.game_state.paused
+    
+    def reset_game(self):
+        self.game_state = GameState()
+    
+    def set_quality(self, level):
+        if level == 'auto':
+            self.raf_view.auto_quality_adjustment = True
+        else:
+            self.raf_view.set_quality_level(int(level))
+    
+    def set_target_fps(self, fps):
+        self.raf_view.set_target_fps(fps)
+
+# グローバルインスタンス作成
+game_controller = GameController()
+print("RAF最適化ゲームコントローラー初期化完了")
+                `);
+                
+                loadingStatus.textContent = '初期化完了！';
+                logToConsole('✅ Pyodide初期化成功', 'success');
+                
+                // UIを有効化
+                startBtn.disabled = false;
+                pauseBtn.disabled = false;
+                resetBtn.disabled = false;
+                perfBtn.disabled = false;
+                
+                // ローディングオーバーレイを非表示
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                }, 500);
+                
+            } catch (error) {
+                logToConsole(`❌ 初期化エラー: ${error.message}`, 'error');
+                loadingStatus.textContent = 'エラーが発生しました';
+            }
+        }
+        
+        // 描画コマンド実行
+        function executeDrawCommands(commands) {
+            for (const cmd of commands) {
+                switch (cmd.type) {
+                    case 'clear':
+                        ctx.fillStyle = cmd.color;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        break;
+                        
+                    case 'gradient':
+                        const gradient = ctx.createLinearGradient(
+                            cmd.x1, cmd.y1, cmd.x2, cmd.y2
+                        );
+                        cmd.colors.forEach((color, i) => {
+                            gradient.addColorStop(i / (cmd.colors.length - 1), color);
+                        });
+                        ctx.fillStyle = gradient;
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        break;
+                        
+                    case 'circle':
+                        ctx.fillStyle = cmd.color;
+                        ctx.beginPath();
+                        ctx.arc(cmd.x, cmd.y, cmd.radius, 0, Math.PI * 2);
+                        ctx.fill();
+                        break;
+                        
+                    case 'rect':
+                        ctx.fillStyle = cmd.color;
+                        ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                        break;
+                        
+                    case 'shadow':
+                        ctx.shadowBlur = cmd.blur;
+                        ctx.shadowColor = cmd.color;
+                        break;
+                        
+                    case 'glow':
+                        ctx.save();
+                        ctx.shadowBlur = 20;
+                        ctx.shadowColor = cmd.color;
+                        ctx.fillStyle = cmd.color;
+                        ctx.globalAlpha = 0.3;
+                        ctx.fillRect(cmd.x - 10, cmd.y - 10, 
+                                   cmd.width + 20, cmd.height + 20);
+                        ctx.restore();
+                        break;
+                }
+            }
+            
+            // 影をリセット
+            ctx.shadowBlur = 0;
+        }
+        
+        // RequestAnimationFrameループ
+        function rafLoop(currentTime) {
+            if (!isGameRunning) return;
+            
+            try {
+                // Pythonから描画データ取得
+                const frameDataJson = pyodide.runPython(`
+game_controller.update_and_render(${currentTime})
+                `);
+                
+                const frameData = JSON.parse(frameDataJson);
+                
+                // 描画コマンド実行
+                if (frameData.commands) {
+                    executeDrawCommands(frameData.commands);
+                }
+                
+                // パフォーマンス統計更新
+                if (frameData.stats) {
+                    updatePerformanceDisplay(frameData.stats);
+                }
+                
+            } catch (error) {
+                logToConsole(`❌ フレームエラー: ${error.message}`, 'error');
+            }
+            
+            // 次フレーム
+            rafId = requestAnimationFrame(rafLoop);
+        }
+        
+        // パフォーマンス表示更新
+        function updatePerformanceDisplay(stats) {
+            perfElements.fps.textContent = Math.round(stats.fps);
+            perfElements.frameTime.textContent = stats.frame_time.toFixed(1) + 'ms';
+            perfElements.quality.textContent = stats.quality_level;
+            
+            // 品質インジケーター更新
+            perfElements.qualityIndicator.className = 
+                `quality-indicator quality-${stats.quality_level}`;
+            
+            perfElements.skipped.textContent = stats.skipped_frames || 0;
+            
+            // CPU使用率（簡易計算）
+            const cpuUsage = Math.min(100, (stats.frame_time / 16.67) * 100);
+            perfElements.cpu.textContent = cpuUsage.toFixed(0) + '%';
+            
+            // バジェット使用率
+            const budgetUsage = (stats.frame_time / (1000 / 60)) * 100;
+            perfElements.budget.textContent = budgetUsage.toFixed(0) + '%';
+            
+            // FPSグラフ更新
+            updateFPSGraph(stats.fps);
+        }
+        
+        // FPSグラフ更新
+        function updateFPSGraph(fps) {
+            fpsHistory.push(fps);
+            if (fpsHistory.length > 60) {
+                fpsHistory.shift();
+            }
+            
+            const graph = document.getElementById('fpsGraph');
+            graph.innerHTML = '';
+            
+            fpsHistory.forEach((fps, i) => {
+                const line = document.createElement('div');
+                line.className = 'fps-line';
+                line.style.left = (i * 100 / 60) + '%';
+                line.style.height = (fps / 120 * 100) + '%';
+                line.style.background = fps >= 55 ? '#0f0' : 
+                                      fps >= 30 ? '#ff0' : '#f00';
+                graph.appendChild(line);
+            });
+        }
+        
+        // ゲーム開始
+        function startGame() {
+            if (isGameRunning) return;
+            
+            isGameRunning = true;
+            lastFrameTime = performance.now();
+            logToConsole('🚀 RAF最適化ゲーム開始', 'success');
+            
+            rafLoop(lastFrameTime);
+            
+            startBtn.textContent = '⏹️ ゲーム停止';
+        }
+        
+        // ゲーム停止
+        function stopGame() {
+            if (!isGameRunning) return;
+            
+            isGameRunning = false;
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+            }
+            
+            logToConsole('⏹️ ゲーム停止', 'info');
+            startBtn.textContent = '🚀 ゲーム開始';
+        }
+        
+        // イベントリスナー設定
+        function setupEventListeners() {
+            startBtn.onclick = () => {
+                if (isGameRunning) {
+                    stopGame();
+                } else {
+                    startGame();
+                }
+            };
+            
+            pauseBtn.onclick = () => {
+                pyodide.runPython('game_controller.toggle_pause()');
+                logToConsole('⏸️ ポーズ切り替え', 'info');
+            };
+            
+            resetBtn.onclick = () => {
+                pyodide.runPython('game_controller.reset_game()');
+                logToConsole('🔄 ゲームリセット', 'info');
+            };
+            
+            perfBtn.onclick = () => {
+                const isVisible = perfMonitor.style.display !== 'none';
+                perfMonitor.style.display = isVisible ? 'none' : 'block';
+                perfBtn.textContent = isVisible ? '📊 パフォーマンス' : '📊 閉じる';
+            };
+            
+            // 品質設定
+            qualitySelect.onchange = (e) => {
+                pyodide.runPython(`game_controller.set_quality('${e.target.value}')`);
+                logToConsole(`🎨 品質レベル: ${e.target.value}`, 'info');
+            };
+            
+            // FPS設定
+            fpsSlider.oninput = (e) => {
+                const fps = parseInt(e.target.value);
+                fpsValue.textContent = fps;
+                pyodide.runPython(`game_controller.set_target_fps(${fps})`);
+            };
+            
+            // マウス操作
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isGameRunning) return;
+                
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                
+                pyodide.runPython(`game_controller.handle_mouse_motion(${x})`);
+            });
+            
+            // キーボード操作
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case ' ':
+                        pauseBtn.click();
+                        break;
+                    case 'r':
+                    case 'R':
+                        resetBtn.click();
+                        break;
+                    case 'Escape':
+                        if (isGameRunning) stopGame();
+                        break;
+                }
+            });
+        }
+        
+        // 初期化実行
+        initPyodide().then(() => {
+            setupEventListeners();
+            logToConsole('🎮 RAF最適化デモ準備完了', 'success');
+            logToConsole('📊 パフォーマンスモニターで詳細を確認できます', 'info');
+        });
+    </script>
+</body>
+</html>

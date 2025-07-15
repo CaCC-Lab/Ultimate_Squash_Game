@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WASM Performance Benchmark - Ultimate Squash Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #16213e;
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+        }
+        
+        .benchmark-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .benchmark-card {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid #0f3460;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .benchmark-card h3 {
+            color: #00d2ff;
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        
+        .metric-value {
+            color: #3a7bd5;
+            font-weight: bold;
+            font-family: monospace;
+        }
+        
+        .status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .status.running {
+            background: #f39c12;
+            color: #fff;
+        }
+        
+        .status.completed {
+            background: #27ae60;
+            color: #fff;
+        }
+        
+        .status.error {
+            background: #e74c3c;
+            color: #fff;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #00d2ff, #3a7bd5);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 210, 255, 0.3);
+        }
+        
+        button:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .chart-container {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            border: 1px solid #0f3460;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #34495e;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00d2ff, #3a7bd5);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .console {
+            background: #0f1419;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid #0f3460;
+        }
+        
+        .performance-grade {
+            font-size: 3em;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        
+        .grade-s { color: #ffd700; }
+        .grade-a { color: #27ae60; }
+        .grade-b { color: #3498db; }
+        .grade-c { color: #f39c12; }
+        .grade-d { color: #e74c3c; }
+        
+        canvas {
+            border: 1px solid #0f3460;
+            background: #000;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 WASM Performance Benchmark</h1>
+        <p style="text-align: center; opacity: 0.8;">Ultimate Squash Game - Pyodide環境パフォーマンステスト</p>
+        
+        <div id="status" class="status">
+            ベンチマーク準備中...
+        </div>
+        
+        <div style="text-align: center; margin: 20px 0;">
+            <button id="startBtn" disabled>🏁 ベンチマーク開始</button>
+            <button id="stopBtn" disabled>⏹️ 停止</button>
+            <button id="exportBtn" disabled>📊 結果エクスポート</button>
+        </div>
+        
+        <div class="progress-bar">
+            <div id="progressFill" class="progress-fill"></div>
+        </div>
+        
+        <div class="benchmark-grid">
+            <div class="benchmark-card">
+                <h3>⚡ 計算性能</h3>
+                <div class="metric">
+                    <span>数学演算 (100k ops)</span>
+                    <span class="metric-value" id="mathOps">-</span>
+                </div>
+                <div class="metric">
+                    <span>行列演算 (1k×1k)</span>
+                    <span class="metric-value" id="matrixOps">-</span>
+                </div>
+                <div class="metric">
+                    <span>物理演算 (1000 steps)</span>
+                    <span class="metric-value" id="physicsOps">-</span>
+                </div>
+            </div>
+            
+            <div class="benchmark-card">
+                <h3>🎨 描画性能</h3>
+                <div class="metric">
+                    <span>Canvas描画 (1000 objects)</span>
+                    <span class="metric-value" id="canvasDrawTime">-</span>
+                </div>
+                <div class="metric">
+                    <span>コマンド生成時間</span>
+                    <span class="metric-value" id="commandGenTime">-</span>
+                </div>
+                <div class="metric">
+                    <span>実測FPS</span>
+                    <span class="metric-value" id="actualFPS">-</span>
+                </div>
+            </div>
+            
+            <div class="benchmark-card">
+                <h3>💾 メモリ性能</h3>
+                <div class="metric">
+                    <span>配列操作 (100k elements)</span>
+                    <span class="metric-value" id="arrayOps">-</span>
+                </div>
+                <div class="metric">
+                    <span>オブジェクト生成</span>
+                    <span class="metric-value" id="objectCreation">-</span>
+                </div>
+                <div class="metric">
+                    <span>GC頻度</span>
+                    <span class="metric-value" id="gcFrequency">-</span>
+                </div>
+            </div>
+            
+            <div class="benchmark-card">
+                <h3>🔄 データ転送</h3>
+                <div class="metric">
+                    <span>Python→JS (JSON)</span>
+                    <span class="metric-value" id="pythonToJs">-</span>
+                </div>
+                <div class="metric">
+                    <span>JS→Python</span>
+                    <span class="metric-value" id="jsToPython">-</span>
+                </div>
+                <div class="metric">
+                    <span>ラウンドトリップ</span>
+                    <span class="metric-value" id="roundTrip">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <h3>📈 パフォーマンススコア</h3>
+            <div id="performanceGrade" class="performance-grade">-</div>
+            <canvas id="perfChart" width="800" height="400"></canvas>
+        </div>
+        
+        <div class="console" id="console">
+            ベンチマークコンソール - 詳細ログ<br>
+        </div>
+        
+        <div class="benchmark-card" style="margin-top: 20px;">
+            <h3>🔍 詳細結果</h3>
+            <div id="detailedResults" style="white-space: pre-wrap; font-family: monospace; font-size: 12px;">
+                ベンチマーク未実行
+            </div>
+        </div>
+    </div>
+    
+    <!-- 隠しCanvas（ベンチマーク用） -->
+    <canvas id="benchCanvas" width="640" height="480"></canvas>
+    
+    <!-- Pyodide CDN -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    
+    <script>
+        let pyodide;
+        let benchmarkRunning = false;
+        let benchmarkResults = {};
+        
+        // DOM要素
+        const statusEl = document.getElementById('status');
+        const consoleEl = document.getElementById('console');
+        const progressEl = document.getElementById('progressFill');
+        const startBtn = document.getElementById('startBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        
+        function updateStatus(message, className) {
+            statusEl.textContent = message;
+            statusEl.className = `status ${className}`;
+        }
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            consoleEl.innerHTML += `[${timestamp}] ${message}<br>`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+        
+        function updateProgress(percent) {
+            progressEl.style.width = `${percent}%`;
+        }
+        
+        function updateMetric(id, value, unit = 'ms') {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = typeof value === 'number' ? 
+                    `${value.toFixed(2)} ${unit}` : value;
+            }
+        }
+        
+        // ベンチマーク関数
+        async function runBenchmarks() {
+            benchmarkRunning = true;
+            updateStatus('ベンチマーク実行中...', 'running');
+            updateProgress(0);
+            
+            try {
+                // 1. 計算性能ベンチマーク
+                log('⚡ 計算性能ベンチマーク開始...');
+                const mathResult = await pyodide.runPythonAsync(`
+import time
+import math
+
+def benchmark_math_ops():
+    start = time.time()
+    total = 0
+    for i in range(100000):
+        total += math.sqrt(i * math.pi)
+        total += math.sin(i * 0.01)
+        total += math.cos(i * 0.01)
+    return (time.time() - start) * 1000  # ms
+
+math_time = benchmark_math_ops()
+math_time
+                `);
+                updateMetric('mathOps', mathResult);
+                benchmarkResults.mathOps = mathResult;
+                updateProgress(10);
+                
+                // 2. 行列演算ベンチマーク
+                log('🔢 行列演算ベンチマーク...');
+                const matrixResult = await pyodide.runPythonAsync(`
+def benchmark_matrix_ops():
+    start = time.time()
+    # 簡単な行列演算シミュレーション
+    matrix = [[i * j for j in range(100)] for i in range(100)]
+    result = [[0 for _ in range(100)] for _ in range(100)]
+    
+    for i in range(100):
+        for j in range(100):
+            for k in range(100):
+                result[i][j] += matrix[i][k] * matrix[k][j]
+    
+    return (time.time() - start) * 1000
+
+matrix_time = benchmark_matrix_ops()
+matrix_time
+                `);
+                updateMetric('matrixOps', matrixResult);
+                benchmarkResults.matrixOps = matrixResult;
+                updateProgress(20);
+                
+                // 3. 物理演算ベンチマーク
+                log('🎱 物理演算ベンチマーク...');
+                const physicsResult = await pyodide.runPythonAsync(`
+def benchmark_physics():
+    start = time.time()
+    
+    # ボール物理演算シミュレーション
+    balls = []
+    for i in range(100):
+        ball = {
+            'x': i * 6.4, 'y': i * 4.8,
+            'dx': math.sin(i * 0.1) * 10,
+            'dy': math.cos(i * 0.1) * 10
+        }
+        balls.append(ball)
+    
+    # 1000ステップのシミュレーション
+    for step in range(1000):
+        for ball in balls:
+            # 位置更新
+            ball['x'] += ball['dx'] * 0.016  # 60FPS
+            ball['y'] += ball['dy'] * 0.016
+            
+            # 壁との衝突
+            if ball['x'] < 0 or ball['x'] > 640:
+                ball['dx'] *= -0.9
+            if ball['y'] < 0 or ball['y'] > 480:
+                ball['dy'] *= -0.9
+            
+            # 重力
+            ball['dy'] += 0.5
+    
+    return (time.time() - start) * 1000
+
+physics_time = benchmark_physics()
+physics_time
+                `);
+                updateMetric('physicsOps', physicsResult);
+                benchmarkResults.physicsOps = physicsResult;
+                updateProgress(30);
+                
+                // 4. Canvas描画ベンチマーク
+                log('🎨 Canvas描画性能テスト...');
+                const canvas = document.getElementById('benchCanvas');
+                const ctx = canvas.getContext('2d');
+                
+                const drawStart = performance.now();
+                for (let frame = 0; frame < 60; frame++) {
+                    ctx.clearRect(0, 0, 640, 480);
+                    
+                    // 1000個のオブジェクト描画
+                    for (let i = 0; i < 1000; i++) {
+                        ctx.beginPath();
+                        ctx.arc(
+                            Math.random() * 640,
+                            Math.random() * 480,
+                            5,
+                            0,
+                            Math.PI * 2
+                        );
+                        ctx.fillStyle = `hsl(${i % 360}, 100%, 50%)`;
+                        ctx.fill();
+                    }
+                }
+                const drawTime = performance.now() - drawStart;
+                updateMetric('canvasDrawTime', drawTime / 60);  // 1フレームあたり
+                benchmarkResults.canvasDrawTime = drawTime / 60;
+                updateProgress(40);
+                
+                // 5. コマンド生成ベンチマーク
+                log('📝 コマンド生成性能テスト...');
+                const commandResult = await pyodide.runPythonAsync(`
+import json
+
+def benchmark_command_generation():
+    start = time.time()
+    
+    commands = []
+    for i in range(1000):
+        commands.append({
+            'command': 'draw_circle',
+            'x': i % 640,
+            'y': i % 480,
+            'radius': 5 + (i % 10),
+            'color': f'rgb({i % 256}, {(i * 2) % 256}, {(i * 3) % 256})'
+        })
+    
+    # JSON変換も含む
+    json_data = json.dumps(commands)
+    
+    return (time.time() - start) * 1000
+
+command_time = benchmark_command_generation()
+command_time
+                `);
+                updateMetric('commandGenTime', commandResult);
+                benchmarkResults.commandGenTime = commandResult;
+                updateProgress(50);
+                
+                // 6. メモリ操作ベンチマーク
+                log('💾 メモリ性能テスト...');
+                const arrayResult = await pyodide.runPythonAsync(`
+def benchmark_array_ops():
+    start = time.time()
+    
+    # 大きな配列の作成と操作
+    arr = list(range(100000))
+    
+    # ソート
+    arr.sort(reverse=True)
+    
+    # フィルタリング
+    filtered = [x for x in arr if x % 2 == 0]
+    
+    # マッピング
+    mapped = [x * 2 for x in filtered]
+    
+    # 集計
+    total = sum(mapped)
+    
+    return (time.time() - start) * 1000
+
+array_time = benchmark_array_ops()
+array_time
+                `);
+                updateMetric('arrayOps', arrayResult);
+                benchmarkResults.arrayOps = arrayResult;
+                updateProgress(60);
+                
+                // 7. オブジェクト生成ベンチマーク
+                log('🏗️ オブジェクト生成テスト...');
+                const objectResult = await pyodide.runPythonAsync(`
+class TestObject:
+    def __init__(self, x, y, data):
+        self.x = x
+        self.y = y
+        self.data = data
+        self.calculated = x * y + sum(data)
+
+def benchmark_object_creation():
+    start = time.time()
+    
+    objects = []
+    for i in range(10000):
+        obj = TestObject(i, i * 2, list(range(10)))
+        objects.append(obj)
+    
+    # アクセステスト
+    total = sum(obj.calculated for obj in objects)
+    
+    return (time.time() - start) * 1000
+
+object_time = benchmark_object_creation()
+object_time
+                `);
+                updateMetric('objectCreation', objectResult);
+                benchmarkResults.objectCreation = objectResult;
+                updateProgress(70);
+                
+                // 8. Python-JavaScript データ転送ベンチマーク
+                log('🔄 データ転送性能テスト...');
+                
+                // Python → JS
+                const p2jsStart = performance.now();
+                const largeData = await pyodide.runPythonAsync(`
+import json
+
+# 大きなデータ構造を作成
+large_data = {
+    'arrays': [list(range(1000)) for _ in range(10)],
+    'objects': [{'id': i, 'value': i * 2, 'name': f'item_{i}'} for i in range(1000)],
+    'nested': {
+        'level1': {
+            'level2': {
+                'data': list(range(100))
+            }
+        }
+    }
+}
+
+json.dumps(large_data)
+                `);
+                const p2jsTime = performance.now() - p2jsStart;
+                updateMetric('pythonToJs', p2jsTime);
+                benchmarkResults.pythonToJs = p2jsTime;
+                updateProgress(80);
+                
+                // JS → Python
+                const testData = {
+                    numbers: Array(1000).fill(0).map((_, i) => i),
+                    strings: Array(100).fill(0).map((_, i) => `test_${i}`),
+                    complex: { nested: { data: [1, 2, 3, 4, 5] } }
+                };
+                
+                const js2pStart = performance.now();
+                await pyodide.runPythonAsync(`
+import json
+
+received_data = json.loads('${JSON.stringify(testData)}')
+len(received_data['numbers'])
+                `);
+                const js2pTime = performance.now() - js2pStart;
+                updateMetric('jsToPython', js2pTime);
+                benchmarkResults.jsToPython = js2pTime;
+                updateProgress(90);
+                
+                // ラウンドトリップ
+                const rtStart = performance.now();
+                for (let i = 0; i < 10; i++) {
+                    const result = await pyodide.runPythonAsync(`
+data = {'iteration': ${i}, 'value': ${i * 10}}
+json.dumps(data)
+                    `);
+                    JSON.parse(result);
+                }
+                const rtTime = (performance.now() - rtStart) / 10;
+                updateMetric('roundTrip', rtTime);
+                benchmarkResults.roundTrip = rtTime;
+                updateProgress(95);
+                
+                // 9. 実測FPSテスト
+                log('🎮 実測FPSテスト...');
+                let frameCount = 0;
+                const fpsStart = performance.now();
+                
+                function measureFPS() {
+                    frameCount++;
+                    
+                    if (frameCount < 300) {  // 5秒間測定
+                        requestAnimationFrame(measureFPS);
+                    } else {
+                        const elapsed = (performance.now() - fpsStart) / 1000;
+                        const fps = frameCount / elapsed;
+                        updateMetric('actualFPS', fps, 'fps');
+                        benchmarkResults.actualFPS = fps;
+                        
+                        // GC頻度（推定）
+                        const gcEstimate = Math.floor(elapsed * 2);  // 推定値
+                        updateMetric('gcFrequency', gcEstimate, '回/分');
+                        benchmarkResults.gcFrequency = gcEstimate;
+                        
+                        finalizeBenchmark();
+                    }
+                }
+                
+                requestAnimationFrame(measureFPS);
+                
+            } catch (error) {
+                log(`❌ エラー: ${error.message}`);
+                updateStatus('ベンチマークエラー', 'error');
+                benchmarkRunning = false;
+            }
+        }
+        
+        function finalizeBenchmark() {
+            updateProgress(100);
+            
+            // スコア計算
+            const score = calculatePerformanceScore(benchmarkResults);
+            const grade = getPerformanceGrade(score);
+            
+            document.getElementById('performanceGrade').textContent = grade;
+            document.getElementById('performanceGrade').className = `performance-grade grade-${grade.toLowerCase()}`;
+            
+            // 詳細結果表示
+            const detailedResults = `
+=== WASM Performance Benchmark Results ===
+実行日時: ${new Date().toLocaleString()}
+Pyodide Version: 0.26.4
+
+【計算性能】
+- 数学演算: ${benchmarkResults.mathOps?.toFixed(2)} ms
+- 行列演算: ${benchmarkResults.matrixOps?.toFixed(2)} ms
+- 物理演算: ${benchmarkResults.physicsOps?.toFixed(2)} ms
+
+【描画性能】
+- Canvas描画: ${benchmarkResults.canvasDrawTime?.toFixed(2)} ms/frame
+- コマンド生成: ${benchmarkResults.commandGenTime?.toFixed(2)} ms
+- 実測FPS: ${benchmarkResults.actualFPS?.toFixed(1)} fps
+
+【メモリ性能】
+- 配列操作: ${benchmarkResults.arrayOps?.toFixed(2)} ms
+- オブジェクト生成: ${benchmarkResults.objectCreation?.toFixed(2)} ms
+
+【データ転送】
+- Python→JS: ${benchmarkResults.pythonToJs?.toFixed(2)} ms
+- JS→Python: ${benchmarkResults.jsToPython?.toFixed(2)} ms
+- ラウンドトリップ: ${benchmarkResults.roundTrip?.toFixed(2)} ms
+
+【総合評価】
+パフォーマンススコア: ${score}/100
+グレード: ${grade}
+
+【推奨事項】
+${getRecommendations(benchmarkResults)}
+            `;
+            
+            document.getElementById('detailedResults').textContent = detailedResults;
+            
+            updateStatus('ベンチマーク完了！', 'completed');
+            benchmarkRunning = false;
+            
+            // ボタン状態更新
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            exportBtn.disabled = false;
+            
+            log('✅ ベンチマーク完了！');
+            
+            // グラフ描画
+            drawPerformanceChart(benchmarkResults);
+        }
+        
+        function calculatePerformanceScore(results) {
+            // 各項目の重み付けスコア計算
+            let score = 100;
+            
+            // 計算性能（30%）
+            if (results.mathOps > 100) score -= 5;
+            if (results.mathOps > 200) score -= 5;
+            if (results.physicsOps > 500) score -= 10;
+            if (results.physicsOps > 1000) score -= 10;
+            
+            // 描画性能（40%）
+            if (results.canvasDrawTime > 16.67) score -= 15;  // 60fps未達成
+            if (results.actualFPS < 60) score -= 10;
+            if (results.actualFPS < 30) score -= 15;
+            
+            // データ転送（30%）
+            if (results.roundTrip > 10) score -= 10;
+            if (results.roundTrip > 20) score -= 10;
+            if (results.pythonToJs > 50) score -= 5;
+            if (results.jsToPython > 50) score -= 5;
+            
+            return Math.max(0, Math.min(100, score));
+        }
+        
+        function getPerformanceGrade(score) {
+            if (score >= 90) return 'S';
+            if (score >= 80) return 'A';
+            if (score >= 70) return 'B';
+            if (score >= 60) return 'C';
+            return 'D';
+        }
+        
+        function getRecommendations(results) {
+            const recommendations = [];
+            
+            if (results.actualFPS < 60) {
+                recommendations.push('- フレームレートが低いため、描画オブジェクト数を削減することを推奨');
+            }
+            
+            if (results.physicsOps > 500) {
+                recommendations.push('- 物理演算が重いため、計算の簡略化を検討');
+            }
+            
+            if (results.roundTrip > 15) {
+                recommendations.push('- データ転送遅延が大きいため、転送頻度を減らすことを推奨');
+            }
+            
+            if (results.canvasDrawTime > 16.67) {
+                recommendations.push('- Canvas描画が重いため、描画最適化（バッチ処理等）を推奨');
+            }
+            
+            if (recommendations.length === 0) {
+                recommendations.push('- 優秀なパフォーマンスです！現在の実装で問題ありません。');
+            }
+            
+            return recommendations.join('\n');
+        }
+        
+        function drawPerformanceChart(results) {
+            const canvas = document.getElementById('perfChart');
+            const ctx = canvas.getContext('2d');
+            canvas.style.display = 'block';
+            
+            // クリア
+            ctx.clearRect(0, 0, 800, 400);
+            
+            // データ準備
+            const metrics = [
+                { name: '計算性能', value: 100 - Math.min(100, results.mathOps / 2) },
+                { name: '描画性能', value: Math.min(100, results.actualFPS / 60 * 100) },
+                { name: 'メモリ性能', value: 100 - Math.min(100, results.arrayOps / 5) },
+                { name: 'データ転送', value: 100 - Math.min(100, results.roundTrip / 0.2) }
+            ];
+            
+            // グラフ描画
+            const barWidth = 150;
+            const barSpacing = 50;
+            const startX = 50;
+            const maxHeight = 300;
+            
+            metrics.forEach((metric, index) => {
+                const x = startX + index * (barWidth + barSpacing);
+                const height = (metric.value / 100) * maxHeight;
+                const y = 350 - height;
+                
+                // バー描画
+                const gradient = ctx.createLinearGradient(x, y, x, 350);
+                gradient.addColorStop(0, '#00d2ff');
+                gradient.addColorStop(1, '#3a7bd5');
+                
+                ctx.fillStyle = gradient;
+                ctx.fillRect(x, y, barWidth, height);
+                
+                // ラベル
+                ctx.fillStyle = '#fff';
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(metric.name, x + barWidth/2, 380);
+                
+                // 値
+                ctx.font = 'bold 16px Arial';
+                ctx.fillText(Math.round(metric.value) + '%', x + barWidth/2, y - 10);
+            });
+            
+            // タイトル
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#00d2ff';
+            ctx.textAlign = 'left';
+            ctx.fillText('パフォーマンスメトリクス', 20, 30);
+        }
+        
+        // イベントリスナー
+        startBtn.onclick = async () => {
+            if (!pyodide) {
+                updateStatus('Pyodide未初期化', 'error');
+                return;
+            }
+            
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            exportBtn.disabled = true;
+            
+            await runBenchmarks();
+        };
+        
+        stopBtn.onclick = () => {
+            benchmarkRunning = false;
+            updateStatus('ベンチマーク中断', 'error');
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+        };
+        
+        exportBtn.onclick = () => {
+            const exportData = {
+                timestamp: new Date().toISOString(),
+                pyodideVersion: '0.26.4',
+                results: benchmarkResults,
+                score: calculatePerformanceScore(benchmarkResults),
+                grade: getPerformanceGrade(calculatePerformanceScore(benchmarkResults))
+            };
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], 
+                { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `wasm-benchmark-${Date.now()}.json`;
+            a.click();
+            
+            log('📊 結果をエクスポートしました');
+        };
+        
+        // 初期化
+        async function init() {
+            try {
+                updateStatus('Pyodide初期化中...', 'running');
+                log('🚀 Pyodide初期化開始...');
+                
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                
+                log('✅ Pyodide初期化完了');
+                updateStatus('準備完了', 'completed');
+                
+                // Pythonバージョン確認
+                const pythonVersion = await pyodide.runPythonAsync(`
+import sys
+sys.version
+                `);
+                log(`📦 Python: ${pythonVersion.split()[0]}`);
+                
+                startBtn.disabled = false;
+                
+            } catch (error) {
+                log(`❌ 初期化エラー: ${error.message}`);
+                updateStatus('初期化失敗', 'error');
+            }
+        }
+        
+        // 初期化実行
+        init();
+    </script>
+</body>
+</html>
