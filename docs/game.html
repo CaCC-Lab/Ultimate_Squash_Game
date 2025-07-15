@@ -318,28 +318,46 @@ this.optimizationStats = stats;
 }
 
 updateDisplay() {
-document.getElementById('fpsCounter').textContent = this.fps;
-document.getElementById('memoryUsage').textContent = this.memoryUsage + 'MB';
+// Optimize DOM updates - cache elements and update only text content
+if (!this._cachedElements) {
+this._cachedElements = {
+fpsCounter: document.getElementById('fpsCounter'),
+memoryUsage: document.getElementById('memoryUsage'),
+perfInfo: document.getElementById('performanceInfo')
+};
+// Initialize performance info with proper structure for efficient updates
+if (this._cachedElements.perfInfo) {
+this._cachedElements.perfInfo.innerHTML = 
+'FPS: <span id="perf-fps">0</span> | Memory: <span id="perf-memory">0</span>MB' +
+'<span id="perf-skipped"></span><span id="perf-reuse"></span>';
+this._cachedElements.perfFps = document.getElementById('perf-fps');
+this._cachedElements.perfMemory = document.getElementById('perf-memory');
+this._cachedElements.perfSkipped = document.getElementById('perf-skipped');
+this._cachedElements.perfReuse = document.getElementById('perf-reuse');
+}
+}
+
+// Update individual text content instead of innerHTML
+if (this._cachedElements.fpsCounter) {
+this._cachedElements.fpsCounter.textContent = this.fps;
+}
+if (this._cachedElements.memoryUsage) {
+this._cachedElements.memoryUsage.textContent = this.memoryUsage + 'MB';
+}
+
+// Update performance info with individual span updates
+if (this._cachedElements.perfFps) {
+this._cachedElements.perfFps.textContent = this.fps;
+this._cachedElements.perfMemory.textContent = this.memoryUsage;
+}
 
 // Display optimization stats if available
-if (this.optimizationStats) {
+if (this.optimizationStats && this._cachedElements.perfSkipped) {
 const skipRate = this.optimizationStats.skipped_updates || 0;
 const reuseRate = this.optimizationStats.reuse_rate || 0;
 
-// Add optimization info to performance display
-let perfText = `FPS: ${this.fps} | Memory: ${this.memoryUsage}MB`;
-if (skipRate > 0) {
-perfText += ` | Skipped: ${skipRate}%`;
-}
-if (reuseRate > 0) {
-perfText += ` | Reuse: ${reuseRate.toFixed(1)}%`;
-}
-
-// Update the entire performance info text
-const perfInfo = document.getElementById('performanceInfo');
-if (perfInfo) {
-perfInfo.innerHTML = perfText;
-}
+this._cachedElements.perfSkipped.textContent = skipRate > 0 ? ` | Skipped: ${skipRate}%` : '';
+this._cachedElements.perfReuse.textContent = reuseRate > 0 ? ` | Reuse: ${reuseRate.toFixed(1)}%` : '';
 }
 }
 }
@@ -678,28 +696,53 @@ function drawFrame(frameData) {
     }
 }
 
+// Cache for grid drawing
+let gridCache = null;
+let gridCacheSpacing = 0;
+let gridCacheColor = '';
+
 function drawGrid(spacing, color) {
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 0.5;
-    
-    // Vertical lines
-    for (let x = 0; x <= canvas.width; x += spacing) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, canvas.height);
-        ctx.stroke();
+    // Check if we need to update the cache
+    if (!gridCache || gridCacheSpacing !== spacing || gridCacheColor !== color || 
+        gridCache.width !== canvas.width || gridCache.height !== canvas.height) {
+        
+        // Create or resize off-screen canvas
+        if (!gridCache) {
+            gridCache = document.createElement('canvas');
+        }
+        gridCache.width = canvas.width;
+        gridCache.height = canvas.height;
+        gridCacheSpacing = spacing;
+        gridCacheColor = color;
+        
+        // Draw grid to off-screen canvas
+        const cacheCtx = gridCache.getContext('2d', { alpha: true });
+        cacheCtx.clearRect(0, 0, gridCache.width, gridCache.height);
+        cacheCtx.save();
+        cacheCtx.strokeStyle = color;
+        cacheCtx.lineWidth = 0.5;
+        
+        // Vertical lines
+        for (let x = 0; x <= gridCache.width; x += spacing) {
+            cacheCtx.beginPath();
+            cacheCtx.moveTo(x, 0);
+            cacheCtx.lineTo(x, gridCache.height);
+            cacheCtx.stroke();
+        }
+        
+        // Horizontal lines
+        for (let y = 0; y <= gridCache.height; y += spacing) {
+            cacheCtx.beginPath();
+            cacheCtx.moveTo(0, y);
+            cacheCtx.lineTo(gridCache.width, y);
+            cacheCtx.stroke();
+        }
+        
+        cacheCtx.restore();
     }
     
-    // Horizontal lines
-    for (let y = 0; y <= canvas.height; y += spacing) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(canvas.width, y);
-        ctx.stroke();
-    }
-    
-    ctx.restore();
+    // Draw cached grid to main canvas
+    ctx.drawImage(gridCache, 0, 0);
 }
 // Performance-optimized game loop
 let lastFrameTime = 0;
@@ -762,6 +805,12 @@ window.addEventListener('unhandledrejection', function(event) {
 showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
 });
 
+// Handle window resize to clear grid cache
+window.addEventListener('resize', function() {
+    // Clear grid cache on resize to force redraw with new dimensions
+    gridCache = null;
+});
+
 // Cleanup on page unload
 window.addEventListener('beforeunload', function() {
     if (gameLoopId) {
@@ -771,6 +820,10 @@ window.addEventListener('beforeunload', function() {
         try {
             pyodide.runPython('game_state = None\ngame_view = None');
         } catch (e) {}
+    }
+    // Clean up off-screen canvases
+    if (gridCache) {
+        gridCache = null;
     }
 });
 
