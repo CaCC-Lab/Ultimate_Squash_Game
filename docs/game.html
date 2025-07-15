@@ -296,6 +296,7 @@ this.frameCount = 0;
 this.lastTime = performance.now();
 this.fps = 60;
 this.memoryUsage = 0;
+this.optimizationStats = null;
 }
 update() {
 this.frameCount++;
@@ -310,9 +311,36 @@ this.memoryUsage = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
 this.updateDisplay();
 }
 }
+updateOptimizationStats(stats) {
+if (stats) {
+this.optimizationStats = stats;
+}
+}
+
 updateDisplay() {
 document.getElementById('fpsCounter').textContent = this.fps;
 document.getElementById('memoryUsage').textContent = this.memoryUsage + 'MB';
+
+// Display optimization stats if available
+if (this.optimizationStats) {
+const skipRate = this.optimizationStats.skipped_updates || 0;
+const reuseRate = this.optimizationStats.reuse_rate || 0;
+
+// Add optimization info to performance display
+let perfText = `FPS: ${this.fps} | Memory: ${this.memoryUsage}MB`;
+if (skipRate > 0) {
+perfText += ` | Skipped: ${skipRate}%`;
+}
+if (reuseRate > 0) {
+perfText += ` | Reuse: ${reuseRate.toFixed(1)}%`;
+}
+
+// Update the entire performance info text
+const perfInfo = document.getElementById('performanceInfo');
+if (perfInfo) {
+perfInfo.innerHTML = perfText;
+}
+}
 }
 }
 function showError(message, details = '') {
@@ -346,7 +374,15 @@ updateLoadingProgress('ゲームコードを読み込み中...');
 await loadGameCode();
 updateLoadingProgress('ゲームを初期化中...');
 canvas = document.getElementById('gameCanvas');
-ctx = canvas.getContext('2d');
+ctx = canvas.getContext('2d', {
+    alpha: false, // Disable transparency for better performance
+    desynchronized: true, // Reduce latency
+    willReadFrequently: false // We're not reading pixels
+});
+
+// Set performance-oriented rendering settings
+ctx.imageSmoothingEnabled = false; // Disable antialiasing for pixel-perfect rendering
+
 performanceMonitor = new PerformanceMonitor();
 await initializeGameState();
 updateLoadingProgress('ゲーム開始準備完了');
@@ -515,43 +551,193 @@ game_state = PygameGameState()
 game_state.add_observer(game_view)
 `);
 }
+// Optimized drawing function that handles differential rendering
+const drawState = {
+    lastFrameData: null,
+    staticLayer: null,
+    dynamicLayer: null,
+    currentLayer: 'dynamic',
+    dirtyRegions: [],
+    skipFrame: false
+};
+
 function drawFrame(frameData) {
-try {
-const data = JSON.parse(frameData);
-const commands = data.draw_commands || [];
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-for (const cmd of commands) {
-switch (cmd.type) {
-case 'fillRect':
-ctx.fillStyle = cmd.color;
-ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
-break;
-case 'fillCircle':
-ctx.fillStyle = cmd.color;
-ctx.beginPath();
-ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
-ctx.fill();
-break;
-case 'fillText':
-ctx.fillStyle = cmd.color;
-ctx.font = cmd.font;
-ctx.fillText(cmd.text, cmd.x, cmd.y);
-break;
+    try {
+        const data = JSON.parse(frameData);
+        const commands = data.draw_commands || [];
+        const perfStats = data.optimization_stats || {};
+        
+        // Update performance monitor with optimization stats
+        if (performanceMonitor && perfStats) {
+            performanceMonitor.updateOptimizationStats(perfStats);
+        }
+        
+        // Process commands with optimization support
+        for (const cmd of commands) {
+            switch (cmd.command || cmd.type) {
+                case 'skip_frame':
+                    // Frame skipped due to no changes
+                    drawState.skipFrame = true;
+                    return;
+                    
+                case 'set_mode':
+                    if (cmd.mode === 'differential') {
+                        drawState.dirtyRegions = cmd.regions || [];
+                        // Clear only dirty regions
+                        for (const region of drawState.dirtyRegions) {
+                            ctx.clearRect(region[0], region[1], region[2], region[3]);
+                        }
+                    }
+                    break;
+                    
+                case 'set_layer':
+                    drawState.currentLayer = cmd.layer;
+                    break;
+                    
+                case 'clear':
+                    ctx.fillStyle = cmd.color || 'rgb(240, 240, 240)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    break;
+                    
+                case 'draw_grid':
+                    drawGrid(cmd.spacing, cmd.color);
+                    break;
+                    
+                case 'draw_ui_background':
+                    ctx.fillStyle = cmd.color;
+                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                    break;
+                    
+                case 'draw_batch_circles':
+                    // Batch draw circles for performance
+                    ctx.save();
+                    for (const circle of cmd.circles) {
+                        ctx.fillStyle = circle.color;
+                        ctx.beginPath();
+                        ctx.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                    break;
+                    
+                case 'draw_rectangle':
+                    ctx.fillStyle = cmd.color;
+                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                    break;
+                    
+                case 'update_text':
+                    ctx.save();
+                    ctx.fillStyle = cmd.color;
+                    ctx.font = cmd.font;
+                    ctx.fillText(cmd.text, cmd.x, cmd.y);
+                    ctx.restore();
+                    break;
+                    
+                case 'draw_overlay':
+                    // Draw overlay with background
+                    ctx.save();
+                    ctx.fillStyle = cmd.backgroundColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = cmd.textColor;
+                    ctx.font = cmd.font;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(cmd.text, cmd.x, cmd.y);
+                    ctx.restore();
+                    break;
+                    
+                // Legacy command support
+                case 'fillRect':
+                    ctx.fillStyle = cmd.color;
+                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                    break;
+                    
+                case 'fillCircle':
+                    ctx.fillStyle = cmd.color;
+                    ctx.beginPath();
+                    ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
+                    ctx.fill();
+                    break;
+                    
+                case 'fillText':
+                    ctx.fillStyle = cmd.color;
+                    ctx.font = cmd.font;
+                    ctx.fillText(cmd.text, cmd.x, cmd.y);
+                    break;
+            }
+        }
+        
+        drawState.lastFrameData = data;
+        drawState.skipFrame = false;
+        
+    } catch (error) {
+        console.error('Draw error:', error);
+        // Fallback to simple clear on error
+        ctx.fillStyle = 'rgb(240, 240, 240)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 }
+
+function drawGrid(spacing, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 0.5;
+    
+    // Vertical lines
+    for (let x = 0; x <= canvas.width; x += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
+    }
+    
+    // Horizontal lines
+    for (let y = 0; y <= canvas.height; y += spacing) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(canvas.width, y);
+        ctx.stroke();
+    }
+    
+    ctx.restore();
 }
-} catch (error) {
-console.error('Draw error:', error);
-}
-}
-function gameLoop() {
-try {
-const frameData = pyodide.runPython('update_game()');
-drawFrame(frameData);
-performanceMonitor.update();
-} catch (error) {
-console.error('Game loop error:', error);
-}
-gameLoopId = requestAnimationFrame(gameLoop);
+// Performance-optimized game loop
+let lastFrameTime = 0;
+const targetFPS = 60;
+const frameInterval = 1000 / targetFPS;
+let accumulator = 0;
+
+function gameLoop(currentTime) {
+    try {
+        // Frame rate limiting
+        const deltaTime = currentTime - lastFrameTime;
+        lastFrameTime = currentTime;
+        
+        // Skip frames if running too fast
+        if (deltaTime < frameInterval * 0.75) {
+            gameLoopId = requestAnimationFrame(gameLoop);
+            return;
+        }
+        
+        // Update game state and get optimized draw commands
+        const frameData = pyodide.runPython('update_game()');
+        
+        // Only draw if we have valid frame data
+        if (frameData && !drawState.skipFrame) {
+            drawFrame(frameData);
+        }
+        
+        // Update performance monitoring less frequently
+        accumulator += deltaTime;
+        if (accumulator >= 100) { // Update every 100ms instead of every frame
+            performanceMonitor.update();
+            accumulator = 0;
+        }
+    } catch (error) {
+        console.error('Game loop error:', error);
+    }
+    
+    gameLoopId = requestAnimationFrame(gameLoop);
 }
 function startGameLoop() {
 if (gameLoopId) {
@@ -568,16 +754,45 @@ console.error('Key input error:', error);
 }
 }
 });
-document.addEventListener('visibilitychange', function() {
-if (document.hidden && pyodide) {
-pyodide.runPython('game_state.is_paused = True');
-}
-});
+// Visibility change handler moved above for better performance management
 window.addEventListener('error', function(event) {
 showError('予期しないエラーが発生しました', event.error?.message || '');
 });
 window.addEventListener('unhandledrejection', function(event) {
 showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (gameLoopId) {
+        cancelAnimationFrame(gameLoopId);
+    }
+    if (pyodide) {
+        try {
+            pyodide.runPython('game_state = None\ngame_view = None');
+        } catch (e) {}
+    }
+});
+
+// Handle page visibility changes for better performance
+let wasRunning = false;
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        if (gameLoopId) {
+            wasRunning = true;
+            cancelAnimationFrame(gameLoopId);
+            gameLoopId = null;
+        }
+        if (pyodide) {
+            pyodide.runPython('game_state.is_paused = True');
+        }
+    } else if (wasRunning) {
+        wasRunning = false;
+        if (pyodide) {
+            pyodide.runPython('game_state.is_paused = False');
+            startGameLoop();
+        }
+    }
 });
 // Audio handling function (currently not used)
 function handleGameAudio(gameState) {
