@@ -1046,7 +1046,11 @@ class PygameGameState:
                 
                 'view.optimized_web_game_view': `import json
 from typing import Dict, List
-from model.pygame_game_state import PygameGameState, PygameGameStateObserver
+# モジュールインポートを削除 - 直接クラス定義を使用
+
+class PygameGameStateObserver:
+    def on_game_state_changed(self, game_state):
+        pass
 
 class OptimizedWebCanvasView(PygameGameStateObserver):
     def __init__(self, canvas_id: str = "gameCanvas"):
@@ -1147,9 +1151,7 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
         // ゲーム状態の初期化
         async function initializeGameState() {
             pyodide.runPython(`
-from model.pygame_game_state import PygameGameState
-from view.optimized_web_game_view import OptimizedWebCanvasView
-
+# モジュールインポートを削除して、直接クラス定義を使用
 game_state = PygameGameState()
 game_view = OptimizedWebCanvasView()
 game_state.add_observer(game_view)
