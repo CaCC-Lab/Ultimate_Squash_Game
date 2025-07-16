@@ -29,17 +29,17 @@ export const KEYS = {
   Fullscreen: 'f'
 };
 
-// タイムアウト定数
+// タイムアウト定数（環境変数で上書き可能）
 export const TIMEOUTS = {
-  short: 100,
-  medium: 500,
-  long: 3000,
-  gameAction: 50,
-  navigation: 5000,
-  pageLoad: 3000,
-  pyodideLoad: 30000,
-  animation: 200,
-  gameStart: 1000
+  short: parseInt(process.env.E2E_TIMEOUT_SHORT || '100', 10),
+  medium: parseInt(process.env.E2E_TIMEOUT_MEDIUM || '500', 10),
+  long: parseInt(process.env.E2E_TIMEOUT_LONG || '3000', 10),
+  gameAction: parseInt(process.env.E2E_TIMEOUT_GAME_ACTION || '50', 10),
+  navigation: parseInt(process.env.E2E_TIMEOUT_NAVIGATION || '5000', 10),
+  pageLoad: parseInt(process.env.E2E_TIMEOUT_PAGE_LOAD || '3000', 10),
+  pyodideLoad: parseInt(process.env.E2E_TIMEOUT_PYODIDE_LOAD || '30000', 10),
+  animation: parseInt(process.env.E2E_TIMEOUT_ANIMATION || '200', 10),
+  gameStart: parseInt(process.env.E2E_TIMEOUT_GAME_START || '1000', 10)
 };
 
 // テストデータ
@@ -54,6 +54,21 @@ export const TEST_DATA = {
     { name: 'Desktop', width: 1920, height: 1080 },
     { name: 'Ultra-wide', width: 2560, height: 1080 }
   ]
+};
+
+// 定数値
+export const CONSTANTS = {
+  FPS_TARGET: 60,
+  FPS_SAMPLE_INTERVAL: 1000, // ms
+  MEMORY_SAMPLE_INTERVAL: 2000, // ms
+  MAX_MEMORY_SNAPSHOTS: 100,
+  ASPECT_RATIO_TOLERANCE: 0.01,
+  RAPID_KEY_PRESS_COUNT: 20,
+  RAPID_KEY_PRESS_DELAY: 50, // ms
+  PERFORMANCE_TEST_DURATION: 5000, // ms
+  MEMORY_LEAK_THRESHOLD: 52428800, // 50MB in bytes
+  MIN_CANVAS_SIZE: 100, // px
+  DEFAULT_RANDOM_ACTION_COUNT: 10
 };
 
 /**
@@ -172,8 +187,8 @@ export async function injectFPSMonitoring(page) {
           const currentTime = performance.now();
           const deltaTime = currentTime - window.lastTime;
           
-          if (deltaTime >= 1000) {
-            const fps = (window.frameCount * 1000) / deltaTime;
+          if (deltaTime >= ${CONSTANTS.FPS_SAMPLE_INTERVAL}) {
+            const fps = (window.frameCount * ${CONSTANTS.FPS_SAMPLE_INTERVAL}) / deltaTime;
             window.fpsData.push({
               timestamp: currentTime,
               fps: fps
@@ -209,9 +224,43 @@ export async function injectMemoryMonitoring(page) {
             totalJSHeapSize: performance.memory.totalJSHeapSize
           });
         }
-      }, 2000);
+      }, ${CONSTANTS.MEMORY_SAMPLE_INTERVAL});
     `
   });
+}
+
+/**
+ * localStorageの安全な操作
+ * @param {import('@playwright/test').Page} page
+ * @param {string} action - 'get', 'set', 'remove', 'clear'
+ * @param {string} key
+ * @param {any} value
+ * @returns {Promise<any>}
+ */
+export async function safeLocalStorage(page, action, key, value = null) {
+  return await page.evaluate(({ action, key, value }) => {
+    try {
+      switch (action) {
+        case 'get':
+          const item = localStorage.getItem(key);
+          return item ? JSON.parse(item) : null;
+        case 'set':
+          localStorage.setItem(key, JSON.stringify(value));
+          return true;
+        case 'remove':
+          localStorage.removeItem(key);
+          return true;
+        case 'clear':
+          localStorage.clear();
+          return true;
+        default:
+          throw new Error(`Unknown action: ${action}`);
+      }
+    } catch (error) {
+      console.error(`localStorage ${action} error:`, error);
+      return null;
+    }
+  }, { action, key, value });
 }
 
 /**

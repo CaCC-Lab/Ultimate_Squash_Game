@@ -30,6 +30,6 @@
   },
   "homepage": "https://github.com/CaCC-Lab/Ultimate_Squash_Game#readme",
   "devDependencies": {
-    "@playwright/test": "^1.54.1"
+    "@playwright/test": "1.54.1"
   }
 }

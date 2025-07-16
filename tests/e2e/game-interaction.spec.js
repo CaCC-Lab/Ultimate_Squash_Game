@@ -4,6 +4,7 @@ import {
   KEYS, 
   TIMEOUTS, 
   TEST_DATA,
+  CONSTANTS,
   loadGamePage,
   setupErrorHandlers,
   expectNoErrors,
@@ -135,15 +136,15 @@ test.describe('Game Interaction Tests', () => {
       const newBox = await canvas.boundingBox();
       const newAspectRatio = newBox.width / newBox.height;
       
-      // アスペクト比が維持されていることを確認（誤差1%以内）
-      expect(Math.abs(initialAspectRatio - newAspectRatio)).toBeLessThan(0.01);
+      // アスペクト比が維持されていることを確認
+      expect(Math.abs(initialAspectRatio - newAspectRatio)).toBeLessThan(CONSTANTS.ASPECT_RATIO_TOLERANCE);
     });
   });
 
   test.describe('Performance', () => {
     test('should render smoothly without errors', async ({ page }) => {
-      // 5秒間ゲームを実行
-      await page.waitForTimeout(5000);
+      // 一定時間ゲームを実行
+      await page.waitForTimeout(CONSTANTS.PERFORMANCE_TEST_DURATION);
       
       // JavaScriptエラーがないことを確認
       const jsErrors = [];
@@ -160,11 +161,12 @@ test.describe('Game Interaction Tests', () => {
 
     test('should handle rapid key presses', async ({ page }) => {
       // 高速でキーを連打
-      for (let i = 0; i < 20; i++) {
+      const { RAPID_KEY_PRESS_COUNT, RAPID_KEY_PRESS_DELAY } = CONSTANTS;
+      for (let i = 0; i < RAPID_KEY_PRESS_COUNT; i++) {
         await page.keyboard.press('ArrowLeft');
-        await page.waitForTimeout(50);
+        await page.waitForTimeout(RAPID_KEY_PRESS_DELAY);
         await page.keyboard.press('ArrowRight');
-        await page.waitForTimeout(50);
+        await page.waitForTimeout(RAPID_KEY_PRESS_DELAY);
       }
       
       // エラーが発生しないことを確認
