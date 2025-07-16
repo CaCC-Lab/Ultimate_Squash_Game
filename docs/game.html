@@ -639,6 +639,10 @@
         function cancelScoreEntry() {
             document.getElementById('nameInputModal').style.display = 'none';
             pendingScoreData = null;
+            // Python側のハイスコアチェックも確実にクリア
+            if (pyodide) {
+                pyodide.runPython('pending_high_score_check = None');
+            }
         }
         
         function showRankingModal() {
@@ -1172,14 +1176,21 @@ def update_game(dt=0.016):
 
 def check_high_score():
     """ゲームオーバー時のハイスコアチェック"""
-    # JavaScriptに結果を送信するためにグローバル変数を設定
+    # ハイスコアの場合のみpending_high_score_checkを設定
     import json
     global pending_high_score_check
-    pending_high_score_check = json.dumps({
-        'score': game_state.score.player_score,
-        'combo': game_state.consecutive_hits,
-        'powerUps': len([p for p in game_state.active_powerups.values() if p.get("active", False)])
-    })
+    
+    # スコアが0以下の場合は何もしない
+    if game_state.score.player_score <= 0:
+        return
+    
+    # 一度だけハイスコアチェックを実行（重複防止）
+    if pending_high_score_check is None:
+        pending_high_score_check = json.dumps({
+            'score': game_state.score.player_score,
+            'combo': game_state.consecutive_hits,
+            'powerUps': len([p for p in game_state.active_powerups.values() if p.get("active", False)])
+        })
     
 def get_pending_high_score():
     """JavaScript側から呼び出される関数"""
@@ -1206,7 +1217,8 @@ def handle_key_input(key):
     return None
 
 def restart_game():
-    global game_state
+    global game_state, pending_high_score_check
+    pending_high_score_check = None  # リスタート時にハイスコアチェックをクリア
     game_state = PygameGameState()
     game_state.add_observer(game_view)
             `);
@@ -1271,11 +1283,12 @@ def restart_game():
                 const pending = pyodide.runPython('get_pending_high_score()');
                 if (pending && pending !== 'None' && pending !== 'null') {
                     const scoreData = JSON.parse(pending);
+                    // 実際にハイスコアかどうかチェック
                     if (scoreRanking && scoreRanking.isHighScore(scoreData.score)) {
                         showNameInputModal(scoreData);
-                        // チェック済みなのでPython側でクリア
-                        pyodide.runPython('pending_high_score_check = None');
                     }
+                    // ハイスコアでもそうでなくても、チェック済みなのでPython側でクリア
+                    pyodide.runPython('pending_high_score_check = None');
                 }
             } catch (error) {
                 // エラーは無視（pending_high_score_checkがNoneの場合など）
@@ -1294,6 +1307,10 @@ def restart_game():
             if (pyodide) {
                 try {
                     pyodide.runPython(`handle_key_input('${event.key}')`);
+                    // Rキーでリスタートした場合、JavaScript側でも確実にクリア
+                    if (event.key === 'r' || event.key === 'R') {
+                        pyodide.runPython('pending_high_score_check = None');
+                    }
                 } catch (error) {
                     console.error('Key input error:', error);
                 }
