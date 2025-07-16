@@ -268,7 +268,21 @@ Memory: <span id="memoryUsage">1.2MB</span>
 <span class="key">R</span>
 <span>リスタート</span>
 </div>
+<div class="control-item">
+<span class="key">H</span>
+<span>ランキング</span>
 </div>
+</div>
+</div>
+</div>
+<!-- ランキングモーダル -->
+<div class="error-modal" id="rankingModal" style="display: none;">
+<div class="error-content" style="max-width: 600px;">
+<h2 class="error-title" style="color: #4ecdc4;">🏆 ハイスコアランキング</h2>
+<div id="rankingList" style="color: #ccc; text-align: left; padding: 20px;">
+<!-- ランキングがここに表示される -->
+</div>
+<button class="error-button" style="background: #4ecdc4;" onclick="closeRankingModal()">閉じる</button>
 </div>
 </div>
 <!-- エラーモーダル -->
@@ -290,6 +304,48 @@ let gameState = null;
 let canvas = null;
 let ctx = null;
 let performanceMonitor = null;
+
+// スコアランキングシステム
+class ScoreRanking {
+    constructor() {
+        this.storageKey = 'ultimateSquashHighScores';
+        this.maxScores = 10;
+    }
+    
+    getHighScores() {
+        const stored = localStorage.getItem(this.storageKey);
+        return stored ? JSON.parse(stored) : [];
+    }
+    
+    addScore(score, playerName = 'Player') {
+        const scores = this.getHighScores();
+        const newScore = {
+            score: score,
+            name: playerName,
+            date: new Date().toISOString(),
+            combo: 0,  // 最大コンボ数（後で追加）
+            powerUps: 0  // 取得したパワーアップ数（後で追加）
+        };
+        
+        scores.push(newScore);
+        scores.sort((a, b) => b.score - a.score);
+        scores.splice(this.maxScores); // 上位10件のみ保持
+        
+        localStorage.setItem(this.storageKey, JSON.stringify(scores));
+        return scores.findIndex(s => s === newScore) + 1; // 順位を返す
+    }
+    
+    isHighScore(score) {
+        const scores = this.getHighScores();
+        return scores.length < this.maxScores || score > scores[scores.length - 1]?.score || 0;
+    }
+    
+    clearScores() {
+        localStorage.removeItem(this.storageKey);
+    }
+}
+
+const scoreRanking = new ScoreRanking();
 class PerformanceMonitor {
 constructor() {
 this.frameCount = 0;
@@ -361,6 +417,50 @@ document.getElementById('errorModal').style.display = 'flex';
 function closeErrorModal() {
 document.getElementById('errorModal').style.display = 'none';
 initializeGame();
+}
+
+function showRankingModal() {
+    const modal = document.getElementById('rankingModal');
+    const list = document.getElementById('rankingList');
+    const scores = scoreRanking.getHighScores();
+    
+    if (scores.length === 0) {
+        list.innerHTML = '<p style="text-align: center; color: #999;">まだスコアが記録されていません</p>';
+    } else {
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="border-bottom: 2px solid #4ecdc4;">';
+        html += '<th style="padding: 10px; text-align: left;">順位</th>';
+        html += '<th style="padding: 10px; text-align: left;">名前</th>';
+        html += '<th style="padding: 10px; text-align: right;">スコア</th>';
+        html += '<th style="padding: 10px; text-align: center;">コンボ</th>';
+        html += '<th style="padding: 10px; text-align: center;">パワー</th>';
+        html += '<th style="padding: 10px; text-align: left;">日付</th>';
+        html += '</tr></thead><tbody>';
+        
+        scores.forEach((score, index) => {
+            const date = new Date(score.date);
+            const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+            
+            html += `<tr style="border-bottom: 1px solid #333;">`;
+            html += `<td style="padding: 8px;">${medal} ${index + 1}</td>`;
+            html += `<td style="padding: 8px;">${score.name}</td>`;
+            html += `<td style="padding: 8px; text-align: right; font-weight: bold;">${score.score.toLocaleString()}</td>`;
+            html += `<td style="padding: 8px; text-align: center; color: #ff6b6b;">${score.combo || 0}</td>`;
+            html += `<td style="padding: 8px; text-align: center; color: #4ecdc4;">${score.powerUps || 0}</td>`;
+            html += `<td style="padding: 8px; color: #999;">${dateStr}</td>`;
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table>';
+        list.innerHTML = html;
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeRankingModal() {
+    document.getElementById('rankingModal').style.display = 'none';
 }
 function updateLoadingProgress(text) {
 document.getElementById('loadingProgress').textContent = text;
@@ -497,6 +597,9 @@ class PygameGameState:
         self.active_power_ups = {}  # type -> end_time のマップ
         self.power_up_spawn_chance = 0.15  # 15%の確率でパワーアップ出現
         self.last_power_up_time = time.time()
+        self.max_consecutive_hits = 0  # 最大コンボ記録
+        self.power_ups_collected = 0  # 取得したパワーアップ数
+        self.score_recorded = False  # スコア記録済みフラグ
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -537,6 +640,9 @@ class PygameGameState:
             points = 20 if 'extra_points' in self.active_power_ups else 10
             self.score.player_score += points
             self.consecutive_hits += 1
+            # 最大コンボを更新
+            if self.consecutive_hits > self.max_consecutive_hits:
+                self.max_consecutive_hits = self.consecutive_hits
             
             # マルチボール発動チェック
             if (not self.multi_ball_active and 
@@ -641,6 +747,7 @@ class PygameGameState:
             pass
         
         self.score.player_score += 50  # パワーアップ取得ボーナス
+        self.power_ups_collected += 1  # パワーアップ取得数をカウント
     
     def deactivate_power_up(self, power_type: str):
         """パワーアップ効果を解除"""
@@ -781,7 +888,11 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
             'draw_commands': draw_commands,
             'game_state': {
                 'paused': game_state.is_paused,
-                'gameover': game_state.is_gameover
+                'gameover': game_state.is_gameover,
+                'score_recorded': game_state.score_recorded,
+                'final_score': game_state.score.player_score,
+                'max_combo': game_state.max_consecutive_hits,
+                'power_ups_collected': game_state.power_ups_collected
             }
         }
     
@@ -819,11 +930,15 @@ def handle_key_input(key):
         game_state.is_paused = not game_state.is_paused
     elif key == 'r' or key == 'R':
         restart_game()
+    elif key == 'h' or key == 'H':
+        # ランキング表示（JavaScript側で処理）
+        pass
 
 def restart_game():
     global game_state
     game_state = PygameGameState()
     game_state.add_observer(game_view)
+    game_state.score_recorded = False
     # マルチボール関連の状態もリセット
     game_state.multi_ball_active = False
     game_state.consecutive_hits = 0
@@ -1040,6 +1155,42 @@ function gameLoop(currentTime) {
         // Only draw if we have valid frame data
         if (frameData && !drawState.skipFrame) {
             drawFrame(frameData);
+            
+            // ゲームオーバー時のスコア記録
+            const parsedData = JSON.parse(frameData);
+            if (parsedData.game_state && parsedData.game_state.gameover && !parsedData.game_state.score_recorded) {
+                // スコアを記録
+                const finalScore = parsedData.game_state.final_score || 0;
+                const maxCombo = parsedData.game_state.max_combo || 0;
+                const powerUps = parsedData.game_state.power_ups_collected || 0;
+                
+                // ハイスコアかチェック
+                if (scoreRanking.isHighScore(finalScore)) {
+                    // 名前を入力（簡易版）
+                    setTimeout(() => {
+                        const playerName = prompt('ハイスコア！名前を入力してください:', 'Player') || 'Player';
+                        const rank = scoreRanking.addScore(finalScore, playerName);
+                        
+                        // スコアに追加情報を保存
+                        const scores = scoreRanking.getHighScores();
+                        const newScore = scores.find(s => s.score === finalScore && s.name === playerName);
+                        if (newScore) {
+                            newScore.combo = maxCombo;
+                            newScore.powerUps = powerUps;
+                            localStorage.setItem(scoreRanking.storageKey, JSON.stringify(scores));
+                        }
+                        
+                        alert(`${rank}位にランクイン！`);
+                        
+                        // スコア記録済みフラグを設定
+                        pyodide.runPython('game_state.score_recorded = True');
+                    }, 100);
+                } else {
+                    // スコア記録済みフラグを設定
+                    pyodide.runPython('game_state.score_recorded = True');
+                }
+            }
+        }
         }
         
         // Update performance monitoring less frequently
@@ -1061,6 +1212,12 @@ cancelAnimationFrame(gameLoopId);
 gameLoopId = requestAnimationFrame(gameLoop);
 }
 document.addEventListener('keydown', function(event) {
+// ランキング表示の処理
+if (event.key.toLowerCase() === 'h') {
+showRankingModal();
+return;
+}
+
 if (pyodide) {
 try {
 pyodide.runPython(`handle_key_input('${event.key}')`);
