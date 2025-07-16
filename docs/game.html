@@ -314,6 +314,8 @@ this.updateDisplay();
 updateOptimizationStats(stats) {
 if (stats) {
 this.optimizationStats = stats;
+// Immediately update display to show optimization stats
+this.updateDisplay();
 }
 }
 
