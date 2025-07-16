@@ -296,6 +296,7 @@ this.frameCount = 0;
 this.lastTime = performance.now();
 this.fps = 60;
 this.memoryUsage = 0;
+this.optimizationStats = null;
 }
 update() {
 this.frameCount++;
@@ -310,9 +311,46 @@ this.memoryUsage = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
 this.updateDisplay();
 }
 }
+updateOptimizationStats(stats) {
+if (stats) {
+this.optimizationStats = stats;
+// Immediately update display to show optimization stats
+this.updateDisplay();
+}
+}
+
 updateDisplay() {
-document.getElementById('fpsCounter').textContent = this.fps;
-document.getElementById('memoryUsage').textContent = this.memoryUsage + 'MB';
+// Optimize DOM updates - cache elements and update only text content
+if (!this._cachedElements) {
+const perfInfo = document.getElementById('performanceInfo');
+if (perfInfo && !perfInfo.querySelector('#perf-fps')) {
+perfInfo.innerHTML =
+'FPS: <span id="perf-fps">0</span> | Memory: <span id="perf-memory">0</span>MB' +
+'<span id="perf-skipped"></span><span id="perf-reuse"></span>';
+}
+this._cachedElements = {
+perfInfo: perfInfo,
+perfFps: document.getElementById('perf-fps'),
+perfMemory: document.getElementById('perf-memory'),
+perfSkipped: document.getElementById('perf-skipped'),
+perfReuse: document.getElementById('perf-reuse')
+};
+}
+
+// Update performance info with individual span updates
+if (this._cachedElements.perfFps) {
+this._cachedElements.perfFps.textContent = this.fps;
+this._cachedElements.perfMemory.textContent = this.memoryUsage + 'MB';
+}
+
+// Display optimization stats if available
+if (this.optimizationStats && this._cachedElements.perfSkipped) {
+const skipRate = this.optimizationStats.skipped_updates || 0;
+const reuseRate = this.optimizationStats.reuse_rate || 0;
+
+this._cachedElements.perfSkipped.textContent = skipRate > 0 ? ` | Skipped: ${skipRate}%` : '';
+this._cachedElements.perfReuse.textContent = reuseRate > 0 ? ` | Reuse: ${reuseRate.toFixed(1)}%` : '';
+}
 }
 }
 function showError(message, details = '') {
@@ -346,7 +384,34 @@ updateLoadingProgress('ゲームコードを読み込み中...');
 await loadGameCode();
 updateLoadingProgress('ゲームを初期化中...');
 canvas = document.getElementById('gameCanvas');
-ctx = canvas.getContext('2d');
+
+// Safe canvas context creation with feature detection
+try {
+    // Try with all optimization options first
+    ctx = canvas.getContext('2d', {
+        alpha: false, // Disable transparency for better performance
+        desynchronized: true, // Reduce latency - EXPERIMENTAL
+        willReadFrequently: false // We're not reading pixels - EXPERIMENTAL
+    });
+} catch (e) {
+    console.warn('Failed to create canvas context with experimental options, trying fallback...', e);
+    try {
+        // Fallback to just alpha option (widely supported)
+        ctx = canvas.getContext('2d', {
+            alpha: false
+        });
+    } catch (e2) {
+        console.warn('Failed to create canvas context with alpha option, using default...', e2);
+        // Final fallback - basic context
+        ctx = canvas.getContext('2d');
+    }
+}
+
+// Set performance-oriented rendering settings (with feature detection)
+if (ctx.imageSmoothingEnabled !== undefined) {
+    ctx.imageSmoothingEnabled = false; // Disable antialiasing for pixel-perfect rendering
+}
+
 performanceMonitor = new PerformanceMonitor();
 await initializeGameState();
 updateLoadingProgress('ゲーム開始準備完了');
@@ -366,123 +431,144 @@ const gameModules = {
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import math
+
 class PygameBall:
-def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200,
-radius: float = 10, color: tuple = (255, 255, 255)):
-self.x = float(x)
-self.y = float(y)
-self.dx = float(dx)
-self.dy = float(dy)
-self.radius = float(radius)
-self.color = color
-self.trail = []
-self.max_trail_length = 10
+    def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200,
+                 radius: float = 10, color: tuple = (255, 255, 255)):
+        self.x = float(x)
+        self.y = float(y)
+        self.dx = float(dx)
+        self.dy = float(dy)
+        self.radius = float(radius)
+        self.color = color
+        self.trail = []
+        self.max_trail_length = 10
+
 class PygameRacket:
-def __init__(self, x: float = 295, y: float = 450, size: float = 50,
-height: float = 10, color: tuple = (0, 255, 0)):
-self.x = float(x)
-self.y = float(y)
-self.size = float(size)
-self.height = float(height)
-self.color = color
-self.speed = 300
-self.left_bound = 0
-self.right_bound = 640
+    def __init__(self, x: float = 295, y: float = 450, size: float = 50,
+                 height: float = 10, color: tuple = (0, 255, 0)):
+        self.x = float(x)
+        self.y = float(y)
+        self.size = float(size)
+        self.height = float(height)
+        self.color = color
+        self.speed = 300
+        self.left_bound = 0
+        self.right_bound = 640
+
 class PygameScore:
-def __init__(self):
-self.player_score = 0
-self.level = 1
-self.hits = 0
-self.misses = 0
-self.start_time = time.time()
+    def __init__(self):
+        self.player_score = 0
+        self.level = 1
+        self.hits = 0
+        self.misses = 0
+        self.start_time = time.time()
+
 class PygameGameStateObserver:
-def on_game_state_changed(self, game_state: 'PygameGameState'):
-pass
+    def on_game_state_changed(self, game_state: 'PygameGameState'):
+        pass
+
 class PygameGameState:
-def __init__(self):
-self.balls = [PygameBall()]
-self.racket = PygameRacket()
-self.score = PygameScore()
-self.is_paused = False
-self.is_gameover = False
-self.observers = []
-self.canvas_width = 640
-self.canvas_height = 480
-def add_observer(self, observer: PygameGameStateObserver):
-self.observers.append(observer)
-def notify_observers(self):
-for observer in self.observers:
-observer.on_game_state_changed(self)
-def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
-ball.x += ball.dx * dt
-ball.y += ball.dy * dt
-if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
-ball.dx = -ball.dx
-if ball.y <= ball.radius:
-ball.dy = -ball.dy
-if ball.y >= self.canvas_height - ball.radius:
-self.is_gameover = True
-if (ball.y + ball.radius >= self.racket.y and
-ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
-ball.dy = -abs(ball.dy)
-self.score.hits += 1
-self.notify_observers()
-def update_racket_position(self, x: float):
-self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
-self.notify_observers()`,
+    def __init__(self):
+        self.balls = [PygameBall()]
+        self.racket = PygameRacket()
+        self.score = PygameScore()
+        self.is_paused = False
+        self.is_gameover = False
+        self.observers = []
+        self.canvas_width = 640
+        self.canvas_height = 480
+    
+    def add_observer(self, observer: PygameGameStateObserver):
+        self.observers.append(observer)
+    
+    def notify_observers(self):
+        for observer in self.observers:
+            observer.on_game_state_changed(self)
+    
+    def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
+        ball.x += ball.dx * dt
+        ball.y += ball.dy * dt
+        
+        if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
+            ball.dx = -ball.dx
+        if ball.y <= ball.radius:
+            ball.dy = -ball.dy
+        if ball.y >= self.canvas_height - ball.radius:
+            self.is_gameover = True
+        
+        if (ball.y + ball.radius >= self.racket.y and 
+            ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
+            ball.dy = -abs(ball.dy)
+            self.score.hits += 1
+        
+        self.notify_observers()
+    
+    def update_racket_position(self, x: float):
+        self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
+        self.notify_observers()`,
 'view.optimized_web_game_view': `import json
 from typing import Dict, List
 from model.pygame_game_state import PygameGameState, PygameGameStateObserver
+
 class OptimizedWebCanvasView(PygameGameStateObserver):
-def __init__(self, canvas_id: str = "gameCanvas"):
-self.canvas_id = canvas_id
-self.canvas_width = 640
-self.canvas_height = 480
-self.frame_data = {}
-def on_game_state_changed(self, game_state: PygameGameState):
-self.frame_data = self._convert_to_canvas_data(game_state)
-def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
-draw_commands = []
-draw_commands.append({
-'type': 'fillRect',
-'x': 0, 'y': 0,
-'width': self.canvas_width,
-'height': self.canvas_height,
-'color': '#000000'
-})
-for ball in game_state.balls:
-draw_commands.append({
-'type': 'fillCircle',
-'x': ball.x, 'y': ball.y,
-'radius': ball.radius,
-'color': f'rgb{ball.color}'
-})
-if game_state.racket:
-draw_commands.append({
-'type': 'fillRect',
-'x': game_state.racket.x,
-'y': game_state.racket.y,
-'width': game_state.racket.size,
-'height': game_state.racket.height,
-'color': f'rgb{game_state.racket.color}'
-})
-draw_commands.append({
-'type': 'fillText',
-'text': f'Score: {game_state.score.player_score} | Level: {game_state.score.level}',
-'x': 10, 'y': 30,
-'color': 'white',
-'font': '20px Arial'
-})
-return {
-'canvas_id': self.canvas_id,
-'draw_commands': draw_commands,
-'game_state': {
-'paused': game_state.is_paused,
-'gameover': game_state.is_gameover
-}
-}
-def get_javascript_interface_data(self) -> str:
-return json.dumps(self.frame_data, ensure_ascii=False)`
+    def __init__(self, canvas_id: str = "gameCanvas"):
+        self.canvas_id = canvas_id
+        self.canvas_width = 640
+        self.canvas_height = 480
+        self.frame_data = {}
+        
+    def on_game_state_changed(self, game_state: PygameGameState):
+        self.frame_data = self._convert_to_canvas_data(game_state)
+    
+    def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
+        draw_commands = []
+        
+        draw_commands.append({
+            'type': 'fillRect',
+            'x': 0, 'y': 0,
+            'width': self.canvas_width,
+            'height': self.canvas_height,
+            'color': '#000000'
+        })
+        
+        for ball in game_state.balls:
+            draw_commands.append({
+                'type': 'fillCircle',
+                'x': ball.x, 'y': ball.y,
+                'radius': ball.radius,
+                'color': f'rgb{ball.color}'
+            })
+        
+        if game_state.racket:
+            draw_commands.append({
+                'type': 'fillRect',
+                'x': game_state.racket.x,
+                'y': game_state.racket.y,
+                'width': game_state.racket.size,
+                'height': game_state.racket.height,
+                'color': f'rgb{game_state.racket.color}'
+            })
+        
+        draw_commands.append({
+            'type': 'fillText',
+            'text': f'Score: {game_state.score.player_score} | Level: {game_state.score.level}',
+            'x': 10, 'y': 30,
+            'color': 'white',
+            'font': '20px Arial'
+        })
+        
+        return {
+            'canvas_id': self.canvas_id,
+            'draw_commands': draw_commands,
+            'game_state': {
+                'paused': game_state.is_paused,
+                'gameover': game_state.is_gameover
+            }
+        }
+    
+    def get_javascript_interface_data(self) -> str:
+        return json.dumps(self.frame_data, ensure_ascii=False)`
 };
 for (const [moduleName, moduleCode] of Object.entries(gameModules)) {
 pyodide.runPython(moduleCode);
@@ -492,66 +578,253 @@ async function initializeGameState() {
 pyodide.runPython(`
 from model.pygame_game_state import PygameGameState
 from view.optimized_web_game_view import OptimizedWebCanvasView
+
 game_state = PygameGameState()
 game_view = OptimizedWebCanvasView()
 game_state.add_observer(game_view)
+
 def update_game(dt=0.016):
-if not game_state.is_paused and not game_state.is_gameover:
-for ball in game_state.balls:
-game_state.update_ball_position(ball, dt)
-return game_view.get_javascript_interface_data()
+    if not game_state.is_paused and not game_state.is_gameover:
+        for ball in game_state.balls:
+            game_state.update_ball_position(ball, dt)
+    return game_view.get_javascript_interface_data()
+
 def handle_key_input(key):
-if key == 'ArrowLeft' and game_state.racket.x > 0:
-game_state.update_racket_position(game_state.racket.x - 20)
-elif key == 'ArrowRight' and game_state.racket.x < 590:
-game_state.update_racket_position(game_state.racket.x + 20)
-elif key == ' ':
-game_state.is_paused = not game_state.is_paused
-elif key == 'r' or key == 'R':
-restart_game()
+    if key == 'ArrowLeft' and game_state.racket.x > 0:
+        game_state.update_racket_position(game_state.racket.x - 20)
+    elif key == 'ArrowRight' and game_state.racket.x < 590:
+        game_state.update_racket_position(game_state.racket.x + 20)
+    elif key == ' ':
+        game_state.is_paused = not game_state.is_paused
+    elif key == 'r' or key == 'R':
+        restart_game()
+
 def restart_game():
-global game_state
-game_state = PygameGameState()
-game_state.add_observer(game_view)
+    global game_state
+    game_state = PygameGameState()
+    game_state.add_observer(game_view)
 `);
 }
+// Optimized drawing function that handles differential rendering
+const drawState = {
+    lastFrameData: null,
+    staticLayer: null,
+    dynamicLayer: null,
+    currentLayer: 'dynamic',
+    dirtyRegions: [],
+    skipFrame: false
+};
+
 function drawFrame(frameData) {
-try {
-const data = JSON.parse(frameData);
-const commands = data.draw_commands || [];
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-for (const cmd of commands) {
-switch (cmd.type) {
-case 'fillRect':
-ctx.fillStyle = cmd.color;
-ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
-break;
-case 'fillCircle':
-ctx.fillStyle = cmd.color;
-ctx.beginPath();
-ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
-ctx.fill();
-break;
-case 'fillText':
-ctx.fillStyle = cmd.color;
-ctx.font = cmd.font;
-ctx.fillText(cmd.text, cmd.x, cmd.y);
-break;
+    try {
+        const data = JSON.parse(frameData);
+        const commands = data.draw_commands || [];
+        const perfStats = data.optimization_stats || {};
+        
+        // Update performance monitor with optimization stats
+        if (performanceMonitor && perfStats) {
+            performanceMonitor.updateOptimizationStats(perfStats);
+        }
+        
+        // Process commands with optimization support
+        for (const cmd of commands) {
+            switch (cmd.command || cmd.type) {
+                case 'skip_frame':
+                    // Frame skipped due to no changes
+                    drawState.skipFrame = true;
+                    return;
+                    
+                case 'set_mode':
+                    if (cmd.mode === 'differential') {
+                        drawState.dirtyRegions = cmd.regions || [];
+                        // Clear only dirty regions
+                        for (const region of drawState.dirtyRegions) {
+                            ctx.clearRect(region[0], region[1], region[2], region[3]);
+                        }
+                    }
+                    break;
+                    
+                case 'set_layer':
+                    drawState.currentLayer = cmd.layer;
+                    break;
+                    
+                case 'clear':
+                    ctx.fillStyle = cmd.color || 'rgb(240, 240, 240)';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    break;
+                    
+                case 'draw_grid':
+                    drawGrid(cmd.spacing, cmd.color);
+                    break;
+                    
+                case 'draw_ui_background':
+                    ctx.fillStyle = cmd.color;
+                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                    break;
+                    
+                case 'draw_batch_circles':
+                    // Batch draw circles for performance
+                    ctx.save();
+                    for (const circle of cmd.circles) {
+                        ctx.fillStyle = circle.color;
+                        ctx.beginPath();
+                        ctx.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                    ctx.restore();
+                    break;
+                    
+                case 'draw_rectangle':
+                    ctx.fillStyle = cmd.color;
+                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                    break;
+                    
+                case 'update_text':
+                    ctx.save();
+                    ctx.fillStyle = cmd.color;
+                    ctx.font = cmd.font;
+                    ctx.fillText(cmd.text, cmd.x, cmd.y);
+                    ctx.restore();
+                    break;
+                    
+                case 'draw_overlay':
+                    // Draw overlay with background
+                    ctx.save();
+                    ctx.fillStyle = cmd.backgroundColor;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.fillStyle = cmd.textColor;
+                    ctx.font = cmd.font;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(cmd.text, cmd.x, cmd.y);
+                    ctx.restore();
+                    break;
+                    
+                // Legacy command support
+                case 'fillRect':
+                    ctx.fillStyle = cmd.color;
+                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                    break;
+                    
+                case 'fillCircle':
+                    ctx.fillStyle = cmd.color;
+                    ctx.beginPath();
+                    ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
+                    ctx.fill();
+                    break;
+                    
+                case 'fillText':
+                    ctx.fillStyle = cmd.color;
+                    ctx.font = cmd.font;
+                    ctx.fillText(cmd.text, cmd.x, cmd.y);
+                    break;
+            }
+        }
+        
+        drawState.lastFrameData = data;
+        drawState.skipFrame = false;
+        
+    } catch (error) {
+        console.error('Draw error:', error);
+        // Fallback to simple clear on error
+        ctx.fillStyle = 'rgb(240, 240, 240)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 }
+
+// Cache for grid drawing
+let gridCache = null;
+let gridCacheSpacing = 0;
+let gridCacheColor = '';
+
+function drawGrid(spacing, color) {
+    // Validate spacing to prevent infinite loops
+    if (!Number.isFinite(spacing) || spacing <= 0) {
+        return; // guard against bad input
+    }
+    
+    // Check if we need to update the cache
+    if (!gridCache || gridCacheSpacing !== spacing || gridCacheColor !== color || 
+        gridCache.width !== canvas.width || gridCache.height !== canvas.height) {
+        
+        // Create or resize off-screen canvas
+        if (!gridCache) {
+            gridCache = document.createElement('canvas');
+        }
+        gridCache.width = canvas.width;
+        gridCache.height = canvas.height;
+        gridCacheSpacing = spacing;
+        gridCacheColor = color;
+        
+        // Draw grid to off-screen canvas
+        const cacheCtx = gridCache.getContext('2d', { alpha: true });
+        cacheCtx.clearRect(0, 0, gridCache.width, gridCache.height);
+        cacheCtx.save();
+        cacheCtx.strokeStyle = color;
+        cacheCtx.lineWidth = 0.5;
+        
+        // Vertical lines
+        for (let x = 0; x <= gridCache.width; x += spacing) {
+            cacheCtx.beginPath();
+            cacheCtx.moveTo(x, 0);
+            cacheCtx.lineTo(x, gridCache.height);
+            cacheCtx.stroke();
+        }
+        
+        // Horizontal lines
+        for (let y = 0; y <= gridCache.height; y += spacing) {
+            cacheCtx.beginPath();
+            cacheCtx.moveTo(0, y);
+            cacheCtx.lineTo(gridCache.width, y);
+            cacheCtx.stroke();
+        }
+        
+        cacheCtx.restore();
+    }
+    
+    // Draw cached grid to main canvas
+    ctx.drawImage(gridCache, 0, 0);
 }
-} catch (error) {
-console.error('Draw error:', error);
-}
-}
-function gameLoop() {
-try {
-const frameData = pyodide.runPython('update_game()');
-drawFrame(frameData);
-performanceMonitor.update();
-} catch (error) {
-console.error('Game loop error:', error);
-}
-gameLoopId = requestAnimationFrame(gameLoop);
+// Performance-optimized game loop
+let lastFrameTime = 0;
+const targetFPS = 60;
+const frameInterval = 1000 / targetFPS;
+let accumulator = 0;
+
+function gameLoop(currentTime) {
+    try {
+        // Reset skipFrame flag at the start of each frame
+        drawState.skipFrame = false;
+        
+        // Frame rate limiting
+        const deltaTime = currentTime - lastFrameTime;
+        lastFrameTime = currentTime;
+        
+        // Skip frames if running too fast
+        if (deltaTime < frameInterval * 0.75) {
+            gameLoopId = requestAnimationFrame(gameLoop);
+            return;
+        }
+        
+        // Update game state and get optimized draw commands
+        const frameData = pyodide.runPython('update_game()');
+        
+        // Only draw if we have valid frame data
+        if (frameData && !drawState.skipFrame) {
+            drawFrame(frameData);
+        }
+        
+        // Update performance monitoring less frequently
+        accumulator += deltaTime;
+        if (accumulator >= 100) { // Update every 100ms instead of every frame
+            performanceMonitor.update();
+            accumulator = 0;
+        }
+    } catch (error) {
+        console.error('Game loop error:', error);
+    }
+    
+    gameLoopId = requestAnimationFrame(gameLoop);
 }
 function startGameLoop() {
 if (gameLoopId) {
@@ -568,16 +841,55 @@ console.error('Key input error:', error);
 }
 }
 });
-document.addEventListener('visibilitychange', function() {
-if (document.hidden && pyodide) {
-pyodide.runPython('game_state.is_paused = True');
-}
-});
+// Visibility change handler moved above for better performance management
 window.addEventListener('error', function(event) {
 showError('予期しないエラーが発生しました', event.error?.message || '');
 });
 window.addEventListener('unhandledrejection', function(event) {
 showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
+});
+
+// Handle window resize to clear grid cache
+window.addEventListener('resize', function() {
+    // Clear grid cache on resize to force redraw with new dimensions
+    gridCache = null;
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', function() {
+    if (gameLoopId) {
+        cancelAnimationFrame(gameLoopId);
+    }
+    if (pyodide) {
+        try {
+            pyodide.runPython('game_state = None\ngame_view = None');
+        } catch (e) {}
+    }
+    // Clean up off-screen canvases
+    if (gridCache) {
+        gridCache = null;
+    }
+});
+
+// Handle page visibility changes for better performance
+let wasRunning = false;
+document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+        if (gameLoopId) {
+            wasRunning = true;
+            cancelAnimationFrame(gameLoopId);
+            gameLoopId = null;
+        }
+        if (pyodide) {
+            pyodide.runPython('game_state.is_paused = True');
+        }
+    } else if (wasRunning) {
+        wasRunning = false;
+        if (pyodide) {
+            pyodide.runPython('game_state.is_paused = False');
+            startGameLoop();
+        }
+    }
 });
 // Audio handling function (currently not used)
 function handleGameAudio(gameState) {

@@ -22,7 +22,7 @@ AI パワーアップ機能を搭載したクラシックなスカッシュゲ�
 
 1. リポジトリのクローン:
 ```bash
-git clone https://github.com/yourusername/ultimate-squash-game.git
+git clone https://github.com/CaCC-Lab/ultimate-squash-game.git
 cd ultimate-squash-game
 ```
 
