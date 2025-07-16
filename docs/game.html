@@ -478,6 +478,10 @@ class PygameGameState:
         self.observers = []
         self.canvas_width = 640
         self.canvas_height = 480
+        self.multi_ball_active = False
+        self.multi_ball_threshold = 5  # 5連続ヒットでマルチボール発動
+        self.consecutive_hits = 0
+        self.max_balls = 3
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -495,14 +499,43 @@ class PygameGameState:
         if ball.y <= ball.radius:
             ball.dy = -ball.dy
         if ball.y >= self.canvas_height - ball.radius:
-            self.is_gameover = True
+            # ボールを削除（マルチボールモード時）
+            if ball in self.balls:
+                self.balls.remove(ball)
+                self.score.misses += 1
+                self.consecutive_hits = 0  # 連続ヒットをリセット
+                if len(self.balls) == 0:
+                    self.is_gameover = True
+            return
         
         if (ball.y + ball.radius >= self.racket.y and 
             ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
             ball.dy = -abs(ball.dy)
             self.score.hits += 1
+            self.score.player_score += 10
+            self.consecutive_hits += 1
+            
+            # マルチボール発動チェック
+            if (not self.multi_ball_active and 
+                self.consecutive_hits >= self.multi_ball_threshold and 
+                len(self.balls) < self.max_balls):
+                self.activate_multi_ball()
         
         self.notify_observers()
+    
+    def activate_multi_ball(self):
+        """マルチボールモードを発動"""
+        self.multi_ball_active = True
+        # 新しいボールを2つ追加
+        for i in range(min(2, self.max_balls - len(self.balls))):
+            new_ball = PygameBall(
+                x=320 + (i - 0.5) * 100,  # 左右に配置
+                y=240,
+                dx=150 * (1 if i == 0 else -1),  # 異なる方向
+                dy=250,
+                color=(255, 200, 0) if i == 0 else (0, 200, 255)  # 異なる色
+            )
+            self.balls.append(new_ball)
     
     def update_racket_position(self, x: float):
         self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
@@ -524,13 +557,23 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
     def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
         draw_commands = []
         
+        # 背景（マルチボール時は特別な色）
+        bg_color = '#000000' if not game_state.multi_ball_active else '#0a0a1a'
         draw_commands.append({
             'type': 'fillRect',
             'x': 0, 'y': 0,
             'width': self.canvas_width,
             'height': self.canvas_height,
-            'color': '#000000'
+            'color': bg_color
         })
+        
+        # マルチボール時の背景エフェクト
+        if game_state.multi_ball_active:
+            draw_commands.append({
+                'type': 'grid',
+                'spacing': 40,
+                'color': 'rgba(78, 205, 196, 0.1)'
+            })
         
         for ball in game_state.balls:
             draw_commands.append({
@@ -556,6 +599,28 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
             'x': 10, 'y': 30,
             'color': 'white',
             'font': '20px Arial'
+        })
+        
+        # 連続ヒット数とマルチボール状態の表示
+        combo_text = f'Combo: {game_state.consecutive_hits}'
+        if game_state.multi_ball_active:
+            combo_text += ' | MULTI-BALL ACTIVE!'
+        
+        draw_commands.append({
+            'type': 'fillText',
+            'text': combo_text,
+            'x': 10, 'y': 55,
+            'color': '#ffcc00' if game_state.multi_ball_active else '#cccccc',
+            'font': '16px Arial'
+        })
+        
+        # アクティブボール数の表示
+        draw_commands.append({
+            'type': 'fillText',
+            'text': f'Balls: {len(game_state.balls)}',
+            'x': self.canvas_width - 80, 'y': 30,
+            'color': '#00ffcc',
+            'font': '16px Arial'
         })
         
         return {
@@ -585,7 +650,8 @@ game_state.add_observer(game_view)
 
 def update_game(dt=0.016):
     if not game_state.is_paused and not game_state.is_gameover:
-        for ball in game_state.balls:
+        # すべてのボールを更新（リストのコピーを使用して安全に削除）
+        for ball in list(game_state.balls):
             game_state.update_ball_position(ball, dt)
     return game_view.get_javascript_interface_data()
 
@@ -603,6 +669,9 @@ def restart_game():
     global game_state
     game_state = PygameGameState()
     game_state.add_observer(game_view)
+    # マルチボール関連の状態もリセット
+    game_state.multi_ball_active = False
+    game_state.consecutive_hits = 0
 `);
 }
 // Optimized drawing function that handles differential rendering
@@ -717,6 +786,10 @@ function drawFrame(frameData) {
                     ctx.fillStyle = cmd.color;
                     ctx.font = cmd.font;
                     ctx.fillText(cmd.text, cmd.x, cmd.y);
+                    break;
+                    
+                case 'grid':
+                    drawGrid(cmd.spacing, cmd.color);
                     break;
             }
         }
