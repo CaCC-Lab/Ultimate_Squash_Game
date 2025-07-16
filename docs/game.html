@@ -329,22 +329,12 @@ perfInfo.innerHTML =
 '<span id="perf-skipped"></span><span id="perf-reuse"></span>';
 }
 this._cachedElements = {
-fpsCounter: document.getElementById('fpsCounter'),
-memoryUsage: document.getElementById('memoryUsage'),
 perfInfo: perfInfo,
 perfFps: document.getElementById('perf-fps'),
 perfMemory: document.getElementById('perf-memory'),
 perfSkipped: document.getElementById('perf-skipped'),
 perfReuse: document.getElementById('perf-reuse')
 };
-}
-
-// Update individual text content instead of innerHTML
-if (this._cachedElements.fpsCounter) {
-this._cachedElements.fpsCounter.textContent = this.fps;
-}
-if (this._cachedElements.memoryUsage) {
-this._cachedElements.memoryUsage.textContent = this.memoryUsage + 'MB';
 }
 
 // Update performance info with individual span updates
@@ -748,6 +738,11 @@ let gridCacheSpacing = 0;
 let gridCacheColor = '';
 
 function drawGrid(spacing, color) {
+    // Validate spacing to prevent infinite loops
+    if (!Number.isFinite(spacing) || spacing <= 0) {
+        return; // guard against bad input
+    }
+    
     // Check if we need to update the cache
     if (!gridCache || gridCacheSpacing !== spacing || gridCacheColor !== color || 
         gridCache.width !== canvas.width || gridCache.height !== canvas.height) {
