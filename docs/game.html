@@ -862,7 +862,7 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
         # マルチボール時の背景エフェクト
         if game_state.multi_ball_active:
             draw_commands.append({
-                'type': 'grid',
+                'type': 'draw_grid',
                 'spacing': 40,
                 'color': 'rgba(78, 205, 196, 0.1)'
             })
@@ -1133,7 +1133,7 @@ function drawFrame(frameData) {
                     ctx.fillText(cmd.text, cmd.x, cmd.y);
                     break;
                     
-                case 'grid':
+                case 'draw_grid':
                     drawGrid(cmd.spacing, cmd.color);
                     break;
             }
