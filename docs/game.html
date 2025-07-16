@@ -760,7 +760,7 @@ json.dumps(powerup_info)
             document.getElementById('loadingProgress').textContent = text;
         }
         
-        function hideLoading() {
+        function hideLoadingScreen() {
             const overlay = document.getElementById('loadingOverlay');
             overlay.style.opacity = '0';
             setTimeout(() => {
@@ -800,13 +800,19 @@ json.dumps(powerup_info)
                 // スコアランキングシステムを初期化
                 scoreRanking = new ScoreRanking();
                 
+                // タッチイベントリスナーを設定
+                setupTouchEvents();
+                
                 // ゲーム状態を初期化
                 await initializeGameState();
                 
                 updateLoadingProgress('ゲーム開始準備完了');
                 
                 // ローディング画面を非表示
-                hideLoading();
+                hideLoadingScreen();
+                
+                // モバイルコントロールを追加
+                addMobileControls();
                 
                 // ゲームループ開始
                 startGameLoop();
@@ -1306,7 +1312,15 @@ def restart_game():
         document.addEventListener('keydown', function(event) {
             if (pyodide) {
                 try {
-                    pyodide.runPython(`handle_key_input('${event.key}')`);
+                    const result = pyodide.runPython(`handle_key_input('${event.key}')`);
+                    
+                    // 特殊なアクションの処理
+                    if (result === 'show_ranking') {
+                        showRankingModal();
+                    } else if (result === 'toggle_powerup') {
+                        togglePowerupDisplay();
+                    }
+                    
                     // Rキーでリスタートした場合、JavaScript側でも確実にクリア
                     if (event.key === 'r' || event.key === 'R') {
                         pyodide.runPython('pending_high_score_check = None');
@@ -1316,6 +1330,141 @@ def restart_game():
                 }
             }
         });
+        
+        // タッチイベントの設定
+        function setupTouchEvents() {
+            if (!canvas) return;
+            
+            let touchStartX = null;
+            let touchStartTime = null;
+            
+            canvas.addEventListener('touchstart', function(event) {
+                event.preventDefault();
+                const touch = event.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                touchStartX = touch.clientX - rect.left;
+                touchStartTime = Date.now();
+                
+                // タッチ位置に基づいてラケットを移動
+                if (pyodide) {
+                    try {
+                        const racketX = Math.max(0, Math.min(touchStartX - 30, canvas.width - 60));
+                        pyodide.runPython(`game_state.update_racket_position(${racketX})`);
+                    } catch (error) {
+                        console.error('Touch input error:', error);
+                    }
+                }
+            });
+            
+            canvas.addEventListener('touchmove', function(event) {
+                event.preventDefault();
+                const touch = event.touches[0];
+                const rect = canvas.getBoundingClientRect();
+                const touchX = touch.clientX - rect.left;
+                
+                // タッチ移動に追従してラケットを移動
+                if (pyodide) {
+                    try {
+                        const racketX = Math.max(0, Math.min(touchX - 30, canvas.width - 60));
+                        pyodide.runPython(`game_state.update_racket_position(${racketX})`);
+                    } catch (error) {
+                        console.error('Touch move error:', error);
+                    }
+                }
+            });
+            
+            canvas.addEventListener('touchend', function(event) {
+                event.preventDefault();
+                const touchEndTime = Date.now();
+                const touchDuration = touchEndTime - touchStartTime;
+                
+                // ダブルタップでゲーム再開/一時停止
+                if (touchDuration < 300) {
+                    if (event.timeStamp - (window.lastTapTime || 0) < 300) {
+                        // ダブルタップ検出
+                        if (pyodide) {
+                            try {
+                                pyodide.runPython('game_state.is_paused = not game_state.is_paused');
+                            } catch (error) {
+                                console.error('Double tap error:', error);
+                            }
+                        }
+                    }
+                    window.lastTapTime = event.timeStamp;
+                }
+            });
+        }
+        
+        // モバイルコントロールボタンの追加
+        function addMobileControls() {
+            const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            
+            if (isMobile) {
+                // モバイルコントロールパネルを作成
+                const controlPanel = document.createElement('div');
+                controlPanel.id = 'mobileControls';
+                controlPanel.style.cssText = `
+                    position: fixed;
+                    bottom: 20px;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    display: flex;
+                    gap: 10px;
+                    z-index: 1000;
+                `;
+                
+                // リスタートボタン
+                const restartBtn = document.createElement('button');
+                restartBtn.textContent = '🔄 リスタート';
+                restartBtn.style.cssText = `
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    background: #007BFF;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    touch-action: manipulation;
+                `;
+                restartBtn.addEventListener('click', function() {
+                    if (pyodide) {
+                        pyodide.runPython('restart_game()');
+                        pyodide.runPython('pending_high_score_check = None');
+                    }
+                });
+                
+                // ランキングボタン
+                const rankingBtn = document.createElement('button');
+                rankingBtn.textContent = '🏆 ランキング';
+                rankingBtn.style.cssText = `
+                    padding: 10px 20px;
+                    font-size: 16px;
+                    background: #28A745;
+                    color: white;
+                    border: none;
+                    border-radius: 5px;
+                    touch-action: manipulation;
+                `;
+                rankingBtn.addEventListener('click', function() {
+                    showRankingModal();
+                });
+                
+                controlPanel.appendChild(restartBtn);
+                controlPanel.appendChild(rankingBtn);
+                document.body.appendChild(controlPanel);
+                
+                // ゲーム説明にタッチ操作の説明を追加
+                const touchHelp = document.createElement('div');
+                touchHelp.style.cssText = `
+                    position: absolute;
+                    top: 65px;
+                    left: 10px;
+                    color: #999;
+                    font-size: 12px;
+                `;
+                touchHelp.textContent = 'タッチ: ラケット移動 | ダブルタップ: 一時停止';
+                canvas.parentElement.appendChild(touchHelp);
+            }
+        }
         
         // ウィンドウフォーカス管理
         document.addEventListener('visibilitychange', function() {
