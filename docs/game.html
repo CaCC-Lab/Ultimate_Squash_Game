@@ -464,6 +464,17 @@ class PygameScore:
         self.misses = 0
         self.start_time = time.time()
 
+class PowerUp:
+    def __init__(self, x: float, y: float, type: str, color: tuple):
+        self.x = x
+        self.y = y
+        self.type = type
+        self.color = color
+        self.radius = 15
+        self.dy = 100  # 落下速度
+        self.active = True
+        self.duration = 10000  # 効果時間（ミリ秒）
+
 class PygameGameStateObserver:
     def on_game_state_changed(self, game_state: 'PygameGameState'):
         pass
@@ -482,6 +493,10 @@ class PygameGameState:
         self.multi_ball_threshold = 5  # 5連続ヒットでマルチボール発動
         self.consecutive_hits = 0
         self.max_balls = 3
+        self.power_ups = []
+        self.active_power_ups = {}  # type -> end_time のマップ
+        self.power_up_spawn_chance = 0.15  # 15%の確率でパワーアップ出現
+        self.last_power_up_time = time.time()
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -499,6 +514,12 @@ class PygameGameState:
         if ball.y <= ball.radius:
             ball.dy = -ball.dy
         if ball.y >= self.canvas_height - ball.radius:
+            # シールド効果チェック
+            if 'shield' in self.active_power_ups:
+                ball.dy = -abs(ball.dy)  # ボールを跳ね返す
+                del self.active_power_ups['shield']  # シールドを消費
+                return
+            
             # ボールを削除（マルチボールモード時）
             if ball in self.balls:
                 self.balls.remove(ball)
@@ -512,7 +533,9 @@ class PygameGameState:
             ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
             ball.dy = -abs(ball.dy)
             self.score.hits += 1
-            self.score.player_score += 10
+            # ポイント2倍効果チェック
+            points = 20 if 'extra_points' in self.active_power_ups else 10
+            self.score.player_score += points
             self.consecutive_hits += 1
             
             # マルチボール発動チェック
@@ -520,6 +543,15 @@ class PygameGameState:
                 self.consecutive_hits >= self.multi_ball_threshold and 
                 len(self.balls) < self.max_balls):
                 self.activate_multi_ball()
+            
+            # パワーアップ出現チェック
+            import random
+            current_time = time.time()
+            if (current_time - self.last_power_up_time > 5 and  # 5秒に1回まで
+                random.random() < self.power_up_spawn_chance and
+                len(self.power_ups) < 2):  # 最大2個まで
+                self.spawn_power_up()
+                self.last_power_up_time = current_time
         
         self.notify_observers()
     
@@ -539,7 +571,85 @@ class PygameGameState:
     
     def update_racket_position(self, x: float):
         self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
-        self.notify_observers()`,
+        self.notify_observers()
+    
+    def spawn_power_up(self):
+        """ランダムなパワーアップを生成"""
+        import random
+        
+        # パワーアップの種類を定義
+        power_up_types = [
+            ('wide_racket', (100, 255, 100)),     # 緑：ラケット拡大
+            ('slow_ball', (100, 100, 255)),       # 青：ボール減速
+            ('extra_points', (255, 255, 100)),    # 黄：ポイント2倍
+            ('shield', (255, 100, 255))           # 紫：シールド（1回ミスを防ぐ）
+        ]
+        
+        # ランダムな位置とタイプを選択
+        x = random.randint(50, self.canvas_width - 50)
+        power_type, color = random.choice(power_up_types)
+        
+        power_up = PowerUp(x, 50, power_type, color)
+        self.power_ups.append(power_up)
+    
+    def update_power_ups(self, dt: float = 0.016):
+        """パワーアップの位置を更新"""
+        current_time = time.time() * 1000  # ミリ秒
+        
+        # 期限切れのパワーアップ効果を削除
+        expired_effects = []
+        for power_type, end_time in self.active_power_ups.items():
+            if current_time > end_time:
+                expired_effects.append(power_type)
+                self.deactivate_power_up(power_type)
+        
+        for power_type in expired_effects:
+            del self.active_power_ups[power_type]
+        
+        # パワーアップの位置更新
+        for power_up in list(self.power_ups):
+            power_up.y += power_up.dy * dt
+            
+            # 画面外に出たら削除
+            if power_up.y > self.canvas_height:
+                self.power_ups.remove(power_up)
+                continue
+            
+            # ラケットとの衝突判定
+            if (power_up.y + power_up.radius >= self.racket.y and
+                power_up.x >= self.racket.x and 
+                power_up.x <= self.racket.x + self.racket.size):
+                self.activate_power_up(power_up)
+                self.power_ups.remove(power_up)
+    
+    def activate_power_up(self, power_up: PowerUp):
+        """パワーアップを発動"""
+        current_time = time.time() * 1000
+        self.active_power_ups[power_up.type] = current_time + power_up.duration
+        
+        if power_up.type == 'wide_racket':
+            self.racket.size = 100  # 通常の2倍
+        elif power_up.type == 'slow_ball':
+            for ball in self.balls:
+                ball.dx *= 0.7
+                ball.dy *= 0.7
+        elif power_up.type == 'extra_points':
+            # ポイント2倍フラグ（update_ball_positionで処理）
+            pass
+        elif power_up.type == 'shield':
+            # シールドフラグ（ミス時に処理）
+            pass
+        
+        self.score.player_score += 50  # パワーアップ取得ボーナス
+    
+    def deactivate_power_up(self, power_type: str):
+        """パワーアップ効果を解除"""
+        if power_type == 'wide_racket':
+            self.racket.size = 50  # 通常サイズに戻す
+        elif power_type == 'slow_ball':
+            for ball in self.balls:
+                ball.dx /= 0.7
+                ball.dy /= 0.7`,
 'view.optimized_web_game_view': `import json
 from typing import Dict, List
 from model.pygame_game_state import PygameGameState, PygameGameStateObserver
@@ -623,6 +733,49 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
             'font': '16px Arial'
         })
         
+        # パワーアップの描画
+        for power_up in game_state.power_ups:
+            draw_commands.append({
+                'type': 'fillCircle',
+                'x': power_up.x, 'y': power_up.y,
+                'radius': power_up.radius,
+                'color': f'rgb{power_up.color}'
+            })
+            # パワーアップタイプのアイコン（文字）
+            icon_map = {
+                'wide_racket': 'W',
+                'slow_ball': 'S',
+                'extra_points': '2X',
+                'shield': 'D'
+            }
+            draw_commands.append({
+                'type': 'fillText',
+                'text': icon_map.get(power_up.type, '?'),
+                'x': power_up.x - 8, 'y': power_up.y + 5,
+                'color': 'black',
+                'font': 'bold 14px Arial'
+            })
+        
+        # アクティブなパワーアップ効果の表示
+        if game_state.active_power_ups:
+            effect_text = 'Active: '
+            effect_names = {
+                'wide_racket': 'Wide',
+                'slow_ball': 'Slow',
+                'extra_points': '2X',
+                'shield': 'Shield'
+            }
+            active_effects = [effect_names.get(k, k) for k in game_state.active_power_ups.keys()]
+            effect_text += ', '.join(active_effects)
+            
+            draw_commands.append({
+                'type': 'fillText',
+                'text': effect_text,
+                'x': 10, 'y': 80,
+                'color': '#ff00ff',
+                'font': '14px Arial'
+            })
+        
         return {
             'canvas_id': self.canvas_id,
             'draw_commands': draw_commands,
@@ -653,6 +806,8 @@ def update_game(dt=0.016):
         # すべてのボールを更新（リストのコピーを使用して安全に削除）
         for ball in list(game_state.balls):
             game_state.update_ball_position(ball, dt)
+        # パワーアップの更新
+        game_state.update_power_ups(dt)
     return game_view.get_javascript_interface_data()
 
 def handle_key_input(key):
