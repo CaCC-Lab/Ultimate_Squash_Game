@@ -902,7 +902,7 @@ class PygameGameState:
             'hit_count': 0,
             'total_attempts': 0,
             'miss_ratio': 0.0,
-            'base_ball_speed': 5.0,
+            'base_ball_speed': 290.0,
             'current_speed_multiplier': 1.0,
             'angle_randomness': 0.0,
             'evaluation_window': 10,  # 10回のアクションで評価
@@ -975,12 +975,14 @@ class PygameGameState:
         """ADAシステムによるボール物理の調整"""
         ada = self.ada_system
         
-        # 速度調整
+        # 速度調整（現在速度を基準とした倍率補正）
         speed_factor = ada['current_speed_multiplier']
         original_speed = (ball.dx ** 2 + ball.dy ** 2) ** 0.5
         if original_speed > 0:
-            ball.dx = (ball.dx / original_speed) * ada['base_ball_speed'] * speed_factor
-            ball.dy = (ball.dy / original_speed) * ada['base_ball_speed'] * speed_factor
+            # 現在速度を基準に倍率補正（パワーアップと共存可能）
+            target_speed = original_speed * speed_factor
+            ball.dx = (ball.dx / original_speed) * target_speed
+            ball.dy = (ball.dy / original_speed) * target_speed
         
         # 角度にランダム性を追加
         if ada['angle_randomness'] > 0:
@@ -1424,9 +1426,13 @@ def restart_game():
                 // ハイスコアチェック
                 checkPendingHighScore();
                 
-                // ADAシステムデバッグ情報の更新（開発者モード）
+                // ADAシステムデバッグ情報の更新（開発者モード・5FPSに制限）
                 if (window.location.hash === '#debug') {
-                    updateADADebugInfo();
+                    const now = Date.now();
+                    if (now - debugUpdateTimer >= DEBUG_UPDATE_INTERVAL) {
+                        updateADADebugInfo();
+                        debugUpdateTimer = now;
+                    }
                 }
             } catch (error) {
                 console.error('Game loop error:', error);
@@ -1461,8 +1467,12 @@ def restart_game():
             gameLoopId = requestAnimationFrame(gameLoop);
         }
         
+        // ADAデバッグ更新用のタイマー変数
+        let debugUpdateTimer = 0;
+        const DEBUG_UPDATE_INTERVAL = 200; // 200ms = 5FPS
+        
         // ADAシステムデバッグ情報の更新
-        function updateADADebugInfo() {
+        function updateADADebugInfo(forceUpdate = false) {
             try {
                 const adaStatus = JSON.parse(pyodide.runPython('get_ada_system_status()'));
                 
