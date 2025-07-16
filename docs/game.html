@@ -975,12 +975,12 @@ class PygameGameState:
         """ADAシステムによるボール物理の調整"""
         ada = self.ada_system
         
-        # 速度調整（現在速度を基準とした倍率補正）
+        # 速度調整（固定基準速度からの倍率補正）
         speed_factor = ada['current_speed_multiplier']
         original_speed = (ball.dx ** 2 + ball.dy ** 2) ** 0.5
         if original_speed > 0:
-            # 現在速度を基準に倍率補正（パワーアップと共存可能）
-            target_speed = original_speed * speed_factor
+            # 累積を防ぐため、固定基準速度から目標値を算出
+            target_speed = ada['base_ball_speed'] * speed_factor
             ball.dx = (ball.dx / original_speed) * target_speed
             ball.dy = (ball.dy / original_speed) * target_speed
         
