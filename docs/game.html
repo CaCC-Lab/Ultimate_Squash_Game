@@ -763,6 +763,7 @@ json.dumps(powerup_info)
         function hideLoadingScreen() {
             const overlay = document.getElementById('loadingOverlay');
             overlay.style.opacity = '0';
+            overlay.style.pointerEvents = 'none';
             setTimeout(() => {
                 overlay.style.display = 'none';
             }, 500);
@@ -1297,7 +1298,8 @@ def restart_game():
                     pyodide.runPython('pending_high_score_check = None');
                 }
             } catch (error) {
-                // エラーは無視（pending_high_score_checkがNoneの場合など）
+                // pending_high_score_checkがNoneの場合は正常な動作
+                console.debug('High score check skipped:', error.message);
             }
         }
         
@@ -1335,10 +1337,15 @@ def restart_game():
         function setupTouchEvents() {
             if (!canvas) return;
             
+            // 既存のイベントリスナーをクリーンアップ
+            if (window.touchEventCleanup) {
+                window.touchEventCleanup();
+            }
+            
             let touchStartX = null;
             let touchStartTime = null;
             
-            canvas.addEventListener('touchstart', function(event) {
+            const touchStartHandler = function(event) {
                 event.preventDefault();
                 const touch = event.touches[0];
                 const rect = canvas.getBoundingClientRect();
@@ -1354,9 +1361,9 @@ def restart_game():
                         console.error('Touch input error:', error);
                     }
                 }
-            });
+            };
             
-            canvas.addEventListener('touchmove', function(event) {
+            const touchMoveHandler = function(event) {
                 event.preventDefault();
                 const touch = event.touches[0];
                 const rect = canvas.getBoundingClientRect();
@@ -1371,10 +1378,14 @@ def restart_game():
                         console.error('Touch move error:', error);
                     }
                 }
-            });
+            };
             
-            canvas.addEventListener('touchend', function(event) {
+            const touchEndHandler = function(event) {
                 event.preventDefault();
+                
+                // touchStartTimeがnullの場合は早期リターン
+                if (touchStartTime === null) return;
+                
                 const touchEndTime = Date.now();
                 const touchDuration = touchEndTime - touchStartTime;
                 
@@ -1392,14 +1403,30 @@ def restart_game():
                     }
                     window.lastTapTime = event.timeStamp;
                 }
-            });
+                
+                // リセット
+                touchStartX = null;
+                touchStartTime = null;
+            };
+            
+            canvas.addEventListener('touchstart', touchStartHandler);
+            canvas.addEventListener('touchmove', touchMoveHandler);
+            canvas.addEventListener('touchend', touchEndHandler);
+            
+            // クリーンアップ関数を保存
+            window.touchEventCleanup = function() {
+                canvas.removeEventListener('touchstart', touchStartHandler);
+                canvas.removeEventListener('touchmove', touchMoveHandler);
+                canvas.removeEventListener('touchend', touchEndHandler);
+            };
         }
         
         // モバイルコントロールボタンの追加
         function addMobileControls() {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
-            if (isMobile) {
+            // 既存のコントロールパネルをチェック
+            if (isMobile && !document.getElementById('mobileControls')) {
                 // モバイルコントロールパネルを作成
                 const controlPanel = document.createElement('div');
                 controlPanel.id = 'mobileControls';
@@ -1416,6 +1443,7 @@ def restart_game():
                 // リスタートボタン
                 const restartBtn = document.createElement('button');
                 restartBtn.textContent = '🔄 リスタート';
+                restartBtn.setAttribute('aria-label', 'ゲームをリスタート');
                 restartBtn.style.cssText = `
                     padding: 10px 20px;
                     font-size: 16px;
@@ -1435,6 +1463,7 @@ def restart_game():
                 // ランキングボタン
                 const rankingBtn = document.createElement('button');
                 rankingBtn.textContent = '🏆 ランキング';
+                rankingBtn.setAttribute('aria-label', 'ランキングを表示');
                 rankingBtn.style.cssText = `
                     padding: 10px 20px;
                     font-size: 16px;
@@ -1452,17 +1481,20 @@ def restart_game():
                 controlPanel.appendChild(rankingBtn);
                 document.body.appendChild(controlPanel);
                 
-                // ゲーム説明にタッチ操作の説明を追加
-                const touchHelp = document.createElement('div');
-                touchHelp.style.cssText = `
-                    position: absolute;
-                    top: 65px;
-                    left: 10px;
-                    color: #999;
-                    font-size: 12px;
-                `;
-                touchHelp.textContent = 'タッチ: ラケット移動 | ダブルタップ: 一時停止';
-                canvas.parentElement.appendChild(touchHelp);
+                // ゲーム説明にタッチ操作の説明を追加（既存の説明がない場合のみ）
+                if (!document.getElementById('touchHelp')) {
+                    const touchHelp = document.createElement('div');
+                    touchHelp.id = 'touchHelp';
+                    touchHelp.style.cssText = `
+                        position: absolute;
+                        top: 65px;
+                        left: 10px;
+                        color: #999;
+                        font-size: 12px;
+                    `;
+                    touchHelp.textContent = 'タッチ: ラケット移動 | ダブルタップ: 一時停止';
+                    canvas.parentElement.appendChild(touchHelp);
+                }
             }
         }
         
