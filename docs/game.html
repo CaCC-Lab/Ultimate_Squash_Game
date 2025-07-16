@@ -285,6 +285,31 @@ Memory: <span id="memoryUsage">1.2MB</span>
 <button class="error-button" style="background: #4ecdc4;" onclick="closeRankingModal()">閉じる</button>
 </div>
 </div>
+
+<!-- ハイスコア名前入力モーダル -->
+<div class="error-modal" id="nameInputModal" style="display: none;">
+<div class="error-content" style="max-width: 400px;">
+<h2 class="error-title" style="color: #ff6b6b;">🎉 ハイスコア達成！</h2>
+<p style="color: #ccc; margin-bottom: 20px;">名前を入力してください：</p>
+<input type="text" id="playerNameInput" placeholder="Player" maxlength="20" 
+       style="width: 100%; padding: 10px; border: 2px solid #4ecdc4; border-radius: 6px; 
+              background: #1a1a2e; color: white; font-size: 16px; margin-bottom: 20px;"
+       onkeydown="if(event.key==='Enter') submitHighScore()">
+<div style="display: flex; gap: 10px; justify-content: center;">
+<button class="error-button" style="background: #4ecdc4;" onclick="submitHighScore()">登録</button>
+<button class="error-button" style="background: #666;" onclick="cancelHighScore()">キャンセル</button>
+</div>
+</div>
+</div>
+
+<!-- スコア登録完了モーダル -->
+<div class="error-modal" id="scoreSubmittedModal" style="display: none;">
+<div class="error-content" style="max-width: 400px;">
+<h2 class="error-title" style="color: #4ecdc4;">🏆 登録完了！</h2>
+<p id="rankMessage" style="color: #ccc; margin-bottom: 20px; font-size: 18px; font-weight: bold;"></p>
+<button class="error-button" style="background: #4ecdc4;" onclick="closeScoreSubmittedModal()">OK</button>
+</div>
+</div>
 <!-- エラーモーダル -->
 <div class="error-modal" id="errorModal">
 <div class="error-content">
@@ -461,6 +486,56 @@ function showRankingModal() {
 
 function closeRankingModal() {
     document.getElementById('rankingModal').style.display = 'none';
+}
+
+// ハイスコア登録用のグローバル変数
+let pendingScoreData = null;
+
+function showNameInputModal(scoreData) {
+    pendingScoreData = scoreData;
+    document.getElementById('playerNameInput').value = 'Player';
+    document.getElementById('nameInputModal').style.display = 'flex';
+    // 入力フィールドにフォーカス
+    setTimeout(() => {
+        document.getElementById('playerNameInput').focus();
+        document.getElementById('playerNameInput').select();
+    }, 100);
+}
+
+function submitHighScore() {
+    const playerName = document.getElementById('playerNameInput').value.trim() || 'Player';
+    const rank = scoreRanking.addScore(pendingScoreData.finalScore, playerName);
+    
+    // スコアに追加情報を保存
+    const scores = scoreRanking.getHighScores();
+    const newScore = scores.find(s => s.score === pendingScoreData.finalScore && s.name === playerName);
+    if (newScore) {
+        newScore.combo = pendingScoreData.maxCombo;
+        newScore.powerUps = pendingScoreData.powerUps;
+        localStorage.setItem(scoreRanking.storageKey, JSON.stringify(scores));
+    }
+    
+    // 名前入力モーダルを閉じる
+    document.getElementById('nameInputModal').style.display = 'none';
+    
+    // 登録完了メッセージを表示
+    document.getElementById('rankMessage').textContent = `${rank}位にランクイン！`;
+    document.getElementById('scoreSubmittedModal').style.display = 'flex';
+    
+    // スコア記録済みフラグを設定
+    pyodide.runPython('game_state.score_recorded = True');
+    pendingScoreData = null;
+}
+
+function cancelHighScore() {
+    document.getElementById('nameInputModal').style.display = 'none';
+    // スコア記録済みフラグを設定
+    pyodide.runPython('game_state.score_recorded = True');
+    pendingScoreData = null;
+}
+
+function closeScoreSubmittedModal() {
+    document.getElementById('scoreSubmittedModal').style.display = 'none';
 }
 function updateLoadingProgress(text) {
 document.getElementById('loadingProgress').textContent = text;
@@ -1166,24 +1241,13 @@ function gameLoop(currentTime) {
                 
                 // ハイスコアかチェック
                 if (scoreRanking.isHighScore(finalScore)) {
-                    // 名前を入力（簡易版）
+                    // 非同期モーダルで名前入力
                     setTimeout(() => {
-                        const playerName = prompt('ハイスコア！名前を入力してください:', 'Player') || 'Player';
-                        const rank = scoreRanking.addScore(finalScore, playerName);
-                        
-                        // スコアに追加情報を保存
-                        const scores = scoreRanking.getHighScores();
-                        const newScore = scores.find(s => s.score === finalScore && s.name === playerName);
-                        if (newScore) {
-                            newScore.combo = maxCombo;
-                            newScore.powerUps = powerUps;
-                            localStorage.setItem(scoreRanking.storageKey, JSON.stringify(scores));
-                        }
-                        
-                        alert(`${rank}位にランクイン！`);
-                        
-                        // スコア記録済みフラグを設定
-                        pyodide.runPython('game_state.score_recorded = True');
+                        showNameInputModal({
+                            finalScore: finalScore,
+                            maxCombo: maxCombo,
+                            powerUps: powerUps
+                        });
                     }, 100);
                 } else {
                     // スコア記録済みフラグを設定
