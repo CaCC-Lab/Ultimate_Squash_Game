@@ -1,53 +1,62 @@
 import { test, expect } from '@playwright/test';
+import { 
+  SELECTORS, 
+  KEYS, 
+  TIMEOUTS, 
+  TEST_DATA,
+  loadGamePage,
+  setupErrorHandlers,
+  expectNoErrors,
+  startGame,
+  performRandomActions,
+  toggleRankingModal
+} from './helpers.js';
 
 test.describe('Game Interaction Tests', () => {
+  let consoleErrors;
+  let jsErrors;
+
   test.beforeEach(async ({ page }) => {
-    // 各テストの前にゲームページに移動
-    await page.goto('/game.html');
+    // エラー監視を設定
+    consoleErrors = [];
+    jsErrors = [];
+    setupErrorHandlers(page, consoleErrors, jsErrors);
+    
+    // ゲームページを読み込み
+    await loadGamePage(page);
     
     // キャンバスが表示されることを確認
-    const canvas = page.locator('canvas#gameCanvas');
+    const canvas = page.locator(SELECTORS.canvas);
     await expect(canvas).toBeVisible();
+  });
+
+  test.afterEach(async () => {
+    // 各テスト後にエラーチェック
+    expectNoErrors(consoleErrors);
+    expectNoErrors(jsErrors);
   });
 
   test.describe('Keyboard Controls', () => {
     test('should respond to keyboard inputs', async ({ page }) => {
-      // キーボード入力のテスト
-      const keys = ['ArrowLeft', 'ArrowRight', 'Space', 'r', 'h', 'd'];
+      // キーボード入力のテスト（ヘルパーのテストデータを使用）
+      const allKeys = [
+        ...TEST_DATA.movementKeys,
+        ...TEST_DATA.gameControlKeys,
+        ...TEST_DATA.uiControlKeys
+      ];
       
-      for (const key of keys) {
-        // キーを押してエラーが発生しないことを確認
+      for (const key of allKeys) {
         await page.keyboard.press(key);
-        await page.waitForTimeout(100);
-        
-        // コンソールエラーがないことを確認
-        const consoleErrors = [];
-        page.on('console', msg => {
-          if (msg.type() === 'error') {
-            consoleErrors.push(msg.text());
-          }
-        });
-        
-        expect(consoleErrors.length).toBe(0);
+        await page.waitForTimeout(TIMEOUTS.short);
       }
     });
 
     test('should show ranking modal with H key', async ({ page }) => {
       // ローディングが完了するまで待機
-      await page.waitForTimeout(3000);
+      await page.waitForTimeout(TIMEOUTS.long);
       
-      // Hキーを押す
-      await page.keyboard.press('h');
-      await page.waitForTimeout(500);
-      
-      // ランキングモーダルが表示されることを確認
-      const rankingModal = page.locator('#rankingModal');
-      const isVisible = await rankingModal.isVisible();
-      
-      if (isVisible) {
-        // 閉じるボタンをクリック
-        const closeButton = page.locator('#rankingModal button').first();
-        await closeButton.click();
+      // ヘルパー関数を使用してランキングモーダルの表示を確認
+      await toggleRankingModal(page);
         await expect(rankingModal).toBeHidden();
       } else {
         // Pyodideがロードされていない場合はスキップ

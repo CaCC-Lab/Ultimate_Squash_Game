@@ -1,6 +1,27 @@
 import { test, expect } from '@playwright/test';
+import { 
+  SELECTORS, 
+  TIMEOUTS,
+  setupErrorHandlers,
+  expectNoErrors
+} from './helpers.js';
 
 test.describe('Game Startup Tests', () => {
+  let consoleErrors;
+  let jsErrors;
+
+  test.beforeEach(async ({ page }) => {
+    // エラー監視を設定
+    consoleErrors = [];
+    jsErrors = [];
+    setupErrorHandlers(page, consoleErrors, jsErrors);
+  });
+
+  test.afterEach(async () => {
+    // 各テスト後にエラーチェック
+    expectNoErrors(consoleErrors);
+    expectNoErrors(jsErrors);
+  });
   test('should load the game page successfully', async ({ page }) => {
     // ゲームページに移動
     await page.goto('/game.html');
@@ -13,7 +34,7 @@ test.describe('Game Startup Tests', () => {
     await page.goto('/game.html');
     
     // キャンバス要素の存在確認
-    const canvas = page.locator('canvas#gameCanvas');
+    const canvas = page.locator(SELECTORS.canvas);
     await expect(canvas).toBeVisible();
     
     // キャンバスのサイズ確認（レスポンシブなので存在確認のみ）
@@ -27,7 +48,7 @@ test.describe('Game Startup Tests', () => {
     await page.goto('/game.html');
     
     // ローディング画面が表示されることを確認
-    const loadingOverlay = page.locator('.loading-overlay');
+    const loadingOverlay = page.locator(SELECTORS.loadingOverlay);
     await expect(loadingOverlay).toBeVisible();
     
     // ローディングテキストの確認（日本語）
@@ -38,7 +59,7 @@ test.describe('Game Startup Tests', () => {
     await page.goto('/game.html');
     
     // コントロール表示の確認 - div.controls内のテキスト
-    const controls = page.locator('.controls');
+    const controls = page.locator(SELECTORS.controls);
     await expect(controls).toBeVisible();
     
     // 日本語のコントロール説明があることを確認
@@ -50,7 +71,7 @@ test.describe('Game Startup Tests', () => {
     await page.goto('/game.html');
     
     // Pyodideのスクリプトタグが存在することを確認
-    const pyodideScript = page.locator('script[src*="pyodide"]');
+    const pyodideScript = page.locator(SELECTORS.pyodideScript);
     await expect(pyodideScript).toHaveCount(1);
   });
 });
