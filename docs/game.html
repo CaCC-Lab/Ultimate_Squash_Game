@@ -439,123 +439,144 @@ const gameModules = {
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import math
+
 class PygameBall:
-def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200,
-radius: float = 10, color: tuple = (255, 255, 255)):
-self.x = float(x)
-self.y = float(y)
-self.dx = float(dx)
-self.dy = float(dy)
-self.radius = float(radius)
-self.color = color
-self.trail = []
-self.max_trail_length = 10
+    def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200,
+                 radius: float = 10, color: tuple = (255, 255, 255)):
+        self.x = float(x)
+        self.y = float(y)
+        self.dx = float(dx)
+        self.dy = float(dy)
+        self.radius = float(radius)
+        self.color = color
+        self.trail = []
+        self.max_trail_length = 10
+
 class PygameRacket:
-def __init__(self, x: float = 295, y: float = 450, size: float = 50,
-height: float = 10, color: tuple = (0, 255, 0)):
-self.x = float(x)
-self.y = float(y)
-self.size = float(size)
-self.height = float(height)
-self.color = color
-self.speed = 300
-self.left_bound = 0
-self.right_bound = 640
+    def __init__(self, x: float = 295, y: float = 450, size: float = 50,
+                 height: float = 10, color: tuple = (0, 255, 0)):
+        self.x = float(x)
+        self.y = float(y)
+        self.size = float(size)
+        self.height = float(height)
+        self.color = color
+        self.speed = 300
+        self.left_bound = 0
+        self.right_bound = 640
+
 class PygameScore:
-def __init__(self):
-self.player_score = 0
-self.level = 1
-self.hits = 0
-self.misses = 0
-self.start_time = time.time()
+    def __init__(self):
+        self.player_score = 0
+        self.level = 1
+        self.hits = 0
+        self.misses = 0
+        self.start_time = time.time()
+
 class PygameGameStateObserver:
-def on_game_state_changed(self, game_state: 'PygameGameState'):
-pass
+    def on_game_state_changed(self, game_state: 'PygameGameState'):
+        pass
+
 class PygameGameState:
-def __init__(self):
-self.balls = [PygameBall()]
-self.racket = PygameRacket()
-self.score = PygameScore()
-self.is_paused = False
-self.is_gameover = False
-self.observers = []
-self.canvas_width = 640
-self.canvas_height = 480
-def add_observer(self, observer: PygameGameStateObserver):
-self.observers.append(observer)
-def notify_observers(self):
-for observer in self.observers:
-observer.on_game_state_changed(self)
-def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
-ball.x += ball.dx * dt
-ball.y += ball.dy * dt
-if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
-ball.dx = -ball.dx
-if ball.y <= ball.radius:
-ball.dy = -ball.dy
-if ball.y >= self.canvas_height - ball.radius:
-self.is_gameover = True
-if (ball.y + ball.radius >= self.racket.y and
-ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
-ball.dy = -abs(ball.dy)
-self.score.hits += 1
-self.notify_observers()
-def update_racket_position(self, x: float):
-self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
-self.notify_observers()`,
+    def __init__(self):
+        self.balls = [PygameBall()]
+        self.racket = PygameRacket()
+        self.score = PygameScore()
+        self.is_paused = False
+        self.is_gameover = False
+        self.observers = []
+        self.canvas_width = 640
+        self.canvas_height = 480
+    
+    def add_observer(self, observer: PygameGameStateObserver):
+        self.observers.append(observer)
+    
+    def notify_observers(self):
+        for observer in self.observers:
+            observer.on_game_state_changed(self)
+    
+    def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
+        ball.x += ball.dx * dt
+        ball.y += ball.dy * dt
+        
+        if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
+            ball.dx = -ball.dx
+        if ball.y <= ball.radius:
+            ball.dy = -ball.dy
+        if ball.y >= self.canvas_height - ball.radius:
+            self.is_gameover = True
+        
+        if (ball.y + ball.radius >= self.racket.y and 
+            ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
+            ball.dy = -abs(ball.dy)
+            self.score.hits += 1
+        
+        self.notify_observers()
+    
+    def update_racket_position(self, x: float):
+        self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
+        self.notify_observers()`,
 'view.optimized_web_game_view': `import json
 from typing import Dict, List
 from model.pygame_game_state import PygameGameState, PygameGameStateObserver
+
 class OptimizedWebCanvasView(PygameGameStateObserver):
-def __init__(self, canvas_id: str = "gameCanvas"):
-self.canvas_id = canvas_id
-self.canvas_width = 640
-self.canvas_height = 480
-self.frame_data = {}
-def on_game_state_changed(self, game_state: PygameGameState):
-self.frame_data = self._convert_to_canvas_data(game_state)
-def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
-draw_commands = []
-draw_commands.append({
-'type': 'fillRect',
-'x': 0, 'y': 0,
-'width': self.canvas_width,
-'height': self.canvas_height,
-'color': '#000000'
-})
-for ball in game_state.balls:
-draw_commands.append({
-'type': 'fillCircle',
-'x': ball.x, 'y': ball.y,
-'radius': ball.radius,
-'color': f'rgb{ball.color}'
-})
-if game_state.racket:
-draw_commands.append({
-'type': 'fillRect',
-'x': game_state.racket.x,
-'y': game_state.racket.y,
-'width': game_state.racket.size,
-'height': game_state.racket.height,
-'color': f'rgb{game_state.racket.color}'
-})
-draw_commands.append({
-'type': 'fillText',
-'text': f'Score: {game_state.score.player_score} | Level: {game_state.score.level}',
-'x': 10, 'y': 30,
-'color': 'white',
-'font': '20px Arial'
-})
-return {
-'canvas_id': self.canvas_id,
-'draw_commands': draw_commands,
-'game_state': {
-'paused': game_state.is_paused,
-'gameover': game_state.is_gameover
-}
-}
-def get_javascript_interface_data(self) -> str:
-return json.dumps(self.frame_data, ensure_ascii=False)`
+    def __init__(self, canvas_id: str = "gameCanvas"):
+        self.canvas_id = canvas_id
+        self.canvas_width = 640
+        self.canvas_height = 480
+        self.frame_data = {}
+        
+    def on_game_state_changed(self, game_state: PygameGameState):
+        self.frame_data = self._convert_to_canvas_data(game_state)
+    
+    def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
+        draw_commands = []
+        
+        draw_commands.append({
+            'type': 'fillRect',
+            'x': 0, 'y': 0,
+            'width': self.canvas_width,
+            'height': self.canvas_height,
+            'color': '#000000'
+        })
+        
+        for ball in game_state.balls:
+            draw_commands.append({
+                'type': 'fillCircle',
+                'x': ball.x, 'y': ball.y,
+                'radius': ball.radius,
+                'color': f'rgb{ball.color}'
+            })
+        
+        if game_state.racket:
+            draw_commands.append({
+                'type': 'fillRect',
+                'x': game_state.racket.x,
+                'y': game_state.racket.y,
+                'width': game_state.racket.size,
+                'height': game_state.racket.height,
+                'color': f'rgb{game_state.racket.color}'
+            })
+        
+        draw_commands.append({
+            'type': 'fillText',
+            'text': f'Score: {game_state.score.player_score} | Level: {game_state.score.level}',
+            'x': 10, 'y': 30,
+            'color': 'white',
+            'font': '20px Arial'
+        })
+        
+        return {
+            'canvas_id': self.canvas_id,
+            'draw_commands': draw_commands,
+            'game_state': {
+                'paused': game_state.is_paused,
+                'gameover': game_state.is_gameover
+            }
+        }
+    
+    def get_javascript_interface_data(self) -> str:
+        return json.dumps(self.frame_data, ensure_ascii=False)`
 };
 for (const [moduleName, moduleCode] of Object.entries(gameModules)) {
 pyodide.runPython(moduleCode);
@@ -565,27 +586,31 @@ async function initializeGameState() {
 pyodide.runPython(`
 from model.pygame_game_state import PygameGameState
 from view.optimized_web_game_view import OptimizedWebCanvasView
+
 game_state = PygameGameState()
 game_view = OptimizedWebCanvasView()
 game_state.add_observer(game_view)
+
 def update_game(dt=0.016):
-if not game_state.is_paused and not game_state.is_gameover:
-for ball in game_state.balls:
-game_state.update_ball_position(ball, dt)
-return game_view.get_javascript_interface_data()
+    if not game_state.is_paused and not game_state.is_gameover:
+        for ball in game_state.balls:
+            game_state.update_ball_position(ball, dt)
+    return game_view.get_javascript_interface_data()
+
 def handle_key_input(key):
-if key == 'ArrowLeft' and game_state.racket.x > 0:
-game_state.update_racket_position(game_state.racket.x - 20)
-elif key == 'ArrowRight' and game_state.racket.x < 590:
-game_state.update_racket_position(game_state.racket.x + 20)
-elif key == ' ':
-game_state.is_paused = not game_state.is_paused
-elif key == 'r' or key == 'R':
-restart_game()
+    if key == 'ArrowLeft' and game_state.racket.x > 0:
+        game_state.update_racket_position(game_state.racket.x - 20)
+    elif key == 'ArrowRight' and game_state.racket.x < 590:
+        game_state.update_racket_position(game_state.racket.x + 20)
+    elif key == ' ':
+        game_state.is_paused = not game_state.is_paused
+    elif key == 'r' or key == 'R':
+        restart_game()
+
 def restart_game():
-global game_state
-game_state = PygameGameState()
-game_state.add_observer(game_view)
+    global game_state
+    game_state = PygameGameState()
+    game_state.add_observer(game_view)
 `);
 }
 // Optimized drawing function that handles differential rendering
