@@ -545,7 +545,10 @@
             
             isHighScore(score) {
                 const scores = this.getHighScores();
-                return scores.length < this.maxScores || score > scores[scores.length - 1].score;
+                return (
+                    scores.length < this.maxScores ||
+                    score > (scores[scores.length - 1]?.score || 0)
+                );
             }
             
             clearScores() {
@@ -584,6 +587,13 @@
                 document.getElementById('fpsCounter').textContent = this.fps;
                 document.getElementById('memoryUsage').textContent = this.memoryUsage + 'MB';
             }
+        }
+        
+        // HTMLエスケープ関数（XSS対策）
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
         
         // エラーハンドリング
@@ -653,7 +663,7 @@
                         <div class="ranking-item">
                             <div class="ranking-rank">${index + 1}位</div>
                             <div class="ranking-details">
-                                <div class="ranking-name">${score.name}</div>
+                                <div class="ranking-name">${escapeHtml(score.name)}</div>
                                 <div class="ranking-meta">${dateStr} | コンボ:${score.combo || 0} | パワーアップ:${score.powerUps || 0}</div>
                             </div>
                             <div class="ranking-score">${score.score.toLocaleString()}</div>
@@ -909,16 +919,17 @@ class PygameGameState:
             self.racket.size = 100  # ラケットサイズ2倍
             
         elif powerup_type == 'slow_ball':
-            self.active_powerups['slow_ball'] = {
-                'active': True,
-                'start_time': time.time() * 1000,
-                'duration': 8000,  # 8秒
-                'remaining': 8000
-            }
-            # ボール速度を30%に減速
-            for ball in self.balls:
-                ball.dx *= 0.3
-                ball.dy *= 0.3
+            if 'slow_ball' not in self.active_powerups:  # 重複防止
+                self.active_powerups['slow_ball'] = {
+                    'active': True,
+                    'start_time': time.time() * 1000,
+                    'duration': 8000,  # 8秒
+                    'remaining': 8000
+                }
+                # ボール速度を30%に減速
+                for ball in self.balls:
+                    ball.dx *= 0.3
+                    ball.dy *= 0.3
                 
         elif powerup_type == 'extra_points':
             self.active_powerups['extra_points'] = {
