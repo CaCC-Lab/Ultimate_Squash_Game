@@ -1,614 +1,823 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Ultimate Squash Game - Python/Pyodide WebAssembly版。ブラウザで動作する軽量(25KB)ゲーム">
-<meta name="keywords" content="squash,game,python,pyodide,webassembly,pygame">
-<meta name="author" content="Ultimate Squash Game Team">
-<!-- Open Graph / Facebook -->
-<meta property="og:type" content="website">
-<meta property="og:title" content="Ultimate Squash Game - WebAssembly版">
-<meta property="og:description" content="ブラウザで動作する軽量(25KB)スカッシュゲーム">
-<meta property="og:url" content="https://your-domain.com/ultimate-squash">
-<!-- Twitter -->
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Ultimate Squash Game">
-<meta name="twitter:description" content="ブラウザで動作する軽量スカッシュゲーム">
-<title>Ultimate Squash Game - WebAssembly版</title>
-<!-- Favicon -->
-<link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48bGluZWFyR3JhZGllbnQgaWQ9ImJnIiB4MT0iMCUiIHkxPSIwJSIgeDI9IjEwMCUiIHkyPSIxMDAlIj48c3RvcCBvZmZzZXQ9IjAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMDA0Mjc0Ii8+PHN0b3Agb2Zmc2V0PSIxMDAlIiBzdHlsZT0ic3RvcC1jb2xvcjojMTYyMTNlIi8+PC9saW5lYXJHcmFkaWVudD48L2RlZnM+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ1cmwoI2JnKSIgcng9IjQiLz48Y2lyY2xlIGN4PSIxNiIgY3k9IjEyIiByPSI0IiBmaWxsPSIjZmZmZmZmIiBzdHJva2U9IiM0ZWNkYzQiIHN0cm9rZS13aWR0aD0iMSIvPjxyZWN0IHg9IjEzIiB5PSIyMiIgd2lkdGg9IjYiIGhlaWdodD0iOCIgcng9IjMiIGZpbGw9IiMwMGZmMDAiLz48cGF0aCBkPSJNOCAyMGgxNnYxSDh6IiBmaWxsPSIjY2NjY2NjIiBvcGFjaXR5PSIwLjgiLz48L3N2Zz4=">
-<style>
-* {
-margin: 0;
-padding: 0;
-box-sizing: border-box;
-}
-body {
-font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
-color: #ffffff;
-overflow: hidden;
-height: 100vh;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-}
-.game-container {
-max-width: 800px;
-width: 100%;
-text-align: center;
-position: relative;
-}
-.header {
-margin-bottom: 20px;
-opacity: 0;
-animation: fadeInUp 1s ease-out 0.5s forwards;
-}
-.title {
-font-size: 2.5rem;
-font-weight: bold;
-background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-background-clip: text;
-margin-bottom: 10px;
-text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
-}
-.subtitle {
-font-size: 1rem;
-color: #b0b0b0;
-font-weight: 300;
-}
-.canvas-wrapper {
-position: relative;
-display: inline-block;
-border-radius: 15px;
-overflow: hidden;
-box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-opacity: 0;
-animation: scaleIn 1s ease-out 1s forwards;
-}
-#gameCanvas {
-background: #000;
-display: block;
-border: 3px solid #333;
-border-radius: 12px;
-}
-.loading-overlay {
-position: absolute;
-top: 0;
-left: 0;
-right: 0;
-bottom: 0;
-background: rgba(0, 0, 0, 0.9);
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-border-radius: 12px;
-transition: opacity 0.5s ease-out;
-}
-.loading-spinner {
-width: 50px;
-height: 50px;
-border: 3px solid #333;
-border-top: 3px solid #4ecdc4;
-border-radius: 50%;
-animation: spin 1s linear infinite;
-margin-bottom: 20px;
-}
-.loading-text {
-font-size: 1.2rem;
-color: #4ecdc4;
-margin-bottom: 10px;
-}
-.loading-progress {
-font-size: 0.9rem;
-color: #888;
-}
-.controls {
-margin-top: 20px;
-opacity: 0;
-animation: fadeInUp 1s ease-out 1.5s forwards;
-}
-.control-info {
-display: flex;
-justify-content: center;
-gap: 30px;
-font-size: 0.9rem;
-color: #999;
-}
-.control-item {
-display: flex;
-align-items: center;
-gap: 8px;
-}
-.key {
-background: #333;
-padding: 4px 8px;
-border-radius: 4px;
-font-family: monospace;
-border: 1px solid #555;
-}
-.performance-info {
-position: absolute;
-top: 10px;
-left: 10px;
-font-size: 0.8rem;
-color: #666;
-background: rgba(0, 0, 0, 0.7);
-padding: 8px 12px;
-border-radius: 6px;
-opacity: 0;
-transition: opacity 0.3s ease;
-}
-.game-container:hover .performance-info {
-opacity: 1;
-}
-.error-modal {
-position: fixed;
-top: 0;
-left: 0;
-right: 0;
-bottom: 0;
-background: rgba(0, 0, 0, 0.8);
-display: none;
-align-items: center;
-justify-content: center;
-z-index: 1000;
-}
-.error-content {
-background: #1a1a2e;
-padding: 30px;
-border-radius: 12px;
-border: 2px solid #ff6b6b;
-max-width: 500px;
-text-align: center;
-}
-.error-title {
-color: #ff6b6b;
-font-size: 1.5rem;
-margin-bottom: 15px;
-}
-.error-message {
-color: #ccc;
-margin-bottom: 20px;
-line-height: 1.5;
-}
-.error-button {
-background: #ff6b6b;
-color: white;
-border: none;
-padding: 10px 20px;
-border-radius: 6px;
-cursor: pointer;
-font-size: 1rem;
-transition: background 0.3s ease;
-}
-.error-button:hover {
-background: #ff5252;
-}
-@keyframes fadeInUp {
-from {
-opacity: 0;
-transform: translateY(30px);
-}
-to {
-opacity: 1;
-transform: translateY(0);
-}
-}
-@keyframes scaleIn {
-from {
-opacity: 0;
-transform: scale(0.9);
-}
-to {
-opacity: 1;
-transform: scale(1);
-}
-}
-@keyframes spin {
-0% { transform: rotate(0deg); }
-100% { transform: rotate(360deg); }
-}
-@media (max-width: 768px) {
-.title {
-font-size: 2rem;
-}
-.control-info {
-flex-direction: column;
-gap: 10px;
-}
-#gameCanvas {
-width: 90vw;
-height: auto;
-}
-}
-/* ダークテーマサポート */
-@media (prefers-color-scheme: dark) {
-body {
-background: linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%);
-}
-}
-</style>
-<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjogIlVsdGltYXRlIFNxdWFzaCBHYW1lIiwgInNob3J0X25hbWUiOiAiU3F1YXNoIiwgImRlc2NyaXB0aW9uIjogIui9u+mHj+e6p1B5dGhvbi9XZWJBc3NlbWJseSDjgrnjgqvjg4Pjgrfjg6XjgrLjg7zjg6AiLCAic3RhcnRfdXJsIjogIi4vIiwgImRpc3BsYXkiOiAiZnVsbHNjcmVlbiIsICJvcmllbnRhdGlvbiI6ICJwb3J0cmFpdCIsICJ0aGVtZV9jb2xvciI6ICIjMDA0Mjc0IiwgImJhY2tncm91bmRfY29sb3IiOiAiIzAwMDAwMCIsICJjYXRlZ29yaWVzIjogWyJnYW1lcyIsICJlbnRlcnRhaW5tZW50Il0sICJsYW5nIjogImphIiwgImljb25zIjogW3sic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjNhV1IwYUQwaU56SWlJR2hsYVdkb2REMGlOeklpSUhacFpYZENiM2c5SWpBZ01DQTNNaUEzTWlJZ2VHMXNibk05SW1oMGRIQTZMeTkzZDNjdWR6TXViM0puTHpJd01EQXZjM1puSWo0S1BHUmxabk0rQ2p4c2FXNWxZWEpIY21Ga2FXVnVkQ0JwWkQwaVltZEhjbUZrSWlCNE1UMGlNQ1VpSUhreFBTSXdKU0lnZURJOUlqRXdNQ1VpSUhreVBTSXhNREFsSWo0S1BITjBiM0FnYjJabWMyVjBQU0l3SlNJZ2MzUjViR1U5SW5OMGIzQXRZMjlzYjNJNkl6QXdOREkzTkNJdlBnbzhjM1J2Y0NCdlptWnpaWFE5SWpFd01DVWlJSE4wZVd4bFBTSnpkRzl3TFdOdmJHOXlPaU14TmpJeE0yVWlMejRLUEM5c2FXNWxZWEpIY21Ga2FXVnVkRDRLUEM5a1pXWnpQZ284Y21WamRDQjNhV1IwYUQwaU56SWlJR2hsYVdkb2REMGlOeklpSUdacGJHdzlJblZ5YkNnalltZEhjbUZrS1NJZ2NuZzlJalFpTHo0S1BHTnBjbU5zWlNCamVEMGlNellpSUdONVBTSXlOeUlnY2owaU9TSWdabWxzYkQwaUkyWm1abVptWmlJdlBnbzhjbVZqZENCNFBTSXlOeUlnZVQwaU5UUWlJSGRwWkhSb1BTSXhPQ0lnYUdWcFoyaDBQU0kwSWlCeWVEMGlNaUlnWm1sc2JEMGlJekF3Wm1Zd01DSXZQZ284TDNOMlp6ND0iLCAic2l6ZXMiOiAiNzJ4NzIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIn0sIHsic3JjIjogImRhdGE6aW1hZ2Uvc3ZnK3htbDtiYXNlNjQsUEhOMlp5QjNhV1IwYUQwaU1Ua3lJaUJvWldsbmFIUTlJakU1TWlJZ2RtbGxkMEp2ZUQwaU1DQXdJREU1TWlBeE9USWlJSGh0Ykc1elBTSm9kSFJ3T2k4dmQzZDNMbmN6TG05eVp5OHlNREF3TDNOMlp5SStDanhrWldaelBnbzhiR2x1WldGeVIzSmhaR2xsYm5RZ2FXUTlJbUpuUjNKaFpDSWdlREU5SWpBbElpQjVNVDBpTUNVaUlIZ3lQU0l4TURBbElpQjVNajBpTVRBd0pTSStDanh6ZEc5d0lHOW1abk5sZEQwaU1DVWlJSE4wZVd4bFBTSnpkRzl3TFdOdmJHOXlPaU13TURReU56UWlMejRLUEhOMGIzQWdiMlptYzJWMFBTSXhNREFsSWlCemRIbHNaVDBpYzNSdmNDMWpiMnh2Y2pvak1UWXlNVE5sSWk4K0Nqd3ZiR2x1WldGeVIzSmhaR2xsYm5RK0Nqd3ZaR1ZtY3o0S1BISmxZM1FnZDJsa2RHZzlJakU1TWlJZ2FHVnBaMmgwUFNJeE9USWlJR1pwYkd3OUluVnliQ2dqWW1kSGNtRmtLU0lnY25nOUlqRXlJaTgrQ2p4amFYSmpiR1VnWTNnOUlqazJJaUJqZVQwaU56SWlJSEk5SWpJMElpQm1hV3hzUFNJalptWm1abVptSWk4K0NqeHlaV04wSUhnOUlqY3lJaUI1UFNJeE5EUWlJSGRwWkhSb1BTSTBPQ0lnYUdWcFoyaDBQU0l4TWlJZ2NuZzlJallpSUdacGJHdzlJaU13TUdabU1EQWlMejRLUEM5emRtYysiLCAic2l6ZXMiOiAiMTkyeDE5MiIsICJ0eXBlIjogImltYWdlL3N2Zyt4bWwifSwgeyJzcmMiOiAiZGF0YTppbWFnZS9zdmcreG1sO2Jhc2U2NCxQSE4yWnlCM2FXUjBhRDBpTlRFeUlpQm9aV2xuYUhROUlqVXhNaUlnZG1sbGQwSnZlRDBpTUNBd0lEVXhNaUExTVRJaUlIaHRiRzV6UFNKb2RIUndPaTh2ZDNkM0xuY3pMbTl5Wnk4eU1EQXdMM04yWnlJK0NqeGtaV1p6UGdvOGJHbHVaV0Z5UjNKaFpHbGxiblFnYVdROUltSm5SM0poWkNJZ2VERTlJakFsSWlCNU1UMGlNQ1VpSUhneVBTSXhNREFsSWlCNU1qMGlNVEF3SlNJK0NqeHpkRzl3SUc5bVpuTmxkRDBpTUNVaUlITjBlV3hsUFNKemRHOXdMV052Ykc5eU9pTXdNRFF5TnpRaUx6NEtQSE4wYjNBZ2IyWm1jMlYwUFNJeE1EQWxJaUJ6ZEhsc1pUMGljM1J2Y0MxamIyeHZjam9qTVRZeU1UTmxJaTgrQ2p3dmJHbHVaV0Z5UjNKaFpHbGxiblErQ2p3dlpHVm1jejRLUEhKbFkzUWdkMmxrZEdnOUlqVXhNaUlnYUdWcFoyaDBQU0kxTVRJaUlHWnBiR3c5SW5WeWJDZ2pZbWRIY21Ga0tTSWdjbmc5SWpNeUlpOCtDanhqYVhKamJHVWdZM2c5SWpJMU5pSWdZM2s5SWpFNU1pSWdjajBpTmpRaUlHWnBiR3c5SWlObVptWm1abVlpTHo0S1BISmxZM1FnZUQwaU1Ua3lJaUI1UFNJek9EUWlJSGRwWkhSb1BTSXhNamdpSUdobGFXZG9kRDBpTXpJaUlISjRQU0l4TmlJZ1ptbHNiRDBpSXpBd1ptWXdNQ0l2UGdvOEwzTjJaejQ9IiwgInNpemVzIjogIjUxMng1MTIiLCAidHlwZSI6ICJpbWFnZS9zdmcreG1sIn1dfQ==">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ultimate Squash Game - Python/Pyodide WebAssembly版。ブラウザで動作する軽量(25KB)ゲーム">
+    <meta name="keywords" content="squash,game,python,pyodide,webassembly,pygame">
+    <meta name="author" content="Ultimate Squash Game Team">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Ultimate Squash Game - WebAssembly版">
+    <meta property="og:description" content="ブラウザで動作する軽量(25KB)スカッシュゲーム">
+    <meta property="og:url" content="https://your-domain.com/ultimate-squash">
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Ultimate Squash Game">
+    <meta name="twitter:description" content="ブラウザで動作する軽量スカッシュゲーム">
+    
+    <title>Ultimate Squash Game - WebAssembly版</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMDA0Mjc0Ii8+CjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjQiIGZpbGw9IiNmZmZmZmYiLz4KPHJlY3QgeD0iMTQiIHk9IjI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI2IiBmaWxsPSIjMDBmZjAwIi8+Cjwvc3ZnPgo=">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0c0c0c 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            max-width: 800px;
+            width: 100%;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header {
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 0.5s forwards;
+        }
+        
+        .title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1rem;
+            color: #b0b0b0;
+            font-weight: 300;
+        }
+        
+        .canvas-wrapper {
+            position: relative;
+            display: inline-block;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            animation: scaleIn 1s ease-out 1s forwards;
+        }
+        
+        #gameCanvas {
+            background: #000;
+            display: block;
+            border: 3px solid #333;
+            border-radius: 12px;
+        }
+        
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            transition: opacity 0.5s ease-out;
+        }
+        
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top: 3px solid #4ecdc4;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        .loading-text {
+            font-size: 1.2rem;
+            color: #4ecdc4;
+            margin-bottom: 10px;
+        }
+        
+        .loading-progress {
+            font-size: 0.9rem;
+            color: #888;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            opacity: 0;
+            animation: fadeInUp 1s ease-out 1.5s forwards;
+        }
+        
+        .control-info {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            font-size: 0.9rem;
+            color: #999;
+        }
+        
+        .control-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .key {
+            background: #333;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            border: 1px solid #555;
+        }
+        
+        .performance-info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 0.8rem;
+            color: #666;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px 12px;
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .game-container:hover .performance-info {
+            opacity: 1;
+        }
+        
+        .error-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .error-content {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #ff6b6b;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .error-title {
+            color: #ff6b6b;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        
+        .error-message {
+            color: #ccc;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        
+        .error-button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s ease;
+        }
+        
+        .error-button:hover {
+            background: #ff5252;
+        }
+        
+        /* モーダルスタイル */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: #1a1a2e;
+            padding: 30px;
+            border-radius: 12px;
+            border: 2px solid #4ecdc4;
+            max-width: 500px;
+            text-align: center;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-title {
+            color: #4ecdc4;
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .modal-input {
+            width: 80%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #4ecdc4;
+            border-radius: 5px;
+            background: #333;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .modal-button {
+            background: #4ecdc4;
+            color: #1a1a2e;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin: 5px;
+            transition: background 0.3s ease;
+        }
+        
+        .modal-button:hover {
+            background: #45b7d1;
+        }
+        
+        .ranking-list {
+            text-align: left;
+            margin: 20px 0;
+        }
+        
+        .ranking-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ranking-item.highlight {
+            background: rgba(78, 205, 196, 0.3);
+            border: 1px solid #4ecdc4;
+        }
+        
+        .ranking-rank {
+            font-weight: bold;
+            color: #4ecdc4;
+            min-width: 30px;
+        }
+        
+        .ranking-details {
+            flex: 1;
+            margin: 0 10px;
+        }
+        
+        .ranking-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .ranking-meta {
+            font-size: 0.8rem;
+            color: #999;
+        }
+        
+        .ranking-score {
+            font-weight: bold;
+            color: #ff6b6b;
+        }
+        
+        /* パワーアップ表示 */
+        .powerup-display {
+            position: absolute;
+            top: 50px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+            min-width: 200px;
+        }
+        
+        .powerup-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 4px;
+        }
+        
+        .powerup-active {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+        }
+        
+        .powerup-inactive {
+            background: rgba(128, 128, 128, 0.2);
+            border: 1px solid #666;
+        }
+        
+        .powerup-timer {
+            font-size: 0.8rem;
+            color: #ffff00;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .control-info {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            #gameCanvas {
+                width: 90vw;
+                height: auto;
+            }
+        }
+        
+        /* ダークテーマサポート */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%);
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="game-container">
-<header class="header">
-<h1 class="title">Ultimate Squash Game</h1>
-<p class="subtitle">Python/Pyodide WebAssembly版 - 軽量25KB</p>
-</header>
-<div class="canvas-wrapper">
-<canvas id="gameCanvas" width="640" height="480"></canvas>
-<div class="loading-overlay" id="loadingOverlay">
-<div class="loading-spinner"></div>
-<div class="loading-text">ゲーム読み込み中...</div>
-<div class="loading-progress" id="loadingProgress">Pyodideを初期化中...</div>
-</div>
-<div class="performance-info" id="performanceInfo">
-FPS: <span id="fpsCounter">60</span> |
-Memory: <span id="memoryUsage">1.2MB</span>
-</div>
-</div>
-<div class="controls">
-<div class="control-info">
-<div class="control-item">
-<span class="key">←</span><span class="key">→</span>
-<span>ラケット移動</span>
-</div>
-<div class="control-item">
-<span class="key">Space</span>
-<span>ポーズ/再開</span>
-</div>
-<div class="control-item">
-<span class="key">R</span>
-<span>リスタート</span>
-</div>
-<div class="control-item">
-<span class="key">H</span>
-<span>ランキング</span>
-</div>
-</div>
-</div>
-</div>
-<!-- ランキングモーダル -->
-<div class="error-modal" id="rankingModal" style="display: none;">
-<div class="error-content" style="max-width: 600px;">
-<h2 class="error-title" style="color: #4ecdc4;">🏆 ハイスコアランキング</h2>
-<div id="rankingList" style="color: #ccc; text-align: left; padding: 20px;">
-<!-- ランキングがここに表示される -->
-</div>
-<button class="error-button" style="background: #4ecdc4;" onclick="closeRankingModal()">閉じる</button>
-</div>
-</div>
-
-<!-- ハイスコア名前入力モーダル -->
-<div class="error-modal" id="nameInputModal" style="display: none;">
-<div class="error-content" style="max-width: 400px;">
-<h2 class="error-title" style="color: #ff6b6b;">🎉 ハイスコア達成！</h2>
-<p style="color: #ccc; margin-bottom: 20px;">名前を入力してください：</p>
-<input type="text" id="playerNameInput" placeholder="Player" maxlength="20" 
-       style="width: 100%; padding: 10px; border: 2px solid #4ecdc4; border-radius: 6px; 
-              background: #1a1a2e; color: white; font-size: 16px; margin-bottom: 20px;"
-       onkeydown="if(event.key==='Enter') submitHighScore()">
-<div style="display: flex; gap: 10px; justify-content: center;">
-<button class="error-button" style="background: #4ecdc4;" onclick="submitHighScore()">登録</button>
-<button class="error-button" style="background: #666;" onclick="cancelHighScore()">キャンセル</button>
-</div>
-</div>
-</div>
-
-<!-- スコア登録完了モーダル -->
-<div class="error-modal" id="scoreSubmittedModal" style="display: none;">
-<div class="error-content" style="max-width: 400px;">
-<h2 class="error-title" style="color: #4ecdc4;">🏆 登録完了！</h2>
-<p id="rankMessage" style="color: #ccc; margin-bottom: 20px; font-size: 18px; font-weight: bold;"></p>
-<button class="error-button" style="background: #4ecdc4;" onclick="closeScoreSubmittedModal()">OK</button>
-</div>
-</div>
-<!-- エラーモーダル -->
-<div class="error-modal" id="errorModal">
-<div class="error-content">
-<h2 class="error-title">エラーが発生しました</h2>
-<p class="error-message" id="errorMessage">
-ゲームの読み込み中にエラーが発生しました。
-</p>
-<button class="error-button" onclick="closeErrorModal()">再試行</button>
-</div>
-</div>
-<!-- Pyodide読み込み -->
-<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
-<script>
-let pyodide = null;
-let gameLoopId = null;
-let gameState = null;
-let canvas = null;
-let ctx = null;
-let performanceMonitor = null;
-
-// スコアランキングシステム
-class ScoreRanking {
-    constructor() {
-        this.storageKey = 'ultimateSquashHighScores';
-        this.maxScores = 10;
-    }
-    
-    getHighScores() {
-        const stored = localStorage.getItem(this.storageKey);
-        return stored ? JSON.parse(stored) : [];
-    }
-    
-    addScore(score, playerName = 'Player') {
-        const scores = this.getHighScores();
-        const newScore = {
-            score: score,
-            name: playerName,
-            date: new Date().toISOString(),
-            combo: 0,  // 最大コンボ数（後で追加）
-            powerUps: 0  // 取得したパワーアップ数（後で追加）
-        };
+    <div class="game-container">
+        <header class="header">
+            <h1 class="title">Ultimate Squash Game</h1>
+            <p class="subtitle">Python/Pyodide WebAssembly版 - 軽量25KB</p>
+        </header>
         
-        scores.push(newScore);
-        scores.sort((a, b) => b.score - a.score);
-        scores.splice(this.maxScores); // 上位10件のみ保持
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas" width="640" height="480"></canvas>
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="loading-spinner"></div>
+                <div class="loading-text">ゲーム読み込み中...</div>
+                <div class="loading-progress" id="loadingProgress">Pyodideを初期化中...</div>
+            </div>
+            <div class="performance-info" id="performanceInfo">
+                FPS: <span id="fpsCounter">60</span> | 
+                Memory: <span id="memoryUsage">1.2MB</span>
+            </div>
+            <div class="powerup-display" id="powerupDisplay" style="display: none;">
+                <h4>パワーアップ状況</h4>
+                <div id="powerupList"></div>
+            </div>
+        </div>
         
-        localStorage.setItem(this.storageKey, JSON.stringify(scores));
-        return scores.findIndex(s => s === newScore) + 1; // 順位を返す
-    }
+        <div class="controls">
+            <div class="control-info">
+                <div class="control-item">
+                    <span class="key">←</span><span class="key">→</span>
+                    <span>ラケット移動</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">Space</span>
+                    <span>ポーズ/再開</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">R</span>
+                    <span>リスタート</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">H</span>
+                    <span>ランキング表示</span>
+                </div>
+                <div class="control-item">
+                    <span class="key">P</span>
+                    <span>パワーアップ表示</span>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    isHighScore(score) {
-        const scores = this.getHighScores();
-        return scores.length < this.maxScores || score > scores[scores.length - 1]?.score || 0;
-    }
+    <!-- エラーモーダル -->
+    <div class="error-modal" id="errorModal">
+        <div class="error-content">
+            <h2 class="error-title">エラーが発生しました</h2>
+            <p class="error-message" id="errorMessage">
+                ゲームの読み込み中にエラーが発生しました。
+            </p>
+            <button class="error-button" onclick="closeErrorModal()">再試行</button>
+        </div>
+    </div>
     
-    clearScores() {
-        localStorage.removeItem(this.storageKey);
-    }
-}
-
-const scoreRanking = new ScoreRanking();
-class PerformanceMonitor {
-constructor() {
-this.frameCount = 0;
-this.lastTime = performance.now();
-this.fps = 60;
-this.memoryUsage = 0;
-this.optimizationStats = null;
-}
-update() {
-this.frameCount++;
-const currentTime = performance.now();
-if (currentTime - this.lastTime >= 1000) {
-this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastTime));
-this.frameCount = 0;
-this.lastTime = currentTime;
-if (performance.memory) {
-this.memoryUsage = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
-}
-this.updateDisplay();
-}
-}
-updateOptimizationStats(stats) {
-if (stats) {
-this.optimizationStats = stats;
-// Immediately update display to show optimization stats
-this.updateDisplay();
-}
-}
-
-updateDisplay() {
-// Optimize DOM updates - cache elements and update only text content
-if (!this._cachedElements) {
-const perfInfo = document.getElementById('performanceInfo');
-if (perfInfo && !perfInfo.querySelector('#perf-fps')) {
-perfInfo.innerHTML =
-'FPS: <span id="perf-fps">0</span> | Memory: <span id="perf-memory">0</span>MB' +
-'<span id="perf-skipped"></span><span id="perf-reuse"></span>';
-}
-this._cachedElements = {
-perfInfo: perfInfo,
-perfFps: document.getElementById('perf-fps'),
-perfMemory: document.getElementById('perf-memory'),
-perfSkipped: document.getElementById('perf-skipped'),
-perfReuse: document.getElementById('perf-reuse')
-};
-}
-
-// Update performance info with individual span updates
-if (this._cachedElements.perfFps) {
-this._cachedElements.perfFps.textContent = this.fps;
-this._cachedElements.perfMemory.textContent = this.memoryUsage + 'MB';
-}
-
-// Display optimization stats if available
-if (this.optimizationStats && this._cachedElements.perfSkipped) {
-const skipRate = this.optimizationStats.skipped_updates || 0;
-const reuseRate = this.optimizationStats.reuse_rate || 0;
-
-this._cachedElements.perfSkipped.textContent = skipRate > 0 ? ` | Skipped: ${skipRate}%` : '';
-this._cachedElements.perfReuse.textContent = reuseRate > 0 ? ` | Reuse: ${reuseRate.toFixed(1)}%` : '';
-}
-}
-}
-function showError(message, details = '') {
-console.error('Game Error:', message, details);
-document.getElementById('errorMessage').textContent = message;
-document.getElementById('errorModal').style.display = 'flex';
-}
-function closeErrorModal() {
-document.getElementById('errorModal').style.display = 'none';
-initializeGame();
-}
-
-function showRankingModal() {
-    const modal = document.getElementById('rankingModal');
-    const list = document.getElementById('rankingList');
-    const scores = scoreRanking.getHighScores();
+    <!-- 名前入力モーダル -->
+    <div class="modal" id="nameInputModal">
+        <div class="modal-content">
+            <h2 class="modal-title">新記録達成！</h2>
+            <p>おめでとうございます！ハイスコアにランクインしました。</p>
+            <p>スコア: <span id="newScoreValue">0</span></p>
+            <input type="text" id="playerNameInput" class="modal-input" placeholder="あなたの名前を入力してください" maxlength="20" value="Player" onkeydown="if(event.key==='Enter') confirmScoreEntry()">
+            <br>
+            <button class="modal-button" onclick="confirmScoreEntry()">記録する</button>
+            <button class="modal-button" onclick="cancelScoreEntry()">キャンセル</button>
+        </div>
+    </div>
     
-    if (scores.length === 0) {
-        list.innerHTML = '<p style="text-align: center; color: #999;">まだスコアが記録されていません</p>';
-    } else {
-        let html = '<table style="width: 100%; border-collapse: collapse;">';
-        html += '<thead><tr style="border-bottom: 2px solid #4ecdc4;">';
-        html += '<th style="padding: 10px; text-align: left;">順位</th>';
-        html += '<th style="padding: 10px; text-align: left;">名前</th>';
-        html += '<th style="padding: 10px; text-align: right;">スコア</th>';
-        html += '<th style="padding: 10px; text-align: center;">コンボ</th>';
-        html += '<th style="padding: 10px; text-align: center;">パワー</th>';
-        html += '<th style="padding: 10px; text-align: left;">日付</th>';
-        html += '</tr></thead><tbody>';
+    <!-- ランキング表示モーダル -->
+    <div class="modal" id="rankingModal">
+        <div class="modal-content">
+            <h2 class="modal-title">🏆 ハイスコア ランキング</h2>
+            <div id="rankingList" class="ranking-list">
+                <!-- ランキングデータがここに動的に追加されます -->
+            </div>
+            <button class="modal-button" onclick="closeRankingModal()">閉じる</button>
+            <button class="modal-button" onclick="clearRanking()">ランキングクリア</button>
+        </div>
+    </div>
+    
+    <!-- Pyodide読み込み -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+    
+    <script>
+        // グローバル変数
+        let pyodide = null;
+        let gameLoopId = null;  // gameLoop → gameLoopIdに変更してredeclarationエラーを回避
+        let gameState = null;
+        let canvas = null;
+        let ctx = null;
+        let performanceMonitor = null;
         
-        scores.forEach((score, index) => {
-            const date = new Date(score.date);
-            const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
-            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+        // 新機能用グローバル変数
+        let scoreRanking = null;
+        let pendingScoreData = null;
+        
+        // スコアランキングシステム
+        class ScoreRanking {
+            constructor() {
+                this.storageKey = 'ultimateSquashHighScores';
+                this.maxScores = 10;
+            }
             
-            html += `<tr style="border-bottom: 1px solid #333;">`;
-            html += `<td style="padding: 8px;">${medal} ${index + 1}</td>`;
-            html += `<td style="padding: 8px;">${score.name}</td>`;
-            html += `<td style="padding: 8px; text-align: right; font-weight: bold;">${score.score.toLocaleString()}</td>`;
-            html += `<td style="padding: 8px; text-align: center; color: #ff6b6b;">${score.combo || 0}</td>`;
-            html += `<td style="padding: 8px; text-align: center; color: #4ecdc4;">${score.powerUps || 0}</td>`;
-            html += `<td style="padding: 8px; color: #999;">${dateStr}</td>`;
-            html += '</tr>';
-        });
+            getHighScores() {
+                const stored = localStorage.getItem(this.storageKey);
+                return stored ? JSON.parse(stored) : [];
+            }
+            
+            addScore(score, playerName = 'Player', combo = 0, powerUps = 0) {
+                const scores = this.getHighScores();
+                const newScore = {
+                    score: score,
+                    name: playerName,
+                    date: new Date().toISOString(),
+                    combo: combo,
+                    powerUps: powerUps
+                };
+                
+                scores.push(newScore);
+                scores.sort((a, b) => b.score - a.score);
+                scores.splice(this.maxScores);
+                
+                localStorage.setItem(this.storageKey, JSON.stringify(scores));
+                return scores.findIndex(s => s === newScore) + 1;
+            }
+            
+            isHighScore(score) {
+                const scores = this.getHighScores();
+                return scores.length < this.maxScores || score > scores[scores.length - 1].score;
+            }
+            
+            clearScores() {
+                localStorage.removeItem(this.storageKey);
+            }
+        }
+
+        // パフォーマンス監視
+        class PerformanceMonitor {
+            constructor() {
+                this.frameCount = 0;
+                this.lastTime = performance.now();
+                this.fps = 60;
+                this.memoryUsage = 0;
+            }
+            
+            update() {
+                this.frameCount++;
+                const currentTime = performance.now();
+                
+                if (currentTime - this.lastTime >= 1000) {
+                    this.fps = Math.round(this.frameCount * 1000 / (currentTime - this.lastTime));
+                    this.frameCount = 0;
+                    this.lastTime = currentTime;
+                    
+                    // メモリ使用量を更新
+                    if (performance.memory) {
+                        this.memoryUsage = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                    }
+                    
+                    this.updateDisplay();
+                }
+            }
+            
+            updateDisplay() {
+                document.getElementById('fpsCounter').textContent = this.fps;
+                document.getElementById('memoryUsage').textContent = this.memoryUsage + 'MB';
+            }
+        }
         
-        html += '</tbody></table>';
-        list.innerHTML = html;
-    }
-    
-    modal.style.display = 'flex';
+        // エラーハンドリング
+        function showError(message, details = '') {
+            console.error('Game Error:', message, details);
+            document.getElementById('errorMessage').textContent = message;
+            document.getElementById('errorModal').style.display = 'flex';
+        }
+        
+        function closeErrorModal() {
+            document.getElementById('errorModal').style.display = 'none';
+            // 再試行
+            initializeGame();
+        }
+        
+        // スコア関連モーダル機能
+        function showNameInputModal(scoreData) {
+            pendingScoreData = scoreData;
+            document.getElementById('newScoreValue').textContent = scoreData.score;
+            document.getElementById('playerNameInput').value = 'Player';
+            document.getElementById('nameInputModal').style.display = 'flex';
+            setTimeout(() => {
+                document.getElementById('playerNameInput').focus();
+                document.getElementById('playerNameInput').select();
+            }, 100);
+        }
+        
+        function confirmScoreEntry() {
+            const playerName = document.getElementById('playerNameInput').value.trim() || 'Player';
+            if (pendingScoreData && scoreRanking) {
+                scoreRanking.addScore(
+                    pendingScoreData.score,
+                    playerName,
+                    pendingScoreData.combo || 0,
+                    pendingScoreData.powerUps || 0
+                );
+            }
+            document.getElementById('nameInputModal').style.display = 'none';
+            pendingScoreData = null;
+            showRankingModal();
+        }
+        
+        function cancelScoreEntry() {
+            document.getElementById('nameInputModal').style.display = 'none';
+            pendingScoreData = null;
+        }
+        
+        function showRankingModal() {
+            if (!scoreRanking) return;
+            
+            const scores = scoreRanking.getHighScores();
+            const rankingList = document.getElementById('rankingList');
+            
+            if (scores.length === 0) {
+                rankingList.innerHTML = '<p style="text-align: center; color: #999;">まだスコアが記録されていません</p>';
+            } else {
+                rankingList.innerHTML = scores.map((score, index) => {
+                    const date = new Date(score.date);
+                    const dateStr = date.toLocaleDateString('ja-JP', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    
+                    return `
+                        <div class="ranking-item">
+                            <div class="ranking-rank">${index + 1}位</div>
+                            <div class="ranking-details">
+                                <div class="ranking-name">${score.name}</div>
+                                <div class="ranking-meta">${dateStr} | コンボ:${score.combo || 0} | パワーアップ:${score.powerUps || 0}</div>
+                            </div>
+                            <div class="ranking-score">${score.score.toLocaleString()}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('rankingModal').style.display = 'flex';
+        }
+        
+        function closeRankingModal() {
+            document.getElementById('rankingModal').style.display = 'none';
+        }
+        
+        function clearRanking() {
+            if (confirm('本当にランキングをクリアしますか？')) {
+                if (scoreRanking) {
+                    scoreRanking.clearScores();
+                }
+                showRankingModal(); // リフレッシュ
+            }
+        }
+        
+        // パワーアップ表示機能
+        function togglePowerupDisplay() {
+            const display = document.getElementById('powerupDisplay');
+            if (display.style.display === 'none') {
+                display.style.display = 'block';
+                updatePowerupDisplay();
+            } else {
+                display.style.display = 'none';
+            }
+        }
+        
+        function updatePowerupDisplay() {
+            if (!pyodide) return;
+            
+            try {
+                const powerupData = pyodide.runPython(`
+import json
+powerup_info = {
+    'multi_ball': {
+        'active': getattr(game_state, 'multi_ball_active', False),
+        'threshold': getattr(game_state, 'multi_ball_threshold', 5),
+        'hits': getattr(game_state, 'consecutive_hits', 0)
+    },
+    'powerups': getattr(game_state, 'active_powerups', {})
 }
-
-function closeRankingModal() {
-    document.getElementById('rankingModal').style.display = 'none';
-}
-
-// ハイスコア登録用のグローバル変数
-let pendingScoreData = null;
-
-function showNameInputModal(scoreData) {
-    pendingScoreData = scoreData;
-    document.getElementById('playerNameInput').value = 'Player';
-    document.getElementById('nameInputModal').style.display = 'flex';
-    // 入力フィールドにフォーカス
-    setTimeout(() => {
-        document.getElementById('playerNameInput').focus();
-        document.getElementById('playerNameInput').select();
-    }, 100);
-}
-
-function submitHighScore() {
-    const playerName = document.getElementById('playerNameInput').value.trim() || 'Player';
-    const rank = scoreRanking.addScore(pendingScoreData.finalScore, playerName);
-    
-    // スコアに追加情報を保存
-    const scores = scoreRanking.getHighScores();
-    const newScore = scores.find(s => s.score === pendingScoreData.finalScore && s.name === playerName);
-    if (newScore) {
-        newScore.combo = pendingScoreData.maxCombo;
-        newScore.powerUps = pendingScoreData.powerUps;
-        localStorage.setItem(scoreRanking.storageKey, JSON.stringify(scores));
-    }
-    
-    // 名前入力モーダルを閉じる
-    document.getElementById('nameInputModal').style.display = 'none';
-    
-    // 登録完了メッセージを表示
-    document.getElementById('rankMessage').textContent = `${rank}位にランクイン！`;
-    document.getElementById('scoreSubmittedModal').style.display = 'flex';
-    
-    // スコア記録済みフラグを設定
-    pyodide.runPython('game_state.score_recorded = True');
-    pendingScoreData = null;
-}
-
-function cancelHighScore() {
-    document.getElementById('nameInputModal').style.display = 'none';
-    // スコア記録済みフラグを設定
-    pyodide.runPython('game_state.score_recorded = True');
-    pendingScoreData = null;
-}
-
-function closeScoreSubmittedModal() {
-    document.getElementById('scoreSubmittedModal').style.display = 'none';
-}
-function updateLoadingProgress(text) {
-document.getElementById('loadingProgress').textContent = text;
-}
-function hideLoading() {
-const overlay = document.getElementById('loadingOverlay');
-overlay.style.opacity = '0';
-setTimeout(() => {
-overlay.style.display = 'none';
-}, 500);
-}
-async function initializeGame() {
-try {
-updateLoadingProgress('Pyodideを初期化中...');
-pyodide = await loadPyodide({
-indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
-});
-updateLoadingProgress('Pygame-CEを読み込み中...');
-await pyodide.loadPackage(["pygame-ce"]);
-updateLoadingProgress('ゲームコードを読み込み中...');
-await loadGameCode();
-updateLoadingProgress('ゲームを初期化中...');
-canvas = document.getElementById('gameCanvas');
-
-// Safe canvas context creation with feature detection
-try {
-    // Try with all optimization options first
-    ctx = canvas.getContext('2d', {
-        alpha: false, // Disable transparency for better performance
-        desynchronized: true, // Reduce latency - EXPERIMENTAL
-        willReadFrequently: false // We're not reading pixels - EXPERIMENTAL
-    });
-} catch (e) {
-    console.warn('Failed to create canvas context with experimental options, trying fallback...', e);
-    try {
-        // Fallback to just alpha option (widely supported)
-        ctx = canvas.getContext('2d', {
-            alpha: false
-        });
-    } catch (e2) {
-        console.warn('Failed to create canvas context with alpha option, using default...', e2);
-        // Final fallback - basic context
-        ctx = canvas.getContext('2d');
-    }
-}
-
-// Set performance-oriented rendering settings (with feature detection)
-if (ctx.imageSmoothingEnabled !== undefined) {
-    ctx.imageSmoothingEnabled = false; // Disable antialiasing for pixel-perfect rendering
-}
-
-performanceMonitor = new PerformanceMonitor();
-await initializeGameState();
-updateLoadingProgress('ゲーム開始準備完了');
-hideLoading();
-startGameLoop();
-console.log('🎮 Ultimate Squash Game loaded successfully!');
-} catch (error) {
-showError(
-'ゲームの初期化に失敗しました。ブラウザが最新版か確認してください。',
-error.message
-);
-}
-}
-async function loadGameCode() {
-const gameModules = {
-'model.pygame_game_state': `import time
+json.dumps(powerup_info)
+                `);
+                
+                const data = JSON.parse(powerupData);
+                const powerupList = document.getElementById('powerupList');
+                
+                let html = `
+                    <div class="powerup-item ${data.multi_ball.active ? 'powerup-active' : 'powerup-inactive'}">
+                        <span>マルチボール</span>
+                        <span>${data.multi_ball.hits}/${data.multi_ball.threshold}</span>
+                    </div>
+                `;
+                
+                const powerupTypes = {
+                    'wide_racket': 'ワイドラケット',
+                    'slow_ball': 'スローボール',
+                    'extra_points': 'エクストラポイント',
+                    'shield': 'シールド'
+                };
+                
+                for (const [type, name] of Object.entries(powerupTypes)) {
+                    const isActive = data.powerups[type] && data.powerups[type].active;
+                    const remaining = isActive ? Math.ceil(data.powerups[type].remaining / 1000) : 0;
+                    
+                    html += `
+                        <div class="powerup-item ${isActive ? 'powerup-active' : 'powerup-inactive'}">
+                            <span>${name}</span>
+                            <span class="powerup-timer">${isActive ? remaining + 's' : 'OFF'}</span>
+                        </div>
+                    `;
+                }
+                
+                powerupList.innerHTML = html;
+            } catch (error) {
+                console.error('PowerUp display error:', error);
+            }
+        }
+        
+        // ローディング状態の更新
+        function updateLoadingProgress(text) {
+            document.getElementById('loadingProgress').textContent = text;
+        }
+        
+        function hideLoading() {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.opacity = '0';
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 500);
+        }
+        
+        // Pyodide初期化とゲーム開始
+        async function initializeGame() {
+            try {
+                updateLoadingProgress('Pyodideを初期化中...');
+                
+                // Pyodide初期化
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                
+                updateLoadingProgress('Pygame-CEを読み込み中...');
+                
+                // 必要なパッケージをインストール
+                await pyodide.loadPackage(["pygame-ce"]);
+                
+                updateLoadingProgress('ゲームコードを読み込み中...');
+                
+                // ゲームコードを読み込み（最適化されたバージョン）
+                await loadGameCode();
+                
+                updateLoadingProgress('ゲームを初期化中...');
+                
+                // Canvasを初期化
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                
+                // パフォーマンス監視を開始
+                performanceMonitor = new PerformanceMonitor();
+                
+                // スコアランキングシステムを初期化
+                scoreRanking = new ScoreRanking();
+                
+                // ゲーム状態を初期化
+                await initializeGameState();
+                
+                updateLoadingProgress('ゲーム開始準備完了');
+                
+                // ローディング画面を非表示
+                hideLoading();
+                
+                // ゲームループ開始
+                startGameLoop();
+                
+                console.log('🎮 Ultimate Squash Game loaded successfully!');
+                
+            } catch (error) {
+                showError(
+                    'ゲームの初期化に失敗しました。ブラウザが最新版か確認してください。',
+                    error.message
+                );
+            }
+        }
+        
+        // ゲームコードの読み込み
+        async function loadGameCode() {
+            // 最適化されたPythonコードを埋め込み
+            const gameModules = {
+                'model.pygame_game_state': `import time
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import math
 
 class PygameBall:
-    def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200,
+    def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200, 
                  radius: float = 10, color: tuple = (255, 255, 255)):
         self.x = float(x)
         self.y = float(y)
@@ -620,7 +829,7 @@ class PygameBall:
         self.max_trail_length = 10
 
 class PygameRacket:
-    def __init__(self, x: float = 295, y: float = 450, size: float = 50,
+    def __init__(self, x: float = 295, y: float = 450, size: float = 50, 
                  height: float = 10, color: tuple = (0, 255, 0)):
         self.x = float(x)
         self.y = float(y)
@@ -639,17 +848,6 @@ class PygameScore:
         self.misses = 0
         self.start_time = time.time()
 
-class PowerUp:
-    def __init__(self, x: float, y: float, type: str, color: tuple):
-        self.x = x
-        self.y = y
-        self.type = type
-        self.color = color
-        self.radius = 15
-        self.dy = 100  # 落下速度
-        self.active = True
-        self.duration = 10000  # 効果時間（ミリ秒）
-
 class PygameGameStateObserver:
     def on_game_state_changed(self, game_state: 'PygameGameState'):
         pass
@@ -664,17 +862,17 @@ class PygameGameState:
         self.observers = []
         self.canvas_width = 640
         self.canvas_height = 480
+        
+        # マルチボール機能
         self.multi_ball_active = False
         self.multi_ball_threshold = 5  # 5連続ヒットでマルチボール発動
         self.consecutive_hits = 0
         self.max_balls = 3
-        self.power_ups = []
-        self.active_power_ups = {}  # type -> end_time のマップ
-        self.power_up_spawn_chance = 0.15  # 15%の確率でパワーアップ出現
-        self.last_power_up_time = time.time()
-        self.max_consecutive_hits = 0  # 最大コンボ記録
-        self.power_ups_collected = 0  # 取得したパワーアップ数
-        self.score_recorded = False  # スコア記録済みフラグ
+        
+        # パワーアップシステム
+        self.active_powerups = {}
+        self.powerup_spawn_chance = 0.1  # 10%の確率
+        self.powerup_positions = []  # パワーアップアイテムの座標
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -682,59 +880,6 @@ class PygameGameState:
     def notify_observers(self):
         for observer in self.observers:
             observer.on_game_state_changed(self)
-    
-    def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
-        ball.x += ball.dx * dt
-        ball.y += ball.dy * dt
-        
-        if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
-            ball.dx = -ball.dx
-        if ball.y <= ball.radius:
-            ball.dy = -ball.dy
-        if ball.y >= self.canvas_height - ball.radius:
-            # シールド効果チェック
-            if 'shield' in self.active_power_ups:
-                ball.dy = -abs(ball.dy)  # ボールを跳ね返す
-                del self.active_power_ups['shield']  # シールドを消費
-                return
-            
-            # ボールを削除（マルチボールモード時）
-            if ball in self.balls:
-                self.balls.remove(ball)
-                self.score.misses += 1
-                self.consecutive_hits = 0  # 連続ヒットをリセット
-                if len(self.balls) == 0:
-                    self.is_gameover = True
-            return
-        
-        if (ball.y + ball.radius >= self.racket.y and 
-            ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
-            ball.dy = -abs(ball.dy)
-            self.score.hits += 1
-            # ポイント2倍効果チェック
-            points = 20 if 'extra_points' in self.active_power_ups else 10
-            self.score.player_score += points
-            self.consecutive_hits += 1
-            # 最大コンボを更新
-            if self.consecutive_hits > self.max_consecutive_hits:
-                self.max_consecutive_hits = self.consecutive_hits
-            
-            # マルチボール発動チェック
-            if (not self.multi_ball_active and 
-                self.consecutive_hits >= self.multi_ball_threshold and 
-                len(self.balls) < self.max_balls):
-                self.activate_multi_ball()
-            
-            # パワーアップ出現チェック
-            import random
-            current_time = time.time()
-            if (current_time - self.last_power_up_time > 5 and  # 5秒に1回まで
-                random.random() < self.power_up_spawn_chance and
-                len(self.power_ups) < 2):  # 最大2個まで
-                self.spawn_power_up()
-                self.last_power_up_time = current_time
-        
-        self.notify_observers()
     
     def activate_multi_ball(self):
         """マルチボールモードを発動"""
@@ -750,89 +895,145 @@ class PygameGameState:
             )
             self.balls.append(new_ball)
     
-    def update_racket_position(self, x: float):
-        self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
+    def activate_powerup(self, powerup_type):
+        """パワーアップを発動"""
+        import time
+        
+        if powerup_type == 'wide_racket':
+            self.active_powerups['wide_racket'] = {
+                'active': True,
+                'start_time': time.time() * 1000,
+                'duration': 10000,  # 10秒
+                'remaining': 10000
+            }
+            self.racket.size = 100  # ラケットサイズ2倍
+            
+        elif powerup_type == 'slow_ball':
+            self.active_powerups['slow_ball'] = {
+                'active': True,
+                'start_time': time.time() * 1000,
+                'duration': 8000,  # 8秒
+                'remaining': 8000
+            }
+            # ボール速度を30%に減速
+            for ball in self.balls:
+                ball.dx *= 0.3
+                ball.dy *= 0.3
+                
+        elif powerup_type == 'extra_points':
+            self.active_powerups['extra_points'] = {
+                'active': True,
+                'start_time': time.time() * 1000,
+                'duration': 15000,  # 15秒
+                'remaining': 15000
+            }
+            
+        elif powerup_type == 'shield':
+            self.active_powerups['shield'] = {
+                'active': True,
+                'uses': 1  # 1回使用可能
+            }
+    
+    def update_powerups(self):
+        """パワーアップの時間管理"""
+        import time
+        current_time = time.time() * 1000
+        
+        for powerup_type, powerup in list(self.active_powerups.items()):
+            if powerup.get('active', False):
+                if 'duration' in powerup:
+                    elapsed = current_time - powerup['start_time']
+                    powerup['remaining'] = max(0, powerup['duration'] - elapsed)
+                    
+                    if elapsed >= powerup['duration']:
+                        # パワーアップ終了
+                        if powerup_type == 'wide_racket':
+                            self.racket.size = 50  # 元のサイズに戻す
+                        elif powerup_type == 'slow_ball':
+                            # ボール速度を元に戻す
+                            for ball in self.balls:
+                                ball.dx /= 0.3
+                                ball.dy /= 0.3
+                        
+                        powerup['active'] = False
+
+    def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
+        ball.x += ball.dx * dt
+        ball.y += ball.dy * dt
+        
+        if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
+            ball.dx = -ball.dx
+        if ball.y <= ball.radius:
+            ball.dy = -ball.dy
+        if ball.y >= self.canvas_height - ball.radius:
+            # シールドパワーアップのチェック
+            if self.active_powerups.get('shield', {}).get('active', False):
+                ball.dy = -abs(ball.dy)  # 跳ね返す
+                self.active_powerups['shield']['active'] = False  # シールド消費
+            else:
+                self.is_gameover = True
+        
+        if (ball.y + ball.radius >= self.racket.y and 
+            ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
+            ball.dy = -abs(ball.dy)
+            self.score.hits += 1
+            self.consecutive_hits += 1
+            
+            # エクストラポイント効果
+            points = 10
+            if self.active_powerups.get('extra_points', {}).get('active', False):
+                points *= 2
+            self.score.player_score += points
+            
+            # マルチボール判定
+            if (self.consecutive_hits >= self.multi_ball_threshold and 
+                not self.multi_ball_active and len(self.balls) == 1):
+                self.activate_multi_ball()
+                
+            # パワーアップスポーン判定
+            import random
+            if random.random() < self.powerup_spawn_chance:
+                self.spawn_powerup()
+        else:
+            # ヒットしなかった場合は連続ヒットリセット
+            if ball.y >= self.canvas_height - ball.radius:
+                self.consecutive_hits = 0
+        
+        # パワーアップ更新
+        self.update_powerups()
+        
         self.notify_observers()
     
-    def spawn_power_up(self):
-        """ランダムなパワーアップを生成"""
+    def spawn_powerup(self):
+        """パワーアップアイテムをスポーン"""
         import random
+        powerup_types = ['wide_racket', 'slow_ball', 'extra_points', 'shield']
+        powerup_type = random.choice(powerup_types)
         
-        # パワーアップの種類を定義
-        power_up_types = [
-            ('wide_racket', (100, 255, 100)),     # 緑：ラケット拡大
-            ('slow_ball', (100, 100, 255)),       # 青：ボール減速
-            ('extra_points', (255, 255, 100)),    # 黄：ポイント2倍
-            ('shield', (255, 100, 255))           # 紫：シールド（1回ミスを防ぐ）
-        ]
-        
-        # ランダムな位置とタイプを選択
-        x = random.randint(50, self.canvas_width - 50)
-        power_type, color = random.choice(power_up_types)
-        
-        power_up = PowerUp(x, 50, power_type, color)
-        self.power_ups.append(power_up)
+        powerup_item = {
+            'type': powerup_type,
+            'x': random.randint(50, self.canvas_width - 50),
+            'y': random.randint(100, 300),
+            'collected': False
+        }
+        self.powerup_positions.append(powerup_item)
     
-    def update_power_ups(self, dt: float = 0.016):
-        """パワーアップの位置を更新"""
-        current_time = time.time() * 1000  # ミリ秒
-        
-        # 期限切れのパワーアップ効果を削除
-        expired_effects = []
-        for power_type, end_time in self.active_power_ups.items():
-            if current_time > end_time:
-                expired_effects.append(power_type)
-                self.deactivate_power_up(power_type)
-        
-        for power_type in expired_effects:
-            del self.active_power_ups[power_type]
-        
-        # パワーアップの位置更新
-        for power_up in list(self.power_ups):
-            power_up.y += power_up.dy * dt
-            
-            # 画面外に出たら削除
-            if power_up.y > self.canvas_height:
-                self.power_ups.remove(power_up)
-                continue
-            
-            # ラケットとの衝突判定
-            if (power_up.y + power_up.radius >= self.racket.y and
-                power_up.x >= self.racket.x and 
-                power_up.x <= self.racket.x + self.racket.size):
-                self.activate_power_up(power_up)
-                self.power_ups.remove(power_up)
+    def check_powerup_collision(self):
+        """パワーアップアイテムとボールの衝突判定"""
+        for ball in self.balls:
+            for powerup in self.powerup_positions[:]:
+                if not powerup['collected']:
+                    dist = ((ball.x - powerup['x'])**2 + (ball.y - powerup['y'])**2)**0.5
+                    if dist < 20:  # 衝突判定
+                        powerup['collected'] = True
+                        self.activate_powerup(powerup['type'])
+                        self.powerup_positions.remove(powerup)
     
-    def activate_power_up(self, power_up: PowerUp):
-        """パワーアップを発動"""
-        current_time = time.time() * 1000
-        self.active_power_ups[power_up.type] = current_time + power_up.duration
-        
-        if power_up.type == 'wide_racket':
-            self.racket.size = 100  # 通常の2倍
-        elif power_up.type == 'slow_ball':
-            for ball in self.balls:
-                ball.dx *= 0.7
-                ball.dy *= 0.7
-        elif power_up.type == 'extra_points':
-            # ポイント2倍フラグ（update_ball_positionで処理）
-            pass
-        elif power_up.type == 'shield':
-            # シールドフラグ（ミス時に処理）
-            pass
-        
-        self.score.player_score += 50  # パワーアップ取得ボーナス
-        self.power_ups_collected += 1  # パワーアップ取得数をカウント
-    
-    def deactivate_power_up(self, power_type: str):
-        """パワーアップ効果を解除"""
-        if power_type == 'wide_racket':
-            self.racket.size = 50  # 通常サイズに戻す
-        elif power_type == 'slow_ball':
-            for ball in self.balls:
-                ball.dx /= 0.7
-                ball.dy /= 0.7`,
-'view.optimized_web_game_view': `import json
+    def update_racket_position(self, x: float):
+        self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
+        self.notify_observers()`,
+                
+                'view.optimized_web_game_view': `import json
 from typing import Dict, List
 from model.pygame_game_state import PygameGameState, PygameGameStateObserver
 
@@ -849,23 +1050,13 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
     def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
         draw_commands = []
         
-        # 背景（マルチボール時は特別な色）
-        bg_color = '#000000' if not game_state.multi_ball_active else '#0a0a1a'
         draw_commands.append({
             'type': 'fillRect',
             'x': 0, 'y': 0,
             'width': self.canvas_width,
             'height': self.canvas_height,
-            'color': bg_color
+            'color': '#000000'
         })
-        
-        # マルチボール時の背景エフェクト
-        if game_state.multi_ball_active:
-            draw_commands.append({
-                'type': 'draw_grid',
-                'spacing': 40,
-                'color': 'rgba(78, 205, 196, 0.1)'
-            })
         
         for ball in game_state.balls:
             draw_commands.append({
@@ -885,101 +1076,66 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
                 'color': f'rgb{game_state.racket.color}'
             })
         
+        # パワーアップアイテムの描画
+        for powerup in game_state.powerup_positions:
+            if not powerup['collected']:
+                color_map = {
+                    'wide_racket': '#00ff00',
+                    'slow_ball': '#00ffff',
+                    'extra_points': '#ffff00',
+                    'shield': '#ff00ff'
+                }
+                draw_commands.append({
+                    'type': 'fillCircle',
+                    'x': powerup['x'], 'y': powerup['y'],
+                    'radius': 15,
+                    'color': color_map.get(powerup['type'], '#ffffff')
+                })
+                # パワーアップタイプのテキスト
+                draw_commands.append({
+                    'type': 'fillText',
+                    'text': powerup['type'][0].upper(),
+                    'x': powerup['x'] - 5, 'y': powerup['y'] + 5,
+                    'color': 'black',
+                    'font': '12px Arial'
+                })
+        
+        # スコア表示（マルチボール情報も含む）
+        score_text = f'Score: {game_state.score.player_score} | Level: {game_state.score.level}'
+        if game_state.multi_ball_active:
+            score_text += f' | Multi-Ball! Hits: {game_state.consecutive_hits}'
+        elif game_state.consecutive_hits > 0:
+            score_text += f' | Combo: {game_state.consecutive_hits}/{game_state.multi_ball_threshold}'
+            
         draw_commands.append({
             'type': 'fillText',
-            'text': f'Score: {game_state.score.player_score} | Level: {game_state.score.level}',
+            'text': score_text,
             'x': 10, 'y': 30,
             'color': 'white',
             'font': '20px Arial'
         })
-        
-        # 連続ヒット数とマルチボール状態の表示
-        combo_text = f'Combo: {game_state.consecutive_hits}'
-        if game_state.multi_ball_active:
-            combo_text += ' | MULTI-BALL ACTIVE!'
-        
-        draw_commands.append({
-            'type': 'fillText',
-            'text': combo_text,
-            'x': 10, 'y': 55,
-            'color': '#ffcc00' if game_state.multi_ball_active else '#cccccc',
-            'font': '16px Arial'
-        })
-        
-        # アクティブボール数の表示
-        draw_commands.append({
-            'type': 'fillText',
-            'text': f'Balls: {len(game_state.balls)}',
-            'x': self.canvas_width - 80, 'y': 30,
-            'color': '#00ffcc',
-            'font': '16px Arial'
-        })
-        
-        # パワーアップの描画
-        for power_up in game_state.power_ups:
-            draw_commands.append({
-                'type': 'fillCircle',
-                'x': power_up.x, 'y': power_up.y,
-                'radius': power_up.radius,
-                'color': f'rgb{power_up.color}'
-            })
-            # パワーアップタイプのアイコン（文字）
-            icon_map = {
-                'wide_racket': 'W',
-                'slow_ball': 'S',
-                'extra_points': '2X',
-                'shield': 'D'
-            }
-            draw_commands.append({
-                'type': 'fillText',
-                'text': icon_map.get(power_up.type, '?'),
-                'x': power_up.x - 8, 'y': power_up.y + 5,
-                'color': 'black',
-                'font': 'bold 14px Arial'
-            })
-        
-        # アクティブなパワーアップ効果の表示
-        if game_state.active_power_ups:
-            effect_text = 'Active: '
-            effect_names = {
-                'wide_racket': 'Wide',
-                'slow_ball': 'Slow',
-                'extra_points': '2X',
-                'shield': 'Shield'
-            }
-            active_effects = [effect_names.get(k, k) for k in game_state.active_power_ups.keys()]
-            effect_text += ', '.join(active_effects)
-            
-            draw_commands.append({
-                'type': 'fillText',
-                'text': effect_text,
-                'x': 10, 'y': 80,
-                'color': '#ff00ff',
-                'font': '14px Arial'
-            })
         
         return {
             'canvas_id': self.canvas_id,
             'draw_commands': draw_commands,
             'game_state': {
                 'paused': game_state.is_paused,
-                'gameover': game_state.is_gameover,
-                'score_recorded': game_state.score_recorded,
-                'final_score': game_state.score.player_score,
-                'max_combo': game_state.max_consecutive_hits,
-                'power_ups_collected': game_state.power_ups_collected
+                'gameover': game_state.is_gameover
             }
         }
     
     def get_javascript_interface_data(self) -> str:
         return json.dumps(self.frame_data, ensure_ascii=False)`
-};
-for (const [moduleName, moduleCode] of Object.entries(gameModules)) {
-pyodide.runPython(moduleCode);
-}
-}
-async function initializeGameState() {
-pyodide.runPython(`
+            };
+            
+            for (const [moduleName, moduleCode] of Object.entries(gameModules)) {
+                pyodide.runPython(moduleCode);
+            }
+        }
+        
+        // ゲーム状態の初期化
+        async function initializeGameState() {
+            pyodide.runPython(`
 from model.pygame_game_state import PygameGameState
 from view.optimized_web_game_view import OptimizedWebCanvasView
 
@@ -989,12 +1145,35 @@ game_state.add_observer(game_view)
 
 def update_game(dt=0.016):
     if not game_state.is_paused and not game_state.is_gameover:
-        # すべてのボールを更新（リストのコピーを使用して安全に削除）
-        for ball in list(game_state.balls):
+        for ball in game_state.balls[:]:  # コピーを作成（削除に対応）
             game_state.update_ball_position(ball, dt)
-        # パワーアップの更新
-        game_state.update_power_ups(dt)
+        
+        # パワーアップアイテムとの衝突判定
+        game_state.check_powerup_collision()
+        
+        # ゲームオーバー時にスコア記録
+        if game_state.is_gameover:
+            check_high_score()
+            
     return game_view.get_javascript_interface_data()
+
+def check_high_score():
+    """ゲームオーバー時のハイスコアチェック"""
+    # JavaScriptに結果を送信するためにグローバル変数を設定
+    import json
+    global pending_high_score_check
+    pending_high_score_check = json.dumps({
+        'score': game_state.score.player_score,
+        'combo': game_state.consecutive_hits,
+        'powerUps': len([p for p in game_state.active_powerups.values() if p.get("active", False)])
+    })
+    
+def get_pending_high_score():
+    """JavaScript側から呼び出される関数"""
+    global pending_high_score_check
+    return pending_high_score_check
+
+pending_high_score_check = None
 
 def handle_key_input(key):
     if key == 'ArrowLeft' and game_state.racket.x > 0:
@@ -1006,436 +1185,126 @@ def handle_key_input(key):
     elif key == 'r' or key == 'R':
         restart_game()
     elif key == 'h' or key == 'H':
-        # ランキング表示（JavaScript側で処理）
-        pass
+        # ランキング表示をJavaScriptで実行
+        return 'show_ranking'
+    elif key == 'p' or key == 'P':
+        # パワーアップ表示切り替えをJavaScriptで実行
+        return 'toggle_powerup'
+    return None
 
 def restart_game():
     global game_state
     game_state = PygameGameState()
     game_state.add_observer(game_view)
-    game_state.score_recorded = False
-    # マルチボール関連の状態もリセット
-    game_state.multi_ball_active = False
-    game_state.consecutive_hits = 0
-`);
-}
-// Optimized drawing function that handles differential rendering
-const drawState = {
-    lastFrameData: null,
-    staticLayer: null,
-    dynamicLayer: null,
-    currentLayer: 'dynamic',
-    dirtyRegions: [],
-    skipFrame: false
-};
-
-function drawFrame(frameData) {
-    try {
-        const data = JSON.parse(frameData);
-        const commands = data.draw_commands || [];
-        const perfStats = data.optimization_stats || {};
-        
-        // Update performance monitor with optimization stats
-        if (performanceMonitor && perfStats) {
-            performanceMonitor.updateOptimizationStats(perfStats);
+            `);
         }
         
-        // Process commands with optimization support
-        for (const cmd of commands) {
-            switch (cmd.command || cmd.type) {
-                case 'skip_frame':
-                    // Frame skipped due to no changes
-                    drawState.skipFrame = true;
-                    return;
-                    
-                case 'set_mode':
-                    if (cmd.mode === 'differential') {
-                        drawState.dirtyRegions = cmd.regions || [];
-                        // Clear only dirty regions
-                        for (const region of drawState.dirtyRegions) {
-                            ctx.clearRect(region[0], region[1], region[2], region[3]);
-                        }
+        // Canvas描画関数
+        function drawFrame(frameData) {
+            try {
+                const data = JSON.parse(frameData);
+                const commands = data.draw_commands || [];
+                
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                for (const cmd of commands) {
+                    switch (cmd.type) {
+                        case 'fillRect':
+                            ctx.fillStyle = cmd.color;
+                            ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
+                            break;
+                        case 'fillCircle':
+                            ctx.fillStyle = cmd.color;
+                            ctx.beginPath();
+                            ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
+                            ctx.fill();
+                            break;
+                        case 'fillText':
+                            ctx.fillStyle = cmd.color;
+                            ctx.font = cmd.font;
+                            ctx.fillText(cmd.text, cmd.x, cmd.y);
+                            break;
                     }
-                    break;
-                    
-                case 'set_layer':
-                    drawState.currentLayer = cmd.layer;
-                    break;
-                    
-                case 'clear':
-                    ctx.fillStyle = cmd.color || 'rgb(240, 240, 240)';
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    break;
-                    
-                case 'draw_grid':
-                    drawGrid(cmd.spacing, cmd.color);
-                    break;
-                    
-                case 'draw_ui_background':
-                    ctx.fillStyle = cmd.color;
-                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
-                    break;
-                    
-                case 'draw_batch_circles':
-                    // Batch draw circles for performance
-                    ctx.save();
-                    for (const circle of cmd.circles) {
-                        ctx.fillStyle = circle.color;
-                        ctx.beginPath();
-                        ctx.arc(circle.x, circle.y, circle.radius, 0, 2 * Math.PI);
-                        ctx.fill();
-                    }
-                    ctx.restore();
-                    break;
-                    
-                case 'draw_rectangle':
-                    ctx.fillStyle = cmd.color;
-                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
-                    break;
-                    
-                case 'update_text':
-                    ctx.save();
-                    ctx.fillStyle = cmd.color;
-                    ctx.font = cmd.font;
-                    ctx.fillText(cmd.text, cmd.x, cmd.y);
-                    ctx.restore();
-                    break;
-                    
-                case 'draw_overlay':
-                    // Draw overlay with background
-                    ctx.save();
-                    ctx.fillStyle = cmd.backgroundColor;
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-                    ctx.fillStyle = cmd.textColor;
-                    ctx.font = cmd.font;
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(cmd.text, cmd.x, cmd.y);
-                    ctx.restore();
-                    break;
-                    
-                // Legacy command support
-                case 'fillRect':
-                    ctx.fillStyle = cmd.color;
-                    ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
-                    break;
-                    
-                case 'fillCircle':
-                    ctx.fillStyle = cmd.color;
-                    ctx.beginPath();
-                    ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
-                    ctx.fill();
-                    break;
-                    
-                case 'fillText':
-                    ctx.fillStyle = cmd.color;
-                    ctx.font = cmd.font;
-                    ctx.fillText(cmd.text, cmd.x, cmd.y);
-                    break;
-                    
-                case 'draw_grid':
-                    drawGrid(cmd.spacing, cmd.color);
-                    break;
+                }
+            } catch (error) {
+                console.error('Draw error:', error);
             }
         }
         
-        drawState.lastFrameData = data;
-        drawState.skipFrame = false;
-        
-    } catch (error) {
-        console.error('Draw error:', error);
-        // Fallback to simple clear on error
-        ctx.fillStyle = 'rgb(240, 240, 240)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-}
-
-// Cache for grid drawing
-let gridCache = null;
-let gridCacheSpacing = 0;
-let gridCacheColor = '';
-
-function drawGrid(spacing, color) {
-    // Validate spacing to prevent infinite loops
-    if (!Number.isFinite(spacing) || spacing <= 0) {
-        return; // guard against bad input
-    }
-    
-    // Check if we need to update the cache
-    if (!gridCache || gridCacheSpacing !== spacing || gridCacheColor !== color || 
-        gridCache.width !== canvas.width || gridCache.height !== canvas.height) {
-        
-        // Create or resize off-screen canvas
-        if (!gridCache) {
-            gridCache = document.createElement('canvas');
-        }
-        gridCache.width = canvas.width;
-        gridCache.height = canvas.height;
-        gridCacheSpacing = spacing;
-        gridCacheColor = color;
-        
-        // Draw grid to off-screen canvas
-        const cacheCtx = gridCache.getContext('2d', { alpha: true });
-        cacheCtx.clearRect(0, 0, gridCache.width, gridCache.height);
-        cacheCtx.save();
-        cacheCtx.strokeStyle = color;
-        cacheCtx.lineWidth = 0.5;
-        
-        // Vertical lines
-        for (let x = 0; x <= gridCache.width; x += spacing) {
-            cacheCtx.beginPath();
-            cacheCtx.moveTo(x, 0);
-            cacheCtx.lineTo(x, gridCache.height);
-            cacheCtx.stroke();
-        }
-        
-        // Horizontal lines
-        for (let y = 0; y <= gridCache.height; y += spacing) {
-            cacheCtx.beginPath();
-            cacheCtx.moveTo(0, y);
-            cacheCtx.lineTo(gridCache.width, y);
-            cacheCtx.stroke();
-        }
-        
-        cacheCtx.restore();
-    }
-    
-    // Draw cached grid to main canvas
-    ctx.drawImage(gridCache, 0, 0);
-}
-// Performance-optimized game loop
-let lastFrameTime = 0;
-const targetFPS = 60;
-const frameInterval = 1000 / targetFPS;
-let accumulator = 0;
-
-function gameLoop(currentTime) {
-    try {
-        // Reset skipFrame flag at the start of each frame
-        drawState.skipFrame = false;
-        
-        // Frame rate limiting
-        const deltaTime = currentTime - lastFrameTime;
-        lastFrameTime = currentTime;
-        
-        // Skip frames if running too fast
-        if (deltaTime < frameInterval * 0.75) {
-            gameLoopId = requestAnimationFrame(gameLoop);
-            return;
-        }
-        
-        // Update game state and get optimized draw commands
-        const frameData = pyodide.runPython('update_game()');
-        
-        // Only draw if we have valid frame data
-        if (frameData && !drawState.skipFrame) {
-            drawFrame(frameData);
-            
-            // ゲームオーバー時のスコア記録
-            const parsedData = JSON.parse(frameData);
-            if (parsedData.game_state && parsedData.game_state.gameover && !parsedData.game_state.score_recorded) {
-                // スコアを記録
-                const finalScore = parsedData.game_state.final_score || 0;
-                const maxCombo = parsedData.game_state.max_combo || 0;
-                const powerUps = parsedData.game_state.power_ups_collected || 0;
+        // ゲームループ
+        function gameLoop() {
+            try {
+                const frameData = pyodide.runPython('update_game()');
+                drawFrame(frameData);
+                performanceMonitor.update();
                 
-                // ハイスコアかチェック
-                if (scoreRanking.isHighScore(finalScore)) {
-                    // 非同期モーダルで名前入力
-                    setTimeout(() => {
-                        showNameInputModal({
-                            finalScore: finalScore,
-                            maxCombo: maxCombo,
-                            powerUps: powerUps
-                        });
-                    }, 100);
-                } else {
-                    // スコア記録済みフラグを設定
-                    pyodide.runPython('game_state.score_recorded = True');
+                // パワーアップ表示を定期的に更新
+                if (Math.random() < 0.1) { // 10%の確率で更新（負荷軽減）
+                    updatePowerupDisplay();
+                }
+                
+                // ハイスコアチェック
+                checkPendingHighScore();
+            } catch (error) {
+                console.error('Game loop error:', error);
+            }
+            
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        // 保留中のハイスコアチェックを処理
+        function checkPendingHighScore() {
+            try {
+                const pending = pyodide.runPython('get_pending_high_score()');
+                if (pending && pending !== 'None' && pending !== 'null') {
+                    const scoreData = JSON.parse(pending);
+                    if (scoreRanking && scoreRanking.isHighScore(scoreData.score)) {
+                        showNameInputModal(scoreData);
+                        // チェック済みなのでPython側でクリア
+                        pyodide.runPython('pending_high_score_check = None');
+                    }
+                }
+            } catch (error) {
+                // エラーは無視（pending_high_score_checkがNoneの場合など）
+            }
+        }
+        
+        function startGameLoop() {
+            if (gameLoopId) {
+                cancelAnimationFrame(gameLoopId);
+            }
+            gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        // キーボードイベント
+        document.addEventListener('keydown', function(event) {
+            if (pyodide) {
+                try {
+                    pyodide.runPython(`handle_key_input('${event.key}')`);
+                } catch (error) {
+                    console.error('Key input error:', error);
                 }
             }
-        }
-        }
+        });
         
-        // Update performance monitoring less frequently
-        accumulator += deltaTime;
-        if (accumulator >= 100) { // Update every 100ms instead of every frame
-            performanceMonitor.update();
-            accumulator = 0;
-        }
-    } catch (error) {
-        console.error('Game loop error:', error);
-    }
-    
-    gameLoopId = requestAnimationFrame(gameLoop);
-}
-function startGameLoop() {
-if (gameLoopId) {
-cancelAnimationFrame(gameLoopId);
-}
-gameLoopId = requestAnimationFrame(gameLoop);
-}
-document.addEventListener('keydown', function(event) {
-// ランキング表示の処理
-if (event.key.toLowerCase() === 'h') {
-showRankingModal();
-return;
-}
-
-if (pyodide) {
-try {
-pyodide.runPython(`handle_key_input('${event.key}')`);
-} catch (error) {
-console.error('Key input error:', error);
-}
-}
-});
-// Visibility change handler moved above for better performance management
-window.addEventListener('error', function(event) {
-showError('予期しないエラーが発生しました', event.error?.message || '');
-});
-window.addEventListener('unhandledrejection', function(event) {
-showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
-});
-
-// Handle window resize to clear grid cache
-window.addEventListener('resize', function() {
-    // Clear grid cache on resize to force redraw with new dimensions
-    gridCache = null;
-});
-
-// Cleanup on page unload
-window.addEventListener('beforeunload', function() {
-    if (gameLoopId) {
-        cancelAnimationFrame(gameLoopId);
-    }
-    if (pyodide) {
-        try {
-            pyodide.runPython('game_state = None\ngame_view = None');
-        } catch (e) {}
-    }
-    // Clean up off-screen canvases
-    if (gridCache) {
-        gridCache = null;
-    }
-});
-
-// Handle page visibility changes for better performance
-let wasRunning = false;
-document.addEventListener('visibilitychange', function() {
-    if (document.hidden) {
-        if (gameLoopId) {
-            wasRunning = true;
-            cancelAnimationFrame(gameLoopId);
-            gameLoopId = null;
-        }
-        if (pyodide) {
-            pyodide.runPython('game_state.is_paused = True');
-        }
-    } else if (wasRunning) {
-        wasRunning = false;
-        if (pyodide) {
-            pyodide.runPython('game_state.is_paused = False');
-            startGameLoop();
-        }
-    }
-});
-// Audio handling function (currently not used)
-function handleGameAudio(gameState) {
-if (window.gameAudio && gameState) {
-if (gameState.includes('hits') && Math.random() < 0.3) {
-window.gameAudio.playPaddleHit();
-}
-if (gameState.includes('ball.dx = -ball.dx') || gameState.includes('ball.dy = -ball.dy')) {
-window.gameAudio.playWallBounce();
-}
-if (gameState.includes('gameover') || gameState.includes('is_gameover = True')) {
-window.gameAudio.playGameOver();
-}
-}
-}
-initializeGame();
-class GameAudioEngine {
-constructor() {
-this.audioContext = null;
-this.sounds = {
-"paddle_hit": {
-"type": "beep",
-"frequency": 440,
-"duration": 0.1,
-"volume": 0.3
-},
-"wall_bounce": {
-"type": "beep",
-"frequency": 220,
-"duration": 0.08,
-"volume": 0.2
-},
-"game_over": {
-"type": "sweep",
-"start_freq": 440,
-"end_freq": 110,
-"duration": 0.5,
-"volume": 0.4
-},
-"score_up": {
-"type": "chord",
-"frequencies": [440, 554, 659],
-"duration": 0.3,
-"volume": 0.3
-}
-};
-this.enabled = true;
-this.initAudio();
-}
-initAudio() {
-try {
-this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-} catch (e) {
-console.warn('Web Audio API not supported');
-this.enabled = false;
-}
-}
-async playSound(soundName) {
-if (!this.enabled || !this.audioContext) return;
-if (this.audioContext.state === 'suspended') {
-await this.audioContext.resume();
-}
-const soundDef = this.sounds[soundName];
-if (!soundDef) return;
-const oscillator = this.audioContext.createOscillator();
-const gainNode = this.audioContext.createGain();
-oscillator.connect(gainNode);
-gainNode.connect(this.audioContext.destination);
-const now = this.audioContext.currentTime;
-switch(soundDef.type) {
-case 'beep':
-oscillator.frequency.setValueAtTime(soundDef.frequency, now);
-break;
-case 'sweep':
-oscillator.frequency.setValueAtTime(soundDef.start_freq, now);
-oscillator.frequency.exponentialRampToValueAtTime(soundDef.end_freq, now + soundDef.duration);
-break;
-case 'chord':
-oscillator.frequency.setValueAtTime(soundDef.frequencies[0], now);
-break;
-}
-gainNode.gain.setValueAtTime(soundDef.volume, now);
-gainNode.gain.exponentialRampToValueAtTime(0.01, now + soundDef.duration);
-oscillator.start(now);
-oscillator.stop(now + soundDef.duration);
-}
-playPaddleHit() { this.playSound('paddle_hit'); }
-playWallBounce() { this.playSound('wall_bounce'); }
-playGameOver() { this.playSound('game_over'); }
-playScoreUp() { this.playSound('score_up'); }
-}
-window.gameAudio = new GameAudioEngine();
-document.addEventListener('click', () => {
-if (window.gameAudio && window.gameAudio.audioContext) {
-window.gameAudio.audioContext.resume();
-}
-}, { once: true });
-</script>
+        // ウィンドウフォーカス管理
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden && pyodide) {
+                pyodide.runPython('game_state.is_paused = True');
+            }
+        });
+        
+        // エラーハンドラー
+        window.addEventListener('error', function(event) {
+            showError('予期しないエラーが発生しました', event.error?.message || '');
+        });
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
+        });
+        
+        // ゲーム初期化開始
+        initializeGame();
+    </script>
 </body>
 </html>
