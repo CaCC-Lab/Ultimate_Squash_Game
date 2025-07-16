@@ -409,6 +409,32 @@
                 background: linear-gradient(135deg, #000000 0%, #1a1a2e 50%, #16213e 100%);
             }
         }
+        
+        /* サウンドコントロール */
+        #soundToggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(26, 26, 46, 0.9);
+            color: #4ecdc4;
+            border: 2px solid #4ecdc4;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        #soundToggle:hover {
+            background: rgba(78, 205, 196, 0.2);
+        }
+        
+        #soundToggle.muted {
+            color: #666;
+            border-color: #666;
+        }
     </style>
 </head>
 <body>
@@ -417,6 +443,8 @@
             <h1 class="title">Ultimate Squash Game</h1>
             <p class="subtitle">Python/Pyodide WebAssembly版 - 軽量25KB</p>
         </header>
+        
+        <button id="soundToggle" onclick="toggleSound()">🔊 サウンド ON</button>
         
         <div class="canvas-wrapper">
             <canvas id="gameCanvas" width="640" height="480"></canvas>
@@ -512,6 +540,201 @@
         // 新機能用グローバル変数
         let scoreRanking = null;
         let pendingScoreData = null;
+        
+        // サウンドシステム
+        class SoundSystem {
+            constructor() {
+                this.audioContext = null;
+                this.soundEnabled = true;
+                this.sounds = {};
+                this.bgmGain = null;
+                this.sfxGain = null;
+                this.bgmInterval = null;
+                this.initAudio();
+            }
+            
+            async initAudio() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    
+                    // メインゲインノード
+                    const mainGain = this.audioContext.createGain();
+                    mainGain.connect(this.audioContext.destination);
+                    
+                    // BGM用ゲインノード
+                    this.bgmGain = this.audioContext.createGain();
+                    this.bgmGain.gain.value = 0.3;
+                    this.bgmGain.connect(mainGain);
+                    
+                    // SFX用ゲインノード
+                    this.sfxGain = this.audioContext.createGain();
+                    this.sfxGain.gain.value = 0.7;
+                    this.sfxGain.connect(mainGain);
+                    
+                    // 8-bit風の音を生成
+                    this.createSounds();
+                    
+                    console.log('サウンドシステムを初期化しました');
+                } catch (error) {
+                    console.warn('サウンドシステムの初期化に失敗:', error);
+                    this.soundEnabled = false;
+                }
+            }
+            
+            createSounds() {
+                if (!this.audioContext) return;
+                
+                // ボール衝突音（ピッチ変調）
+                this.sounds.ballHit = (pitch = 1.0) => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(220 * pitch, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(110 * pitch, this.audioContext.currentTime + 0.1);
+                    
+                    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.sfxGain);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 0.1);
+                };
+                
+                // スコア獲得音
+                this.sounds.scoreUp = () => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(330, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(660, this.audioContext.currentTime + 0.2);
+                    
+                    gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.sfxGain);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 0.2);
+                };
+                
+                // パワーアップ音
+                this.sounds.powerUp = () => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.type = 'triangle';
+                    oscillator.frequency.setValueAtTime(440, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(880, this.audioContext.currentTime + 0.3);
+                    
+                    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.sfxGain);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 0.3);
+                };
+                
+                // ゲームオーバー音
+                this.sounds.gameOver = () => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(220, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(110, this.audioContext.currentTime + 0.5);
+                    
+                    gainNode.gain.setValueAtTime(0.4, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.sfxGain);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 0.5);
+                };
+            }
+            
+            playSound(soundName, ...args) {
+                if (!this.soundEnabled || !this.audioContext) return;
+                
+                // オーディオコンテキストを再開（ユーザーインタラクション後）
+                if (this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+                
+                const sound = this.sounds[soundName];
+                if (sound) {
+                    sound(...args);
+                }
+            }
+            
+            startBGM() {
+                if (!this.soundEnabled || !this.audioContext || this.bgmInterval) return;
+                
+                // 8-bit風BGMの作成
+                const notes = [330, 370, 440, 494, 523, 440, 370, 330]; // C4-A4-F4-G4-C5-F4-A4-C4
+                let noteIndex = 0;
+                
+                const playNextNote = () => {
+                    if (!this.soundEnabled) return;
+                    
+                    // オーディオコンテキストを再開
+                    if (this.audioContext.state === 'suspended') {
+                        this.audioContext.resume();
+                    }
+                    
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.type = 'square';
+                    oscillator.frequency.setValueAtTime(notes[noteIndex], this.audioContext.currentTime);
+                    
+                    gainNode.gain.setValueAtTime(0.1, this.audioContext.currentTime);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.bgmGain);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 0.5);
+                    
+                    noteIndex = (noteIndex + 1) % notes.length;
+                };
+                
+                // BGMループ開始
+                this.bgmInterval = setInterval(playNextNote, 600);
+            }
+            
+            stopBGM() {
+                if (this.bgmInterval) {
+                    clearInterval(this.bgmInterval);
+                    this.bgmInterval = null;
+                }
+            }
+            
+            toggle() {
+                this.soundEnabled = !this.soundEnabled;
+                const button = document.getElementById('soundToggle');
+                if (this.soundEnabled) {
+                    button.textContent = '🔊 サウンド ON';
+                    button.classList.remove('muted');
+                    this.startBGM();
+                } else {
+                    button.textContent = '🔇 サウンド OFF';
+                    button.classList.add('muted');
+                    this.stopBGM();
+                }
+            }
+        }
+        
+        // グローバルサウンドシステム
+        const soundSystem = new SoundSystem();
         
         // スコアランキングシステム
         class ScoreRanking {
@@ -894,6 +1117,9 @@ class PygameGameState:
         self.active_powerups = {}
         self.powerup_spawn_chance = 0.1  # 10%の確率
         self.powerup_positions = []  # パワーアップアイテムの座標
+        
+        # サウンドイベント管理
+        self.sound_events = []
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -985,8 +1211,12 @@ class PygameGameState:
         
         if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
             ball.dx = -ball.dx
+            # 壁衝突音
+            self.sound_events.append(('ballHit', 0.7))
         if ball.y <= ball.radius:
             ball.dy = -ball.dy
+            # 壁衝突音
+            self.sound_events.append(('ballHit', 0.8))
         if ball.y >= self.canvas_height - ball.radius:
             # シールドパワーアップのチェック
             if self.active_powerups.get('shield', {}).get('active', False):
@@ -994,6 +1224,8 @@ class PygameGameState:
                 self.active_powerups['shield']['active'] = False  # シールド消費
             else:
                 self.is_gameover = True
+                # ゲームオーバー音
+                self.sound_events.append(('gameOver',))
         
         if (ball.y + ball.radius >= self.racket.y and 
             ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
@@ -1001,16 +1233,24 @@ class PygameGameState:
             self.score.hits += 1
             self.consecutive_hits += 1
             
+            # サウンドイベント発生
+            self.sound_events.append(('ballHit', 1.0 + self.consecutive_hits * 0.1))
+            
             # エクストラポイント効果
             points = 10
             if self.active_powerups.get('extra_points', {}).get('active', False):
                 points *= 2
             self.score.player_score += points
             
+            # スコア獲得音
+            self.sound_events.append(('scoreUp',))
+            
             # マルチボール判定
             if (self.consecutive_hits >= self.multi_ball_threshold and 
                 not self.multi_ball_active and len(self.balls) == 1):
                 self.activate_multi_ball()
+                # パワーアップ音
+                self.sound_events.append(('powerUp',))
                 
             # パワーアップスポーン判定
             import random
@@ -1270,6 +1510,9 @@ def restart_game():
                 drawFrame(frameData);
                 performanceMonitor.update();
                 
+                // サウンドイベントの処理
+                processSoundEvents();
+                
                 // パワーアップ表示を定期的に更新
                 if (Math.random() < 0.1) { // 10%の確率で更新（負荷軽減）
                     updatePowerupDisplay();
@@ -1282,6 +1525,31 @@ def restart_game():
             }
             
             gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        // サウンドイベントの処理
+        function processSoundEvents() {
+            if (!pyodide) return;
+            
+            try {
+                const soundEvents = pyodide.runPython('game_state.sound_events');
+                const events = soundEvents.toJs();
+                
+                if (events && events.length > 0) {
+                    // 各サウンドイベントを処理
+                    events.forEach(event => {
+                        if (Array.isArray(event)) {
+                            const [soundName, ...args] = event;
+                            soundSystem.playSound(soundName, ...args);
+                        }
+                    });
+                    
+                    // 処理したイベントをクリア
+                    pyodide.runPython('game_state.sound_events.clear()');
+                }
+            } catch (error) {
+                console.debug('Sound event processing error:', error);
+            }
         }
         
         // 保留中のハイスコアチェックを処理
@@ -1308,6 +1576,11 @@ def restart_game():
                 cancelAnimationFrame(gameLoopId);
             }
             gameLoopId = requestAnimationFrame(gameLoop);
+            
+            // BGMを開始
+            setTimeout(() => {
+                soundSystem.startBGM();
+            }, 1000); // 1秒後にBGM開始
         }
         
         // キーボードイベント
@@ -1422,6 +1695,10 @@ def restart_game():
         }
         
         // モバイルコントロールボタンの追加
+        function toggleSound() {
+            soundSystem.toggle();
+        }
+        
         function addMobileControls() {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
