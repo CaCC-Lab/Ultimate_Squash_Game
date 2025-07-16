@@ -894,6 +894,20 @@ class PygameGameState:
         self.active_powerups = {}
         self.powerup_spawn_chance = 0.1  # 10%の確率
         self.powerup_positions = []  # パワーアップアイテムの座標
+        
+        # ADA (AI Dynamic Adjustment) システム
+        self.ada_system = {
+            'miss_count': 0,
+            'hit_count': 0,
+            'total_attempts': 0,
+            'miss_ratio': 0.0,
+            'base_ball_speed': 5.0,
+            'current_speed_multiplier': 1.0,
+            'angle_randomness': 0.0,
+            'evaluation_window': 10,  # 10回のアクションで評価
+            'last_evaluation': 0,
+            'adjustment_history': []
+        }
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -901,6 +915,84 @@ class PygameGameState:
     def notify_observers(self):
         for observer in self.observers:
             observer.on_game_state_changed(self)
+    
+    def evaluate_ada_difficulty(self):
+        """ADAシステムによる難易度評価と調整"""
+        ada = self.ada_system
+        
+        # 十分なデータが蓄積されたら評価実行
+        if ada['total_attempts'] >= ada['evaluation_window']:
+            ada['miss_ratio'] = ada['miss_count'] / ada['total_attempts']
+            
+            # 要件定義書に基づく調整ルール
+            # ミス率 > 30% → 速度 -20%
+            # ミス率 < 10% → 速度 +15%
+            old_multiplier = ada['current_speed_multiplier']
+            
+            if ada['miss_ratio'] > 0.30:
+                ada['current_speed_multiplier'] = max(0.5, ada['current_speed_multiplier'] * 0.8)
+                ada['angle_randomness'] = max(0.0, ada['angle_randomness'] - 0.1)
+            elif ada['miss_ratio'] < 0.10:
+                ada['current_speed_multiplier'] = min(2.0, ada['current_speed_multiplier'] * 1.15)
+                ada['angle_randomness'] = min(0.3, ada['angle_randomness'] + 0.05)
+            
+            # 調整履歴を記録
+            adjustment = {
+                'miss_ratio': ada['miss_ratio'],
+                'speed_change': ada['current_speed_multiplier'] - old_multiplier,
+                'new_speed_multiplier': ada['current_speed_multiplier'],
+                'angle_randomness': ada['angle_randomness'],
+                'timestamp': ada['total_attempts']
+            }
+            ada['adjustment_history'].append(adjustment)
+            
+            # 履歴が長すぎる場合は古いものを削除
+            if len(ada['adjustment_history']) > 20:
+                ada['adjustment_history'].pop(0)
+            
+            # カウンターリセット
+            ada['miss_count'] = 0
+            ada['hit_count'] = 0
+            ada['total_attempts'] = 0
+            ada['last_evaluation'] = ada['total_attempts']
+    
+    def record_ada_hit(self):
+        """ADAシステムにヒットを記録"""
+        ada = self.ada_system
+        ada['hit_count'] += 1
+        ada['total_attempts'] += 1
+        self.evaluate_ada_difficulty()
+    
+    def record_ada_miss(self):
+        """ADAシステムにミスを記録"""
+        ada = self.ada_system
+        ada['miss_count'] += 1
+        ada['total_attempts'] += 1
+        self.evaluate_ada_difficulty()
+    
+    def apply_ada_ball_physics(self, ball):
+        """ADAシステムによるボール物理の調整"""
+        ada = self.ada_system
+        
+        # 速度調整
+        speed_factor = ada['current_speed_multiplier']
+        original_speed = (ball.dx ** 2 + ball.dy ** 2) ** 0.5
+        if original_speed > 0:
+            ball.dx = (ball.dx / original_speed) * ada['base_ball_speed'] * speed_factor
+            ball.dy = (ball.dy / original_speed) * ada['base_ball_speed'] * speed_factor
+        
+        # 角度にランダム性を追加
+        import random
+        if ada['angle_randomness'] > 0:
+            angle_offset = random.uniform(-ada['angle_randomness'], ada['angle_randomness'])
+            import math
+            current_angle = math.atan2(ball.dy, ball.dx)
+            new_angle = current_angle + angle_offset
+            
+            # 新しい角度で速度を再計算
+            speed = (ball.dx ** 2 + ball.dy ** 2) ** 0.5
+            ball.dx = math.cos(new_angle) * speed
+            ball.dy = math.sin(new_angle) * speed
     
     def activate_multi_ball(self):
         """マルチボールモードを発動"""
@@ -980,6 +1072,9 @@ class PygameGameState:
                         powerup['active'] = False
 
     def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
+        # ADAシステムによる物理調整を適用
+        self.apply_ada_ball_physics(ball)
+        
         ball.x += ball.dx * dt
         ball.y += ball.dy * dt
         
@@ -992,7 +1087,11 @@ class PygameGameState:
             if self.active_powerups.get('shield', {}).get('active', False):
                 ball.dy = -abs(ball.dy)  # 跳ね返す
                 self.active_powerups['shield']['active'] = False  # シールド消費
+                # ADAシステム: シールドでの救済もヒットとして記録
+                self.record_ada_hit()
             else:
+                # ADAシステム: ミスを記録
+                self.record_ada_miss()
                 self.is_gameover = True
         
         if (ball.y + ball.radius >= self.racket.y and 
@@ -1000,6 +1099,9 @@ class PygameGameState:
             ball.dy = -abs(ball.dy)
             self.score.hits += 1
             self.consecutive_hits += 1
+            
+            # ADAシステム: ヒットを記録
+            self.record_ada_hit()
             
             # エクストラポイント効果
             points = 10
@@ -1141,6 +1243,40 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
             'font': '20px Arial'
         })
         
+        # ADAシステム情報表示
+        ada = game_state.ada_system
+        if ada['total_attempts'] > 0:
+            current_miss_ratio = ada['miss_count'] / ada['total_attempts'] if ada['total_attempts'] > 0 else 0
+            ada_text = f'ADA: Miss {current_miss_ratio:.1%} | Speed x{ada["current_speed_multiplier"]:.2f}'
+            if ada['angle_randomness'] > 0:
+                ada_text += f' | Angle ±{ada["angle_randomness"]:.2f}'
+            
+            draw_commands.append({
+                'type': 'fillText',
+                'text': ada_text,
+                'x': 10, 'y': 55,
+                'color': '#ffff00',
+                'font': '14px Arial'
+            })
+        
+        # ADA調整履歴の表示（直近の調整のみ）
+        if ada['adjustment_history']:
+            last_adjustment = ada['adjustment_history'][-1]
+            if abs(last_adjustment['speed_change']) > 0.01:
+                adjustment_text = f'ADA調整: ミス率{last_adjustment["miss_ratio"]:.1%} → '
+                if last_adjustment['speed_change'] > 0:
+                    adjustment_text += f'難易度UP (Speed +{last_adjustment["speed_change"]:.2f})'
+                else:
+                    adjustment_text += f'難易度DOWN (Speed {last_adjustment["speed_change"]:.2f})'
+                
+                draw_commands.append({
+                    'type': 'fillText',
+                    'text': adjustment_text,
+                    'x': 10, 'y': 75,
+                    'color': '#ff8800',
+                    'font': '12px Arial'
+                })
+        
         return {
             'canvas_id': self.canvas_id,
             'draw_commands': draw_commands,
@@ -1204,6 +1340,18 @@ def get_pending_high_score():
     global pending_high_score_check
     return pending_high_score_check
 
+def get_ada_system_status():
+    """ADAシステムの現在の状態を取得"""
+    import json
+    ada = game_state.ada_system
+    return json.dumps({
+        'miss_ratio': ada['miss_count'] / ada['total_attempts'] if ada['total_attempts'] > 0 else 0,
+        'speed_multiplier': ada['current_speed_multiplier'],
+        'angle_randomness': ada['angle_randomness'],
+        'total_attempts': ada['total_attempts'],
+        'last_adjustments': ada['adjustment_history'][-5:] if ada['adjustment_history'] else []
+    })
+
 pending_high_score_check = None
 
 def handle_key_input(key):
@@ -1228,6 +1376,7 @@ def restart_game():
     pending_high_score_check = None  # リスタート時にハイスコアチェックをクリア
     game_state = PygameGameState()
     game_state.add_observer(game_view)
+    # ADAシステムも新しいゲーム状態で初期化される
             `);
         }
         
@@ -1277,6 +1426,11 @@ def restart_game():
                 
                 // ハイスコアチェック
                 checkPendingHighScore();
+                
+                // ADAシステムデバッグ情報の更新（開発者モード）
+                if (window.location.hash === '#debug') {
+                    updateADADebugInfo();
+                }
             } catch (error) {
                 console.error('Game loop error:', error);
             }
@@ -1308,6 +1462,51 @@ def restart_game():
                 cancelAnimationFrame(gameLoopId);
             }
             gameLoopId = requestAnimationFrame(gameLoop);
+        }
+        
+        // ADAシステムデバッグ情報の更新
+        function updateADADebugInfo() {
+            try {
+                const adaStatus = JSON.parse(pyodide.runPython('get_ada_system_status()'));
+                
+                // デバッグ情報の表示エリアを作成または更新
+                let debugPanel = document.getElementById('ada-debug-panel');
+                if (!debugPanel) {
+                    debugPanel = document.createElement('div');
+                    debugPanel.id = 'ada-debug-panel';
+                    debugPanel.style.cssText = `
+                        position: fixed;
+                        top: 100px;
+                        right: 20px;
+                        background: rgba(0, 0, 0, 0.8);
+                        color: white;
+                        padding: 10px;
+                        border-radius: 5px;
+                        font-family: monospace;
+                        font-size: 12px;
+                        z-index: 1000;
+                        max-width: 300px;
+                    `;
+                    document.body.appendChild(debugPanel);
+                }
+                
+                // ADAシステムの状態情報を表示
+                debugPanel.innerHTML = `
+                    <h4>ADA Debug Info</h4>
+                    <p>Miss Ratio: ${(adaStatus.miss_ratio * 100).toFixed(1)}%</p>
+                    <p>Speed Multiplier: ${adaStatus.speed_multiplier.toFixed(2)}</p>
+                    <p>Angle Randomness: ${adaStatus.angle_randomness.toFixed(2)}</p>
+                    <p>Total Attempts: ${adaStatus.total_attempts}</p>
+                    <h5>Recent Adjustments:</h5>
+                    <ul>
+                        ${adaStatus.last_adjustments.map(adj => 
+                            `<li>Miss: ${(adj.miss_ratio * 100).toFixed(1)}% → Speed: ${adj.new_speed_multiplier.toFixed(2)}</li>`
+                        ).join('')}
+                    </ul>
+                `;
+            } catch (error) {
+                console.debug('ADA debug info update error:', error);
+            }
         }
         
         // キーボードイベント
