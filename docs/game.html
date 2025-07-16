@@ -955,7 +955,7 @@ class PygameGameState:
             ada['miss_count'] = 0
             ada['hit_count'] = 0
             ada['total_attempts'] = 0
-            ada['last_evaluation'] = ada['total_attempts']
+            ada['last_evaluation_time'] = time.time()
     
     def record_ada_hit(self):
         """ADAシステムにヒットを記録"""
