@@ -268,7 +268,46 @@ Memory: <span id="memoryUsage">1.2MB</span>
 <span class="key">R</span>
 <span>リスタート</span>
 </div>
+<div class="control-item">
+<span class="key">H</span>
+<span>ランキング</span>
 </div>
+</div>
+</div>
+</div>
+<!-- ランキングモーダル -->
+<div class="error-modal" id="rankingModal" style="display: none;">
+<div class="error-content" style="max-width: 600px;">
+<h2 class="error-title" style="color: #4ecdc4;">🏆 ハイスコアランキング</h2>
+<div id="rankingList" style="color: #ccc; text-align: left; padding: 20px;">
+<!-- ランキングがここに表示される -->
+</div>
+<button class="error-button" style="background: #4ecdc4;" onclick="closeRankingModal()">閉じる</button>
+</div>
+</div>
+
+<!-- ハイスコア名前入力モーダル -->
+<div class="error-modal" id="nameInputModal" style="display: none;">
+<div class="error-content" style="max-width: 400px;">
+<h2 class="error-title" style="color: #ff6b6b;">🎉 ハイスコア達成！</h2>
+<p style="color: #ccc; margin-bottom: 20px;">名前を入力してください：</p>
+<input type="text" id="playerNameInput" placeholder="Player" maxlength="20" 
+       style="width: 100%; padding: 10px; border: 2px solid #4ecdc4; border-radius: 6px; 
+              background: #1a1a2e; color: white; font-size: 16px; margin-bottom: 20px;"
+       onkeydown="if(event.key==='Enter') submitHighScore()">
+<div style="display: flex; gap: 10px; justify-content: center;">
+<button class="error-button" style="background: #4ecdc4;" onclick="submitHighScore()">登録</button>
+<button class="error-button" style="background: #666;" onclick="cancelHighScore()">キャンセル</button>
+</div>
+</div>
+</div>
+
+<!-- スコア登録完了モーダル -->
+<div class="error-modal" id="scoreSubmittedModal" style="display: none;">
+<div class="error-content" style="max-width: 400px;">
+<h2 class="error-title" style="color: #4ecdc4;">🏆 登録完了！</h2>
+<p id="rankMessage" style="color: #ccc; margin-bottom: 20px; font-size: 18px; font-weight: bold;"></p>
+<button class="error-button" style="background: #4ecdc4;" onclick="closeScoreSubmittedModal()">OK</button>
 </div>
 </div>
 <!-- エラーモーダル -->
@@ -290,6 +329,48 @@ let gameState = null;
 let canvas = null;
 let ctx = null;
 let performanceMonitor = null;
+
+// スコアランキングシステム
+class ScoreRanking {
+    constructor() {
+        this.storageKey = 'ultimateSquashHighScores';
+        this.maxScores = 10;
+    }
+    
+    getHighScores() {
+        const stored = localStorage.getItem(this.storageKey);
+        return stored ? JSON.parse(stored) : [];
+    }
+    
+    addScore(score, playerName = 'Player') {
+        const scores = this.getHighScores();
+        const newScore = {
+            score: score,
+            name: playerName,
+            date: new Date().toISOString(),
+            combo: 0,  // 最大コンボ数（後で追加）
+            powerUps: 0  // 取得したパワーアップ数（後で追加）
+        };
+        
+        scores.push(newScore);
+        scores.sort((a, b) => b.score - a.score);
+        scores.splice(this.maxScores); // 上位10件のみ保持
+        
+        localStorage.setItem(this.storageKey, JSON.stringify(scores));
+        return scores.findIndex(s => s === newScore) + 1; // 順位を返す
+    }
+    
+    isHighScore(score) {
+        const scores = this.getHighScores();
+        return scores.length < this.maxScores || score > scores[scores.length - 1]?.score || 0;
+    }
+    
+    clearScores() {
+        localStorage.removeItem(this.storageKey);
+    }
+}
+
+const scoreRanking = new ScoreRanking();
 class PerformanceMonitor {
 constructor() {
 this.frameCount = 0;
@@ -361,6 +442,100 @@ document.getElementById('errorModal').style.display = 'flex';
 function closeErrorModal() {
 document.getElementById('errorModal').style.display = 'none';
 initializeGame();
+}
+
+function showRankingModal() {
+    const modal = document.getElementById('rankingModal');
+    const list = document.getElementById('rankingList');
+    const scores = scoreRanking.getHighScores();
+    
+    if (scores.length === 0) {
+        list.innerHTML = '<p style="text-align: center; color: #999;">まだスコアが記録されていません</p>';
+    } else {
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="border-bottom: 2px solid #4ecdc4;">';
+        html += '<th style="padding: 10px; text-align: left;">順位</th>';
+        html += '<th style="padding: 10px; text-align: left;">名前</th>';
+        html += '<th style="padding: 10px; text-align: right;">スコア</th>';
+        html += '<th style="padding: 10px; text-align: center;">コンボ</th>';
+        html += '<th style="padding: 10px; text-align: center;">パワー</th>';
+        html += '<th style="padding: 10px; text-align: left;">日付</th>';
+        html += '</tr></thead><tbody>';
+        
+        scores.forEach((score, index) => {
+            const date = new Date(score.date);
+            const dateStr = `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+            
+            html += `<tr style="border-bottom: 1px solid #333;">`;
+            html += `<td style="padding: 8px;">${medal} ${index + 1}</td>`;
+            html += `<td style="padding: 8px;">${score.name}</td>`;
+            html += `<td style="padding: 8px; text-align: right; font-weight: bold;">${score.score.toLocaleString()}</td>`;
+            html += `<td style="padding: 8px; text-align: center; color: #ff6b6b;">${score.combo || 0}</td>`;
+            html += `<td style="padding: 8px; text-align: center; color: #4ecdc4;">${score.powerUps || 0}</td>`;
+            html += `<td style="padding: 8px; color: #999;">${dateStr}</td>`;
+            html += '</tr>';
+        });
+        
+        html += '</tbody></table>';
+        list.innerHTML = html;
+    }
+    
+    modal.style.display = 'flex';
+}
+
+function closeRankingModal() {
+    document.getElementById('rankingModal').style.display = 'none';
+}
+
+// ハイスコア登録用のグローバル変数
+let pendingScoreData = null;
+
+function showNameInputModal(scoreData) {
+    pendingScoreData = scoreData;
+    document.getElementById('playerNameInput').value = 'Player';
+    document.getElementById('nameInputModal').style.display = 'flex';
+    // 入力フィールドにフォーカス
+    setTimeout(() => {
+        document.getElementById('playerNameInput').focus();
+        document.getElementById('playerNameInput').select();
+    }, 100);
+}
+
+function submitHighScore() {
+    const playerName = document.getElementById('playerNameInput').value.trim() || 'Player';
+    const rank = scoreRanking.addScore(pendingScoreData.finalScore, playerName);
+    
+    // スコアに追加情報を保存
+    const scores = scoreRanking.getHighScores();
+    const newScore = scores.find(s => s.score === pendingScoreData.finalScore && s.name === playerName);
+    if (newScore) {
+        newScore.combo = pendingScoreData.maxCombo;
+        newScore.powerUps = pendingScoreData.powerUps;
+        localStorage.setItem(scoreRanking.storageKey, JSON.stringify(scores));
+    }
+    
+    // 名前入力モーダルを閉じる
+    document.getElementById('nameInputModal').style.display = 'none';
+    
+    // 登録完了メッセージを表示
+    document.getElementById('rankMessage').textContent = `${rank}位にランクイン！`;
+    document.getElementById('scoreSubmittedModal').style.display = 'flex';
+    
+    // スコア記録済みフラグを設定
+    pyodide.runPython('game_state.score_recorded = True');
+    pendingScoreData = null;
+}
+
+function cancelHighScore() {
+    document.getElementById('nameInputModal').style.display = 'none';
+    // スコア記録済みフラグを設定
+    pyodide.runPython('game_state.score_recorded = True');
+    pendingScoreData = null;
+}
+
+function closeScoreSubmittedModal() {
+    document.getElementById('scoreSubmittedModal').style.display = 'none';
 }
 function updateLoadingProgress(text) {
 document.getElementById('loadingProgress').textContent = text;
@@ -464,6 +639,17 @@ class PygameScore:
         self.misses = 0
         self.start_time = time.time()
 
+class PowerUp:
+    def __init__(self, x: float, y: float, type: str, color: tuple):
+        self.x = x
+        self.y = y
+        self.type = type
+        self.color = color
+        self.radius = 15
+        self.dy = 100  # 落下速度
+        self.active = True
+        self.duration = 10000  # 効果時間（ミリ秒）
+
 class PygameGameStateObserver:
     def on_game_state_changed(self, game_state: 'PygameGameState'):
         pass
@@ -478,6 +664,17 @@ class PygameGameState:
         self.observers = []
         self.canvas_width = 640
         self.canvas_height = 480
+        self.multi_ball_active = False
+        self.multi_ball_threshold = 5  # 5連続ヒットでマルチボール発動
+        self.consecutive_hits = 0
+        self.max_balls = 3
+        self.power_ups = []
+        self.active_power_ups = {}  # type -> end_time のマップ
+        self.power_up_spawn_chance = 0.15  # 15%の確率でパワーアップ出現
+        self.last_power_up_time = time.time()
+        self.max_consecutive_hits = 0  # 最大コンボ記録
+        self.power_ups_collected = 0  # 取得したパワーアップ数
+        self.score_recorded = False  # スコア記録済みフラグ
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -495,18 +692,146 @@ class PygameGameState:
         if ball.y <= ball.radius:
             ball.dy = -ball.dy
         if ball.y >= self.canvas_height - ball.radius:
-            self.is_gameover = True
+            # シールド効果チェック
+            if 'shield' in self.active_power_ups:
+                ball.dy = -abs(ball.dy)  # ボールを跳ね返す
+                del self.active_power_ups['shield']  # シールドを消費
+                return
+            
+            # ボールを削除（マルチボールモード時）
+            if ball in self.balls:
+                self.balls.remove(ball)
+                self.score.misses += 1
+                self.consecutive_hits = 0  # 連続ヒットをリセット
+                if len(self.balls) == 0:
+                    self.is_gameover = True
+            return
         
         if (ball.y + ball.radius >= self.racket.y and 
             ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
             ball.dy = -abs(ball.dy)
             self.score.hits += 1
+            # ポイント2倍効果チェック
+            points = 20 if 'extra_points' in self.active_power_ups else 10
+            self.score.player_score += points
+            self.consecutive_hits += 1
+            # 最大コンボを更新
+            if self.consecutive_hits > self.max_consecutive_hits:
+                self.max_consecutive_hits = self.consecutive_hits
+            
+            # マルチボール発動チェック
+            if (not self.multi_ball_active and 
+                self.consecutive_hits >= self.multi_ball_threshold and 
+                len(self.balls) < self.max_balls):
+                self.activate_multi_ball()
+            
+            # パワーアップ出現チェック
+            import random
+            current_time = time.time()
+            if (current_time - self.last_power_up_time > 5 and  # 5秒に1回まで
+                random.random() < self.power_up_spawn_chance and
+                len(self.power_ups) < 2):  # 最大2個まで
+                self.spawn_power_up()
+                self.last_power_up_time = current_time
         
         self.notify_observers()
     
+    def activate_multi_ball(self):
+        """マルチボールモードを発動"""
+        self.multi_ball_active = True
+        # 新しいボールを2つ追加
+        for i in range(min(2, self.max_balls - len(self.balls))):
+            new_ball = PygameBall(
+                x=320 + (i - 0.5) * 100,  # 左右に配置
+                y=240,
+                dx=150 * (1 if i == 0 else -1),  # 異なる方向
+                dy=250,
+                color=(255, 200, 0) if i == 0 else (0, 200, 255)  # 異なる色
+            )
+            self.balls.append(new_ball)
+    
     def update_racket_position(self, x: float):
         self.racket.x = max(0, min(x, self.canvas_width - self.racket.size))
-        self.notify_observers()`,
+        self.notify_observers()
+    
+    def spawn_power_up(self):
+        """ランダムなパワーアップを生成"""
+        import random
+        
+        # パワーアップの種類を定義
+        power_up_types = [
+            ('wide_racket', (100, 255, 100)),     # 緑：ラケット拡大
+            ('slow_ball', (100, 100, 255)),       # 青：ボール減速
+            ('extra_points', (255, 255, 100)),    # 黄：ポイント2倍
+            ('shield', (255, 100, 255))           # 紫：シールド（1回ミスを防ぐ）
+        ]
+        
+        # ランダムな位置とタイプを選択
+        x = random.randint(50, self.canvas_width - 50)
+        power_type, color = random.choice(power_up_types)
+        
+        power_up = PowerUp(x, 50, power_type, color)
+        self.power_ups.append(power_up)
+    
+    def update_power_ups(self, dt: float = 0.016):
+        """パワーアップの位置を更新"""
+        current_time = time.time() * 1000  # ミリ秒
+        
+        # 期限切れのパワーアップ効果を削除
+        expired_effects = []
+        for power_type, end_time in self.active_power_ups.items():
+            if current_time > end_time:
+                expired_effects.append(power_type)
+                self.deactivate_power_up(power_type)
+        
+        for power_type in expired_effects:
+            del self.active_power_ups[power_type]
+        
+        # パワーアップの位置更新
+        for power_up in list(self.power_ups):
+            power_up.y += power_up.dy * dt
+            
+            # 画面外に出たら削除
+            if power_up.y > self.canvas_height:
+                self.power_ups.remove(power_up)
+                continue
+            
+            # ラケットとの衝突判定
+            if (power_up.y + power_up.radius >= self.racket.y and
+                power_up.x >= self.racket.x and 
+                power_up.x <= self.racket.x + self.racket.size):
+                self.activate_power_up(power_up)
+                self.power_ups.remove(power_up)
+    
+    def activate_power_up(self, power_up: PowerUp):
+        """パワーアップを発動"""
+        current_time = time.time() * 1000
+        self.active_power_ups[power_up.type] = current_time + power_up.duration
+        
+        if power_up.type == 'wide_racket':
+            self.racket.size = 100  # 通常の2倍
+        elif power_up.type == 'slow_ball':
+            for ball in self.balls:
+                ball.dx *= 0.7
+                ball.dy *= 0.7
+        elif power_up.type == 'extra_points':
+            # ポイント2倍フラグ（update_ball_positionで処理）
+            pass
+        elif power_up.type == 'shield':
+            # シールドフラグ（ミス時に処理）
+            pass
+        
+        self.score.player_score += 50  # パワーアップ取得ボーナス
+        self.power_ups_collected += 1  # パワーアップ取得数をカウント
+    
+    def deactivate_power_up(self, power_type: str):
+        """パワーアップ効果を解除"""
+        if power_type == 'wide_racket':
+            self.racket.size = 50  # 通常サイズに戻す
+        elif power_type == 'slow_ball':
+            for ball in self.balls:
+                ball.dx /= 0.7
+                ball.dy /= 0.7`,
 'view.optimized_web_game_view': `import json
 from typing import Dict, List
 from model.pygame_game_state import PygameGameState, PygameGameStateObserver
@@ -524,13 +849,23 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
     def _convert_to_canvas_data(self, game_state: PygameGameState) -> Dict:
         draw_commands = []
         
+        # 背景（マルチボール時は特別な色）
+        bg_color = '#000000' if not game_state.multi_ball_active else '#0a0a1a'
         draw_commands.append({
             'type': 'fillRect',
             'x': 0, 'y': 0,
             'width': self.canvas_width,
             'height': self.canvas_height,
-            'color': '#000000'
+            'color': bg_color
         })
+        
+        # マルチボール時の背景エフェクト
+        if game_state.multi_ball_active:
+            draw_commands.append({
+                'type': 'draw_grid',
+                'spacing': 40,
+                'color': 'rgba(78, 205, 196, 0.1)'
+            })
         
         for ball in game_state.balls:
             draw_commands.append({
@@ -558,12 +893,81 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
             'font': '20px Arial'
         })
         
+        # 連続ヒット数とマルチボール状態の表示
+        combo_text = f'Combo: {game_state.consecutive_hits}'
+        if game_state.multi_ball_active:
+            combo_text += ' | MULTI-BALL ACTIVE!'
+        
+        draw_commands.append({
+            'type': 'fillText',
+            'text': combo_text,
+            'x': 10, 'y': 55,
+            'color': '#ffcc00' if game_state.multi_ball_active else '#cccccc',
+            'font': '16px Arial'
+        })
+        
+        # アクティブボール数の表示
+        draw_commands.append({
+            'type': 'fillText',
+            'text': f'Balls: {len(game_state.balls)}',
+            'x': self.canvas_width - 80, 'y': 30,
+            'color': '#00ffcc',
+            'font': '16px Arial'
+        })
+        
+        # パワーアップの描画
+        for power_up in game_state.power_ups:
+            draw_commands.append({
+                'type': 'fillCircle',
+                'x': power_up.x, 'y': power_up.y,
+                'radius': power_up.radius,
+                'color': f'rgb{power_up.color}'
+            })
+            # パワーアップタイプのアイコン（文字）
+            icon_map = {
+                'wide_racket': 'W',
+                'slow_ball': 'S',
+                'extra_points': '2X',
+                'shield': 'D'
+            }
+            draw_commands.append({
+                'type': 'fillText',
+                'text': icon_map.get(power_up.type, '?'),
+                'x': power_up.x - 8, 'y': power_up.y + 5,
+                'color': 'black',
+                'font': 'bold 14px Arial'
+            })
+        
+        # アクティブなパワーアップ効果の表示
+        if game_state.active_power_ups:
+            effect_text = 'Active: '
+            effect_names = {
+                'wide_racket': 'Wide',
+                'slow_ball': 'Slow',
+                'extra_points': '2X',
+                'shield': 'Shield'
+            }
+            active_effects = [effect_names.get(k, k) for k in game_state.active_power_ups.keys()]
+            effect_text += ', '.join(active_effects)
+            
+            draw_commands.append({
+                'type': 'fillText',
+                'text': effect_text,
+                'x': 10, 'y': 80,
+                'color': '#ff00ff',
+                'font': '14px Arial'
+            })
+        
         return {
             'canvas_id': self.canvas_id,
             'draw_commands': draw_commands,
             'game_state': {
                 'paused': game_state.is_paused,
-                'gameover': game_state.is_gameover
+                'gameover': game_state.is_gameover,
+                'score_recorded': game_state.score_recorded,
+                'final_score': game_state.score.player_score,
+                'max_combo': game_state.max_consecutive_hits,
+                'power_ups_collected': game_state.power_ups_collected
             }
         }
     
@@ -585,8 +989,11 @@ game_state.add_observer(game_view)
 
 def update_game(dt=0.016):
     if not game_state.is_paused and not game_state.is_gameover:
-        for ball in game_state.balls:
+        # すべてのボールを更新（リストのコピーを使用して安全に削除）
+        for ball in list(game_state.balls):
             game_state.update_ball_position(ball, dt)
+        # パワーアップの更新
+        game_state.update_power_ups(dt)
     return game_view.get_javascript_interface_data()
 
 def handle_key_input(key):
@@ -598,11 +1005,18 @@ def handle_key_input(key):
         game_state.is_paused = not game_state.is_paused
     elif key == 'r' or key == 'R':
         restart_game()
+    elif key == 'h' or key == 'H':
+        # ランキング表示（JavaScript側で処理）
+        pass
 
 def restart_game():
     global game_state
     game_state = PygameGameState()
     game_state.add_observer(game_view)
+    game_state.score_recorded = False
+    # マルチボール関連の状態もリセット
+    game_state.multi_ball_active = False
+    game_state.consecutive_hits = 0
 `);
 }
 // Optimized drawing function that handles differential rendering
@@ -718,6 +1132,10 @@ function drawFrame(frameData) {
                     ctx.font = cmd.font;
                     ctx.fillText(cmd.text, cmd.x, cmd.y);
                     break;
+                    
+                case 'draw_grid':
+                    drawGrid(cmd.spacing, cmd.color);
+                    break;
             }
         }
         
@@ -812,6 +1230,31 @@ function gameLoop(currentTime) {
         // Only draw if we have valid frame data
         if (frameData && !drawState.skipFrame) {
             drawFrame(frameData);
+            
+            // ゲームオーバー時のスコア記録
+            const parsedData = JSON.parse(frameData);
+            if (parsedData.game_state && parsedData.game_state.gameover && !parsedData.game_state.score_recorded) {
+                // スコアを記録
+                const finalScore = parsedData.game_state.final_score || 0;
+                const maxCombo = parsedData.game_state.max_combo || 0;
+                const powerUps = parsedData.game_state.power_ups_collected || 0;
+                
+                // ハイスコアかチェック
+                if (scoreRanking.isHighScore(finalScore)) {
+                    // 非同期モーダルで名前入力
+                    setTimeout(() => {
+                        showNameInputModal({
+                            finalScore: finalScore,
+                            maxCombo: maxCombo,
+                            powerUps: powerUps
+                        });
+                    }, 100);
+                } else {
+                    // スコア記録済みフラグを設定
+                    pyodide.runPython('game_state.score_recorded = True');
+                }
+            }
+        }
         }
         
         // Update performance monitoring less frequently
@@ -833,6 +1276,12 @@ cancelAnimationFrame(gameLoopId);
 gameLoopId = requestAnimationFrame(gameLoop);
 }
 document.addEventListener('keydown', function(event) {
+// ランキング表示の処理
+if (event.key.toLowerCase() === 'h') {
+showRankingModal();
+return;
+}
+
 if (pyodide) {
 try {
 pyodide.runPython(`handle_key_input('${event.key}')`);
