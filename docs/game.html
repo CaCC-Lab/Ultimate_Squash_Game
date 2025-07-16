@@ -943,7 +943,7 @@ class PygameGameState:
                 'speed_change': ada['current_speed_multiplier'] - old_multiplier,
                 'new_speed_multiplier': ada['current_speed_multiplier'],
                 'angle_randomness': ada['angle_randomness'],
-                'timestamp': ada['total_attempts']
+                'timestamp': time.time()
             }
             ada['adjustment_history'].append(adjustment)
             
@@ -1245,8 +1245,7 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
         # ADAシステム情報表示
         ada = game_state.ada_system
         if ada['total_attempts'] > 0:
-            current_miss_ratio = ada['miss_count'] / ada['total_attempts'] if ada['total_attempts'] > 0 else 0
-            ada_text = f'ADA: Miss {current_miss_ratio:.1%} | Speed x{ada["current_speed_multiplier"]:.2f}'
+            ada_text = f'ADA: Miss {ada["miss_ratio"]:.1%} | Speed x{ada["current_speed_multiplier"]:.2f}'
             if ada['angle_randomness'] > 0:
                 ada_text += f' | Angle ±{ada["angle_randomness"]:.2f}'
             
