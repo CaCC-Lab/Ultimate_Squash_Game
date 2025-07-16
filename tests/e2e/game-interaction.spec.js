@@ -58,26 +58,13 @@ test.describe('Game Interaction Tests', () => {
       
       // ヘルパー関数を使用してランキングモーダルの表示を確認
       await toggleRankingModal(page);
-        await expect(rankingModal).toBeHidden();
-      } else {
-        // Pyodideがロードされていない場合はスキップ
-        console.log('Ranking modal test skipped - Pyodide not fully loaded');
-      }
     });
   });
 
   test.describe('Sound Controls', () => {
     test('should handle sound-related operations', async ({ page }) => {
       // ローディングが完了するまで待機
-      await page.waitForTimeout(3000);
-      
-      // コンソールエラーの監視を開始
-      const consoleErrors = [];
-      page.on('console', msg => {
-        if (msg.type() === 'error' && !msg.text().includes('AudioContext')) {
-          consoleErrors.push(msg.text());
-        }
-      });
+      await page.waitForTimeout(TIMEOUTS.long);
       
       // タッチコントロールエリアにサウンドボタンがあるか確認
       const touchControls = page.locator('.touch-controls');
@@ -90,41 +77,32 @@ test.describe('Game Interaction Tests', () => {
         
         if (buttonCount > 0) {
           await soundButton.first().click();
-          await page.waitForTimeout(100);
+          await page.waitForTimeout(TIMEOUTS.short);
         }
       }
       
-      // エラーが発生しないことを確認
-      expect(consoleErrors.length).toBe(0);
+      // エラーチェックはafterEachフックで実行される
     });
   });
 
   test.describe('Game Canvas Interaction', () => {
     test('should handle mouse movement on canvas', async ({ page }) => {
-      const canvas = page.locator('canvas#gameCanvas');
+      const canvas = page.locator(SELECTORS.canvas);
       const box = await canvas.boundingBox();
       
       // キャンバス上でマウスを移動
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-      await page.waitForTimeout(100);
+      await page.waitForTimeout(TIMEOUTS.short);
       
       await page.mouse.move(box.x + 100, box.y + 100);
-      await page.waitForTimeout(100);
+      await page.waitForTimeout(TIMEOUTS.short);
       
-      // エラーが発生しないことを確認
-      const consoleErrors = [];
-      page.on('console', msg => {
-        if (msg.type() === 'error') {
-          consoleErrors.push(msg.text());
-        }
-      });
-      
-      expect(consoleErrors.length).toBe(0);
+      // エラーチェックはafterEachフックで実行される
     });
 
     test('should maintain aspect ratio on resize', async ({ page }) => {
       // 初期のキャンバスサイズを取得
-      const canvas = page.locator('canvas#gameCanvas');
+      const canvas = page.locator(SELECTORS.canvas);
       const initialBox = await canvas.boundingBox();
       const initialAspectRatio = initialBox.width / initialBox.height;
       
@@ -146,17 +124,11 @@ test.describe('Game Interaction Tests', () => {
       // 一定時間ゲームを実行
       await page.waitForTimeout(CONSTANTS.PERFORMANCE_TEST_DURATION);
       
-      // JavaScriptエラーがないことを確認
-      const jsErrors = [];
-      page.on('pageerror', error => {
-        jsErrors.push(error.message);
-      });
-      
-      expect(jsErrors.length).toBe(0);
-      
       // ページがクラッシュしていないことを確認
-      const canvas = page.locator('canvas#gameCanvas');
+      const canvas = page.locator(SELECTORS.canvas);
       await expect(canvas).toBeVisible();
+      
+      // エラーチェックはafterEachフックで実行される
     });
 
     test('should handle rapid key presses', async ({ page }) => {
@@ -169,15 +141,7 @@ test.describe('Game Interaction Tests', () => {
         await page.waitForTimeout(RAPID_KEY_PRESS_DELAY);
       }
       
-      // エラーが発生しないことを確認
-      const consoleErrors = [];
-      page.on('console', msg => {
-        if (msg.type() === 'error') {
-          consoleErrors.push(msg.text());
-        }
-      });
-      
-      expect(consoleErrors.length).toBe(0);
+      // エラーチェックはafterEachフックで実行される
     });
   });
 });
