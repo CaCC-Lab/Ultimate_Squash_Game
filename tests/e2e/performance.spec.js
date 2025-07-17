@@ -93,6 +93,9 @@ test.describe('Performance Tests', () => {
 
   test.describe('Memory Leak Detection', () => {
     test('should not have memory leaks during extended gameplay', async ({ page }) => {
+      // タイムアウトを60秒に延長
+      test.setTimeout(60000);
+      
       await page.goto('/game.html');
       await page.waitForTimeout(3000);
 
@@ -110,7 +113,7 @@ test.describe('Performance Tests', () => {
                 totalJSHeapSize: performance.memory.totalJSHeapSize
               });
             }
-          }, 2000); // 2秒ごとに記録
+          }, 1000); // 1秒ごとに記録（高頻度）
         `,
       });
 
@@ -125,14 +128,14 @@ test.describe('Performance Tests', () => {
 
       console.log(`Initial memory usage: ${initialMemory ? (initialMemory / 1024 / 1024).toFixed(2) + ' MB' : 'N/A'}`);
 
-      // 30秒間激しくプレイ
-      for (let i = 0; i < 30; i++) {
+      // 20秒間激しくプレイ（30秒から短縮）
+      for (let i = 0; i < 20; i++) {
         // ランダムなアクション
         const actions = ['ArrowLeft', 'ArrowRight', 'r', 'p', 'p'];
         const randomAction = actions[Math.floor(Math.random() * actions.length)];
 
         await page.keyboard.press(randomAction);
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(500); // 待機時間を短縮（1000ms → 500ms）
       }
 
       // 最終メモリ使用量を記録

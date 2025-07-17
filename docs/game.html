@@ -6,6 +6,7 @@
     <meta name="description" content="Ultimate Squash Game - Python/Pyodide WebAssembly版。ブラウザで動作する軽量(25KB)ゲーム">
     <meta name="keywords" content="squash,game,python,pyodide,webassembly,pygame">
     <meta name="author" content="Ultimate Squash Game Team">
+    <meta name="theme-color" content="#004274">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -19,6 +20,15 @@
     <meta name="twitter:description" content="ブラウザで動作する軽量スカッシュゲーム">
     
     <title>Ultimate Squash Game - WebAssembly版</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- PWA iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ultimate Squash">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiByeD0iMjQiIGZpbGw9IiMwMDQyNzQiLz4KPGNpcmNsZSBjeD0iOTAiIGN5PSI5MCIgcj0iMjQiIGZpbGw9IiNmZmZmZmYiLz4KPHJlY3QgeD0iNzgiIHk9IjEzOCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjM2IiByeD0iNCIgZmlsbD0iIzAwZmYwMCIvPgo8L3N2Zz4K">
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMDA0Mjc0Ii8+CjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjQiIGZpbGw9IiNmZmZmZmYiLz4KPHJlY3QgeD0iMTQiIHk9IjI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI2IiBmaWxsPSIjMDBmZjAwIi8+Cjwvc3ZnPgo=">
@@ -219,6 +229,149 @@
             background: #ff5252;
         }
         
+        /* アクセシビリティパネル */
+        .accessibility-panel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+            min-width: 250px;
+            display: none;
+        }
+        
+        .accessibility-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .accessibility-option label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .accessibility-option select,
+        .accessibility-option input[type="range"] {
+            width: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 4px;
+        }
+        
+        .accessibility-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .accessibility-toggle {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .accessibility-toggle:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        .install-button {
+            position: absolute;
+            bottom: 10px;
+            right: 180px;
+            background: #ff9800;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .install-button:hover {
+            background: #f57c00;
+        }
+        
+        /* 色覚モード用のフィルター */
+        .colorblind-protanopia {
+            filter: url(#protanopia-filter);
+        }
+        
+        .colorblind-deuteranopia {
+            filter: url(#deuteranopia-filter);
+        }
+        
+        .colorblind-tritanopia {
+            filter: url(#tritanopia-filter);
+        }
+        
+        .colorblind-achromatopsia {
+            filter: grayscale(100%);
+        }
+        
+        /* 高コントラストモード */
+        body.high-contrast {
+            background: #000000 !important;
+        }
+        
+        body.high-contrast .title {
+            background: none !important;
+            color: #FFFF00 !important;
+            -webkit-text-fill-color: #FFFF00 !important;
+        }
+        
+        body.high-contrast .subtitle {
+            color: #FFFFFF !important;
+        }
+        
+        body.high-contrast #gameCanvas {
+            border-color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .key {
+            background: #FFFFFF !important;
+            color: #000000 !important;
+            border-color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .control-item {
+            color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .modal-content {
+            background: #000000 !important;
+            border-color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .modal-title {
+            color: #FFFF00 !important;
+        }
+        
+        body.high-contrast .modal-button {
+            background: #FFFFFF !important;
+            color: #000000 !important;
+        }
+        
+        body.high-contrast .modal-button:hover {
+            background: #FFFF00 !important;
+        }
+        
         /* モーダルスタイル */
         .modal {
             position: fixed;
@@ -410,12 +563,16 @@
             }
         }
     </style>
+    
+    <!-- ランキングシステムのスクリプト -->
+    <script type="module" src="js/ranking.js"></script>
 </head>
 <body>
     <div class="game-container">
         <header class="header">
             <h1 class="title">Ultimate Squash Game</h1>
             <p class="subtitle">Python/Pyodide WebAssembly版 - 軽量25KB</p>
+            <button class="control-button" style="position: absolute; right: 20px; top: 20px;" onclick="window.rankingController.showRanking()">🌐 オンラインランキング</button>
         </header>
         
         <div class="canvas-wrapper">
@@ -457,7 +614,56 @@
                     <span class="key">P</span>
                     <span>パワーアップ表示</span>
                 </div>
+                <div class="control-item">
+                    <span class="key">A</span>
+                    <span>アクセシビリティ</span>
+                </div>
             </div>
+        </div>
+        
+        <!-- アクセシビリティパネル -->
+        <div class="accessibility-panel" id="accessibilityPanel">
+            <h4>アクセシビリティ設定</h4>
+            <div class="accessibility-option">
+                <label for="colorblindMode">色覚モード</label>
+                <select id="colorblindMode" onchange="applyColorblindMode(this.value)">
+                    <option value="none">標準</option>
+                    <option value="protanopia">P型（赤緑色覚）</option>
+                    <option value="deuteranopia">D型（赤緑色覚）</option>
+                    <option value="tritanopia">T型（青黄色覚）</option>
+                    <option value="achromatopsia">全色覚</option>
+                </select>
+            </div>
+            <div class="accessibility-option">
+                <label>
+                    <input type="checkbox" id="highContrastMode" onchange="toggleHighContrast()">
+                    高コントラストモード
+                </label>
+            </div>
+            <div class="accessibility-option">
+                <label for="gammaControl">明るさ調整: <span id="gammaValue">1.0</span></label>
+                <input type="range" id="gammaControl" min="0.5" max="2" step="0.1" value="1" onchange="applyGamma(this.value)">
+            </div>
+            <div class="accessibility-option">
+                <label>
+                    <input type="checkbox" id="reduceMotion" onchange="toggleReduceMotion()">
+                    モーション軽減
+                </label>
+            </div>
+            <div class="accessibility-option">
+                <label for="soundVolume">効果音の音量</label>
+                <input type="range" id="soundVolume" min="0" max="100" step="10" value="50" onchange="updateSoundVolume(this.value)">
+            </div>
+        </div>
+        
+        <!-- アクセシビリティトグル -->
+        <div class="accessibility-toggle" id="accessibilityToggle" onclick="toggleAccessibilityPanel()">
+            ♿ アクセシビリティ
+        </div>
+        
+        <!-- PWAインストールボタン -->
+        <div class="install-button" id="installButton" style="display: none;" onclick="installPWA()">
+            📥 インストール
         </div>
     </div>
     
@@ -497,6 +703,38 @@
         </div>
     </div>
     
+    <!-- SVGフィルター（色覚モード用） -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <defs>
+            <!-- Protanopia (P型色覚) フィルター -->
+            <filter id="protanopia-filter">
+                <feColorMatrix type="matrix" values="
+                    0.567, 0.433, 0,     0, 0
+                    0.558, 0.442, 0,     0, 0
+                    0,     0.242, 0.758, 0, 0
+                    0,     0,     0,     1, 0" />
+            </filter>
+            
+            <!-- Deuteranopia (D型色覚) フィルター -->
+            <filter id="deuteranopia-filter">
+                <feColorMatrix type="matrix" values="
+                    0.625, 0.375, 0,   0, 0
+                    0.700, 0.300, 0,   0, 0
+                    0,     0.300, 0.700, 0, 0
+                    0,     0,     0,   1, 0" />
+            </filter>
+            
+            <!-- Tritanopia (T型色覚) フィルター -->
+            <filter id="tritanopia-filter">
+                <feColorMatrix type="matrix" values="
+                    0.950, 0.050, 0,     0, 0
+                    0,     0.433, 0.567, 0, 0
+                    0,     0.475, 0.525, 0, 0
+                    0,     0,     0,     1, 0" />
+            </filter>
+        </defs>
+    </svg>
+    
     <!-- Pyodide読み込み -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
     
@@ -512,6 +750,69 @@
         // 新機能用グローバル変数
         let scoreRanking = null;
         let pendingScoreData = null;
+        let gameStartTime = Date.now(); // ゲーム開始時刻を記録
+        
+        // アクセシビリティ設定用グローバル変数
+        let accessibilitySettings = {
+            colorblindMode: 'none',
+            highContrast: false,
+            gamma: 1.0,
+            reduceMotion: false,
+            soundVolume: 0.5,
+            canvasColors: {
+                standard: {
+                    background: '#000000',
+                    ball: 'rgb(255, 255, 255)',
+                    racket: 'rgb(0, 255, 0)',
+                    text: 'white',
+                    ballAlt1: 'rgb(255, 200, 0)',
+                    ballAlt2: 'rgb(0, 200, 255)',
+                    powerupColors: {
+                        wide_racket: '#00ff00',
+                        slow_ball: '#00ffff',
+                        extra_points: '#ffff00',
+                        shield: '#ff00ff'
+                    }
+                },
+                highContrast: {
+                    background: '#000000',
+                    ball: '#FFFFFF',
+                    racket: '#FFFF00',
+                    text: '#FFFFFF',
+                    ballAlt1: '#FFFFFF',
+                    ballAlt2: '#FFFFFF',
+                    powerupColors: {
+                        wide_racket: '#FFFFFF',
+                        slow_ball: '#FFFFFF',
+                        extra_points: '#FFFFFF',
+                        shield: '#FFFFFF'
+                    }
+                }
+            }
+        };
+        
+        // ローカルストレージから設定を読み込み
+        function loadAccessibilitySettings() {
+            try {
+                const saved = localStorage.getItem('ultimateSquashAccessibility');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    Object.assign(accessibilitySettings, settings);
+                    applyAccessibilitySettings();
+                }
+            } catch (error) {
+                console.error('Failed to load accessibility settings:', error);
+            }
+        }
+        
+        // 設定をローカルストレージに保存
+        function saveAccessibilitySettings() {
+            try {
+                localStorage.setItem('ultimateSquashAccessibility', JSON.stringify(accessibilitySettings));
+            } catch (error) {
+                console.error('Failed to save accessibility settings:', error);
+            }
+        }
         
         // スコアランキングシステム
         class ScoreRanking {
@@ -621,62 +922,40 @@
             }, 100);
         }
         
-        function confirmScoreEntry() {
+        async function confirmScoreEntry() {
             const playerName = document.getElementById('playerNameInput').value.trim() || 'Player';
-            if (pendingScoreData && scoreRanking) {
-                scoreRanking.addScore(
-                    pendingScoreData.score,
-                    playerName,
-                    pendingScoreData.combo || 0,
-                    pendingScoreData.powerUps || 0
-                );
+            if (pendingScoreData) {
+                // オンラインランキングに送信
+                try {
+                    const gameMode = 'normal'; // TODO: 実際のゲームモードを取得
+                    const duration = Math.floor((Date.now() - gameStartTime) / 1000); // 秒単位
+                    
+                    await window.rankingController.submitScore(
+                        playerName,
+                        pendingScoreData.score,
+                        gameMode,
+                        duration
+                    );
+                    console.log('スコアをオンラインランキングに送信しました');
+                } catch (error) {
+                    console.error('オンラインランキングへの送信に失敗しました:', error);
+                }
             }
             document.getElementById('nameInputModal').style.display = 'none';
             pendingScoreData = null;
-            showRankingModal();
+            window.rankingController.showRanking(); // 更新されたランキングを表示
         }
         
         function cancelScoreEntry() {
             document.getElementById('nameInputModal').style.display = 'none';
             pendingScoreData = null;
-            // Python側のハイスコアチェックも確実にクリア
             if (pyodide) {
                 pyodide.runPython('pending_high_score_check = None');
             }
         }
         
         function showRankingModal() {
-            if (!scoreRanking) return;
-            
-            const scores = scoreRanking.getHighScores();
-            const rankingList = document.getElementById('rankingList');
-            
-            if (scores.length === 0) {
-                rankingList.innerHTML = '<p style="text-align: center; color: #999;">まだスコアが記録されていません</p>';
-            } else {
-                rankingList.innerHTML = scores.map((score, index) => {
-                    const date = new Date(score.date);
-                    const dateStr = date.toLocaleDateString('ja-JP', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    
-                    return `
-                        <div class="ranking-item">
-                            <div class="ranking-rank">${index + 1}位</div>
-                            <div class="ranking-details">
-                                <div class="ranking-name">${escapeHtml(score.name)}</div>
-                                <div class="ranking-meta">${dateStr} | コンボ:${score.combo || 0} | パワーアップ:${score.powerUps || 0}</div>
-                            </div>
-                            <div class="ranking-score">${score.score.toLocaleString()}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
-            
-            document.getElementById('rankingModal').style.display = 'flex';
+            window.rankingController.showRanking();
         }
         
         function closeRankingModal() {
@@ -755,6 +1034,151 @@ json.dumps(powerup_info)
             }
         }
         
+        // アクセシビリティパネルの表示切り替え
+        function toggleAccessibilityPanel() {
+            const panel = document.getElementById('accessibilityPanel');
+            const currentDisplay = window.getComputedStyle(panel).display;
+            panel.style.display = currentDisplay === 'none' ? 'block' : 'none';
+        }
+        
+        // 色覚モードの適用
+        function applyColorblindMode(mode) {
+            accessibilitySettings.colorblindMode = mode;
+            const body = document.body;
+            
+            // 既存のクラスを削除
+            body.classList.remove('colorblind-protanopia', 'colorblind-deuteranopia', 
+                                  'colorblind-tritanopia', 'colorblind-achromatopsia');
+            
+            // 新しいクラスを適用
+            if (mode !== 'none') {
+                body.classList.add(`colorblind-${mode}`);
+            }
+            
+            saveAccessibilitySettings();
+        }
+        
+        // 高コントラストモードの切り替え
+        function toggleHighContrast() {
+            const checkbox = document.getElementById('highContrastMode');
+            accessibilitySettings.highContrast = checkbox.checked;
+            document.body.classList.toggle('high-contrast', checkbox.checked);
+            
+            // Python側に高コントラスト設定を反映
+            if (pyodide) {
+                updateGameColors();
+            }
+            
+            saveAccessibilitySettings();
+        }
+        
+        // ガンマ値の適用
+        function applyGamma(value) {
+            accessibilitySettings.gamma = parseFloat(value);
+            
+            // ガンマ値の表示を更新
+            const gammaValueElement = document.getElementById('gammaValue');
+            if (gammaValueElement) {
+                gammaValueElement.textContent = parseFloat(value).toFixed(1);
+            }
+            
+            // キャンバスにブライトネスフィルターを適用
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                const currentFilter = canvas.style.filter || '';
+                const filterParts = currentFilter.split(' ').filter(f => !f.includes('brightness'));
+                filterParts.push(`brightness(${value})`);
+                canvas.style.filter = filterParts.join(' ');
+            }
+            
+            // Canvas描画時にガンマ補正を適用
+            saveAccessibilitySettings();
+        }
+        
+        // モーション軽減の切り替え
+        function toggleReduceMotion() {
+            const checkbox = document.getElementById('reduceMotion');
+            accessibilitySettings.reduceMotion = checkbox.checked;
+            
+            // CSSアニメーションを無効化
+            if (checkbox.checked) {
+                document.documentElement.style.setProperty('--animation-duration', '0s');
+            } else {
+                document.documentElement.style.removeProperty('--animation-duration');
+            }
+            
+            saveAccessibilitySettings();
+        }
+        
+        // 音量の更新
+        function updateSoundVolume(value) {
+            accessibilitySettings.soundVolume = parseFloat(value) / 100;
+            // 音量設定をPython側に反映（将来的な実装用）
+            saveAccessibilitySettings();
+        }
+        
+        // 設定の適用
+        function applyAccessibilitySettings() {
+            // 色覚モード
+            if (accessibilitySettings.colorblindMode !== 'none') {
+                applyColorblindMode(accessibilitySettings.colorblindMode);
+            }
+            document.getElementById('colorblindMode').value = accessibilitySettings.colorblindMode;
+            
+            // 高コントラスト
+            document.getElementById('highContrastMode').checked = accessibilitySettings.highContrast;
+            if (accessibilitySettings.highContrast) {
+                document.body.classList.add('high-contrast');
+            }
+            
+            // ガンマ
+            document.getElementById('gammaControl').value = accessibilitySettings.gamma;
+            const gammaValueElement = document.getElementById('gammaValue');
+            if (gammaValueElement) {
+                gammaValueElement.textContent = accessibilitySettings.gamma.toFixed(1);
+            }
+            applyGamma(accessibilitySettings.gamma);
+            
+            // モーション軽減
+            document.getElementById('reduceMotion').checked = accessibilitySettings.reduceMotion;
+            if (accessibilitySettings.reduceMotion) {
+                document.documentElement.style.setProperty('--animation-duration', '0s');
+            }
+            
+            // 音量
+            document.getElementById('soundVolume').value = accessibilitySettings.soundVolume * 100;
+        }
+        
+        // ゲーム内の色を更新
+        function updateGameColors() {
+            if (!pyodide) return;
+            
+            const colors = accessibilitySettings.highContrast ? 
+                          accessibilitySettings.canvasColors.highContrast : 
+                          accessibilitySettings.canvasColors.standard;
+            
+            try {
+                pyodide.runPython(`
+# 色設定を更新
+if game_state:
+    # ボールの色
+    for i, ball in enumerate(game_state.balls):
+        if i == 0:
+            ball.color = ${JSON.stringify(colors.ball).replace('rgb', '')};
+        elif i == 1:
+            ball.color = ${JSON.stringify(colors.ballAlt1).replace('rgb', '')};
+        else:
+            ball.color = ${JSON.stringify(colors.ballAlt2).replace('rgb', '')};
+    
+    # ラケットの色
+    if game_state.racket:
+        game_state.racket.color = ${JSON.stringify(colors.racket).replace('rgb', '')};
+                `);
+            } catch (error) {
+                console.error('Failed to update game colors:', error);
+            }
+        }
+        
         // ローディング状態の更新
         function updateLoadingProgress(text) {
             document.getElementById('loadingProgress').textContent = text;
@@ -801,6 +1225,9 @@ json.dumps(powerup_info)
                 // スコアランキングシステムを初期化
                 scoreRanking = new ScoreRanking();
                 
+                // アクセシビリティ設定を読み込み
+                loadAccessibilitySettings();
+                
                 // タッチイベントリスナーを設定
                 setupTouchEvents();
                 
@@ -837,6 +1264,23 @@ from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import math
 import random
+try:
+    import js
+except ImportError:
+    # Pyodideのjsモジュールがインポートできない場合のフォールバック
+    class MockJs:
+        def __init__(self):
+            self.window = self
+            self.Date = self
+            self.gameStartTime = 0
+        def now(self):
+            return int(time.time() * 1000)
+        def showRanking(self):
+            pass
+        @property
+        def rankingController(self):
+            return self
+    js = MockJs()
 
 class PygameBall:
     def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200, 
@@ -1363,7 +1807,8 @@ def handle_key_input(key):
         restart_game()
     elif key == 'h' or key == 'H':
         # ランキング表示をJavaScriptで実行
-        return 'show_ranking'
+        js.window.rankingController.showRanking()
+        return None
     elif key == 'p' or key == 'P':
         # パワーアップ表示切り替えをJavaScriptで実行
         return 'toggle_powerup'
@@ -1375,6 +1820,8 @@ def restart_game():
     game_state = PygameGameState()
     game_state.add_observer(game_view)
     # ADAシステムも新しいゲーム状態で初期化される
+    # JavaScript側のゲーム開始時刻を更新
+    js.gameStartTime = js.Date.now()
             `);
         }
         
@@ -1386,20 +1833,50 @@ def restart_game():
                 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
+                // ガンマ補正を適用
+                if (accessibilitySettings.gamma !== 1.0) {
+                    ctx.filter = `brightness(${accessibilitySettings.gamma})`;
+                } else {
+                    ctx.filter = 'none';
+                }
+                
+                const colors = accessibilitySettings.highContrast ? 
+                              accessibilitySettings.canvasColors.highContrast : 
+                              accessibilitySettings.canvasColors.standard;
+                
                 for (const cmd of commands) {
                     switch (cmd.type) {
                         case 'fillRect':
-                            ctx.fillStyle = cmd.color;
+                            // 背景の場合は設定色を使用
+                            if (cmd.width === canvas.width && cmd.height === canvas.height) {
+                                ctx.fillStyle = colors.background;
+                            } else {
+                                ctx.fillStyle = cmd.color;
+                                // 高コントラストモードでラケットの場合
+                                if (accessibilitySettings.highContrast && cmd.color.includes('0, 255, 0')) {
+                                    ctx.fillStyle = colors.racket;
+                                }
+                            }
                             ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
                             break;
                         case 'fillCircle':
                             ctx.fillStyle = cmd.color;
+                            // 高コントラストモードでの色変更
+                            if (accessibilitySettings.highContrast) {
+                                // パワーアップアイテムの場合
+                                if (cmd.radius === 15) {
+                                    ctx.fillStyle = colors.powerupColors.wide_racket;
+                                } else {
+                                    // ボールの場合
+                                    ctx.fillStyle = colors.ball;
+                                }
+                            }
                             ctx.beginPath();
                             ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
                             ctx.fill();
                             break;
                         case 'fillText':
-                            ctx.fillStyle = cmd.color;
+                            ctx.fillStyle = accessibilitySettings.highContrast ? colors.text : cmd.color;
                             ctx.font = cmd.font;
                             ctx.fillText(cmd.text, cmd.x, cmd.y);
                             break;
@@ -1517,6 +1994,12 @@ def restart_game():
         
         // キーボードイベント
         document.addEventListener('keydown', function(event) {
+            // Aキーでアクセシビリティパネルのトグル
+            if (event.key === 'a' || event.key === 'A') {
+                toggleAccessibilityPanel();
+                return;
+            }
+            
             if (pyodide) {
                 try {
                     const result = pyodide.runPython(`handle_key_input('${event.key}')`);
@@ -1721,6 +2204,90 @@ def restart_game():
         
         // ゲーム初期化開始
         initializeGame();
+        
+        // PWAインストール関数
+        let deferredPrompt;
+        
+        async function installPWA() {
+            if (deferredPrompt) {
+                // インストールプロンプトを表示
+                deferredPrompt.prompt();
+                
+                // ユーザーの選択を待つ
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                
+                // 使用済みのプロンプトをクリア
+                deferredPrompt = null;
+                document.getElementById('installButton').style.display = 'none';
+            }
+        }
+        
+        // Service Worker登録
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then((registration) => {
+                        console.log('Service Worker registered:', registration);
+                        
+                        // Service Worker更新検知
+                        registration.addEventListener('updatefound', () => {
+                            const newWorker = registration.installing;
+                            
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // 新しいService Workerがインストールされ、古いものがまだアクティブ
+                                    console.log('New Service Worker available');
+                                    
+                                    // アップデート通知を表示（オプション）
+                                    if (confirm('新しいバージョンが利用可能です。更新しますか？')) {
+                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
+                                        window.location.reload();
+                                    }
+                                }
+                            });
+                        });
+                    })
+                    .catch((error) => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+            
+            // PWAインストールプロンプト処理
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // デフォルトのインストールプロンプトを防ぐ
+                e.preventDefault();
+                // 後で表示するために保存
+                deferredPrompt = e;
+                
+                // インストールボタンを表示（もしあれば）
+                const installButton = document.getElementById('installButton');
+                if (installButton) {
+                    installButton.style.display = 'block';
+                    
+                    installButton.addEventListener('click', async () => {
+                        if (deferredPrompt) {
+                            // インストールプロンプトを表示
+                            deferredPrompt.prompt();
+                            
+                            // ユーザーの選択を待つ
+                            const { outcome } = await deferredPrompt.userChoice;
+                            console.log(`User response to install prompt: ${outcome}`);
+                            
+                            // 使用済みのプロンプトをクリア
+                            deferredPrompt = null;
+                            installButton.style.display = 'none';
+                        }
+                    });
+                }
+            });
+            
+            // PWAインストール成功時の処理
+            window.addEventListener('appinstalled', () => {
+                console.log('Ultimate Squash Game was installed');
+                // Google Analytics等でトラッキング（オプション）
+            });
+        }
     </script>
 </body>
 </html>
