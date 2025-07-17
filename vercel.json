@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/**/*.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "docs/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/scores/(.*)",
+      "dest": "/api/scores/$1"
+    },
+    {
+      "src": "/game.html",
+      "dest": "/docs/game.html"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "/docs/manifest.json"
+    },
+    {
+      "src": "/sw.js",
+      "dest": "/docs/sw.js"
+    },
+    {
+      "src": "/js/(.*)",
+      "dest": "/docs/js/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/docs/$1"
+    }
+  ],
+  "env": {
+    "RANKING_SECRET_KEY": "@ranking-secret-key"
+  },
+  "functions": {
+    "api/scores/submit.js": {
+      "maxDuration": 10
+    },
+    "api/scores/get.js": {
+      "maxDuration": 10
+    }
+  }
+}
