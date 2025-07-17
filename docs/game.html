@@ -565,14 +565,14 @@
     </style>
     
     <!-- ランキングシステムのスクリプト -->
-    <script src="js/ranking.js"></script>
+    <script type="module" src="js/ranking.js"></script>
 </head>
 <body>
     <div class="game-container">
         <header class="header">
             <h1 class="title">Ultimate Squash Game</h1>
             <p class="subtitle">Python/Pyodide WebAssembly版 - 軽量25KB</p>
-            <button class="control-button" style="position: absolute; right: 20px; top: 20px;" onclick="rankingSystem.showRanking()">🌐 オンラインランキング</button>
+            <button class="control-button" style="position: absolute; right: 20px; top: 20px;" onclick="window.rankingController.showRanking()">🌐 オンラインランキング</button>
         </header>
         
         <div class="canvas-wrapper">
@@ -924,22 +924,13 @@
         
         async function confirmScoreEntry() {
             const playerName = document.getElementById('playerNameInput').value.trim() || 'Player';
-            if (pendingScoreData && scoreRanking) {
-                // ローカルランキングに追加
-                scoreRanking.addScore(
-                    pendingScoreData.score,
-                    playerName,
-                    pendingScoreData.combo || 0,
-                    pendingScoreData.powerUps || 0
-                );
-                
+            if (pendingScoreData) {
                 // オンラインランキングに送信
                 try {
-                    // ゲームモードを取得（現在はnormalのみ）
                     const gameMode = 'normal'; // TODO: 実際のゲームモードを取得
                     const duration = Math.floor((Date.now() - gameStartTime) / 1000); // 秒単位
                     
-                    await rankingSystem.submitScore(
+                    await window.rankingController.submitScore(
                         playerName,
                         pendingScoreData.score,
                         gameMode,
@@ -948,55 +939,23 @@
                     console.log('スコアをオンラインランキングに送信しました');
                 } catch (error) {
                     console.error('オンラインランキングへの送信に失敗しました:', error);
-                    // エラーが発生してもローカルランキングは表示する
                 }
             }
             document.getElementById('nameInputModal').style.display = 'none';
             pendingScoreData = null;
-            showRankingModal();
+            window.rankingController.showRanking(); // 更新されたランキングを表示
         }
         
         function cancelScoreEntry() {
             document.getElementById('nameInputModal').style.display = 'none';
             pendingScoreData = null;
-            // Python側のハイスコアチェックも確実にクリア
             if (pyodide) {
                 pyodide.runPython('pending_high_score_check = None');
             }
         }
         
         function showRankingModal() {
-            if (!scoreRanking) return;
-            
-            const scores = scoreRanking.getHighScores();
-            const rankingList = document.getElementById('rankingList');
-            
-            if (scores.length === 0) {
-                rankingList.innerHTML = '<p style="text-align: center; color: #999;">まだスコアが記録されていません</p>';
-            } else {
-                rankingList.innerHTML = scores.map((score, index) => {
-                    const date = new Date(score.date);
-                    const dateStr = date.toLocaleDateString('ja-JP', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    
-                    return `
-                        <div class="ranking-item">
-                            <div class="ranking-rank">${index + 1}位</div>
-                            <div class="ranking-details">
-                                <div class="ranking-name">${escapeHtml(score.name)}</div>
-                                <div class="ranking-meta">${dateStr} | コンボ:${score.combo || 0} | パワーアップ:${score.powerUps || 0}</div>
-                            </div>
-                            <div class="ranking-score">${score.score.toLocaleString()}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
-            
-            document.getElementById('rankingModal').style.display = 'flex';
+            window.rankingController.showRanking();
         }
         
         function closeRankingModal() {
@@ -1305,6 +1264,23 @@ from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import math
 import random
+try:
+    import js
+except ImportError:
+    # Pyodideのjsモジュールがインポートできない場合のフォールバック
+    class MockJs:
+        def __init__(self):
+            self.window = self
+            self.Date = self
+            self.gameStartTime = 0
+        def now(self):
+            return int(time.time() * 1000)
+        def showRanking(self):
+            pass
+        @property
+        def rankingController(self):
+            return self
+    js = MockJs()
 
 class PygameBall:
     def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200, 
@@ -1831,7 +1807,8 @@ def handle_key_input(key):
         restart_game()
     elif key == 'h' or key == 'H':
         # ランキング表示をJavaScriptで実行
-        return 'show_ranking'
+        js.window.rankingController.showRanking()
+        return None
     elif key == 'p' or key == 'P':
         # パワーアップ表示切り替えをJavaScriptで実行
         return 'toggle_powerup'

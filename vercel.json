@@ -1,41 +1,32 @@
 {
   "version": 2,
-  "builds": [
+  "rewrites": [
     {
-      "src": "api/**/*.js",
-      "use": "@vercel/node"
+      "source": "/api/scores/(.*)",
+      "destination": "/api/scores/$1"
     },
     {
-      "src": "docs/**/*",
-      "use": "@vercel/static"
+      "source": "/game.html",
+      "destination": "/docs/game.html"
+    },
+    {
+      "source": "/manifest.json",
+      "destination": "/docs/manifest.json"
+    },
+    {
+      "source": "/sw.js",
+      "destination": "/docs/sw.js"
+    },
+    {
+      "source": "/js/(.*)",
+      "destination": "/docs/js/$1"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/docs/$1"
     }
   ],
-  "routes": [
-    {
-      "src": "/api/scores/(.*)",
-      "dest": "/api/scores/$1"
-    },
-    {
-      "src": "/game.html",
-      "dest": "/docs/game.html"
-    },
-    {
-      "src": "/manifest.json",
-      "dest": "/docs/manifest.json"
-    },
-    {
-      "src": "/sw.js",
-      "dest": "/docs/sw.js"
-    },
-    {
-      "src": "/js/(.*)",
-      "dest": "/docs/js/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/docs/$1"
-    }
-  ],
+  "outputDirectory": "docs",
   "env": {
     "RANKING_SECRET_KEY": "@ranking-secret-key"
   },
