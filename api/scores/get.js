@@ -1,5 +1,5 @@
 // Vercel Function: ランキング取得API
-import { kv } from '@vercel/kv';
+const { kv } = require('@vercel/kv');
 
 // CORS設定
 const corsHeaders = {
@@ -111,7 +111,7 @@ function validateParams(period, gameMode, limit) {
   return errors;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS対応
   if (req.method === 'OPTIONS') {
     return res.status(200).headers(corsHeaders).end();

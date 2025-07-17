@@ -1,5 +1,5 @@
 // Vercel Function: スコア送信API
-import crypto from 'crypto';
+const crypto = require('crypto');
 
 // 環境変数から秘密鍵を取得
 const SECRET_KEY = process.env.RANKING_SECRET_KEY || 'default-secret-key-change-in-production';
@@ -99,7 +99,7 @@ function validateInput(data) {
   return errors;
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   // CORS対応
   if (req.method === 'OPTIONS') {
     return res.status(200).headers(corsHeaders).end();
