@@ -66,7 +66,7 @@ export default defineConfig({
   
   // 開発サーバー設定
   webServer: {
-    command: 'python -m http.server 8000',
+    command: 'python3 -m http.server 8000',
     port: 8000,
     reuseExistingServer: !process.env.CI,
     cwd: './docs',
