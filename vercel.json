@@ -1,32 +1,7 @@
 {
   "version": 2,
-  "rewrites": [
-    {
-      "source": "/api/scores/(.*)",
-      "destination": "/api/scores/$1"
-    },
-    {
-      "source": "/game.html",
-      "destination": "/docs/game.html"
-    },
-    {
-      "source": "/manifest.json",
-      "destination": "/docs/manifest.json"
-    },
-    {
-      "source": "/sw.js",
-      "destination": "/docs/sw.js"
-    },
-    {
-      "source": "/js/(.*)",
-      "destination": "/docs/js/$1"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/docs/$1"
-    }
-  ],
-  "outputDirectory": "docs",
+  "public": "docs",
+  "cleanUrls": true,
   "env": {
     "RANKING_SECRET_KEY": "@ranking-secret-key"
   },
