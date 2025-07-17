@@ -1,8 +1,5 @@
 {
   "version": 2,
   "public": "docs",
-  "cleanUrls": true,
-  "env": {
-    "RANKING_SECRET_KEY": "@ranking-secret-key"
-  }
+  "cleanUrls": true
 }
