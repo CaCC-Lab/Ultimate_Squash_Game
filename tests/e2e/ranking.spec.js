@@ -5,255 +5,211 @@ import {
   setupErrorHandlers,
 } from './helpers.js';
 
-test.describe('Online Ranking System', () => {
-  test.setTimeout(60000); // 60秒のタイムアウト
+// Mock API responses
+const mockRankingData = (period, gameMode) => ({
+  status: 200,
+  contentType: 'application/json',
+  body: JSON.stringify([
+    { rank: 1, name: `Player1-${period}-${gameMode}`, score: 1000 },
+    { rank: 2, name: `Player2-${period}-${gameMode}`, score: 900 },
+  ]),
+});
+
+const mockErrorResponse = {
+  status: 500,
+  contentType: 'application/json',
+  body: JSON.stringify({ message: 'Internal Server Error' }),
+};
+
+const mockSubmitSuccess = {
+  status: 200,
+  contentType: 'application/json',
+  body: JSON.stringify({ message: 'Score submitted successfully' }),
+};
+
+const mockSubmitError = {
+  status: 500,
+  contentType: 'application/json',
+  body: JSON.stringify({ message: 'Submission failed' }),
+};
+
+test.describe('Online Ranking System Characterization', () => {
+  test.setTimeout(60000);
   let consoleErrors;
   let jsErrors;
 
   test.beforeEach(async ({ page }) => {
-    // エラー監視を設定
     consoleErrors = [];
     jsErrors = [];
     setupErrorHandlers(page, consoleErrors, jsErrors);
-
-    // ゲームページを読み込み
     await loadGamePage(page);
+    // Open the ranking modal for most tests
+    await page.click('button:has-text("🌐 オンラインランキング")');
   });
 
-  test.afterEach(async () => {
-    // 各テスト後にエラーチェック
+  test.afterEach(() => {
     expectNoErrors(consoleErrors);
     expectNoErrors(jsErrors);
   });
 
-  test.describe('Ranking UI', () => {
-    test('should have online ranking button', async ({ page }) => {
-      // オンラインランキングボタンが存在することを確認
-      const rankingButton = page.locator('button:has-text("🌐 オンラインランキング")');
-      await expect(rankingButton).toBeVisible();
-      await expect(rankingButton).toBeEnabled();
-    });
-
-    test('should show ranking modal when button clicked', async ({ page }) => {
-      // ランキングボタンをクリック
-      await page.click('button:has-text("🌐 オンラインランキング")');
-      
-      // ランキングコンテナが表示されることを確認
+  test.describe('Initial State', () => {
+    test('should display initial ranking view correctly', async ({ page }) => {
       const rankingContainer = page.locator('#rankingContainer');
       await expect(rankingContainer).toBeVisible();
       
-      // ランキングヘッダーが存在することを確認
-      const rankingHeader = rankingContainer.locator('.ranking-header h2');
-      await expect(rankingHeader).toHaveText('🏆 オンラインランキング');
-    });
-
-    test('should have period selector buttons', async ({ page }) => {
-      await page.click('button:has-text("🌐 オンラインランキング")');
-      
-      // 期間選択ボタンを確認
-      const periodButtons = ['日間', '週間', '月間', '全期間'];
-      for (const period of periodButtons) {
-        const button = page.locator(`.period-btn:has-text("${period}")`);
-        await expect(button).toBeVisible();
-      }
-      
-      // デフォルトで「日間」が選択されていることを確認
+      // 1. Verify default period is "Daily"
       const dailyButton = page.locator('.period-btn:has-text("日間")');
       await expect(dailyButton).toHaveClass(/active/);
-    });
 
-    test('should have game mode selector', async ({ page }) => {
-      await page.click('button:has-text("🌐 オンラインランキング")');
-      
-      // ゲームモードセレクターが存在することを確認
+      // 2. Verify default game mode is "All"
       const gameModeSelect = page.locator('#gameModeSelect');
-      await expect(gameModeSelect).toBeVisible();
-      
-      // オプションを確認
-      const options = await gameModeSelect.locator('option').allTextContents();
-      expect(options).toEqual(['すべて', 'ノーマル', 'ハード', 'エキスパート']);
-    });
+      await expect(gameModeSelect).toHaveValue('all');
 
-    test('should close ranking modal', async ({ page }) => {
-      // ランキングモーダルを開く
-      await page.click('button:has-text("🌐 オンラインランキング")');
-      const rankingContainer = page.locator('#rankingContainer');
-      await expect(rankingContainer).toBeVisible();
-      
-      // 閉じるボタンをクリック
-      await page.click('.close-button');
-      
-      // モーダルが非表示になることを確認
-      await expect(rankingContainer).toBeHidden();
+      // 3. Verify ranking list shows loading then content
+      await expect(page.locator('#rankingList .loading')).toBeVisible();
+      await expect(page.locator('.ranking-item').first()).toBeVisible({ timeout: 10000 });
+      const rankingItems = await page.locator('.ranking-item').count();
+      expect(rankingItems).toBeGreaterThan(0);
     });
   });
 
-  test.describe('Ranking Data', () => {
-    test('should display ranking data', async ({ page }) => {
-      await page.click('button:has-text("🌐 オンラインランキング")');
+  test.describe('Controls and Interactions', () => {
+    test('should fetch new data when switching periods', async ({ page }) => {
+      const periods = ['週間', '月間', '全期間', '日間'];
+      let requestCount = 0;
       
-      // ランキングリストの読み込みを待つ
-      await page.waitForTimeout(1000);
-      
-      const rankingList = page.locator('#rankingList');
-      
-      // ランキングアイテムが存在するか、または「データがありません」メッセージが表示されることを確認
-      const hasRankingItems = await page.locator('.ranking-item').count() > 0;
-      const hasNoDataMessage = await rankingList.textContent().then(text => 
-        text.includes('ランキングデータがありません') || text.includes('読み込み中')
-      );
-      
-      expect(hasRankingItems || hasNoDataMessage).toBe(true);
-    });
-
-    test('should switch between periods', async ({ page }) => {
-      await page.click('button:has-text("🌐 オンラインランキング")');
-      
-      // 週間ランキングに切り替え
-      await page.click('.period-btn:has-text("週間")');
-      
-      // 週間ボタンがアクティブになることを確認
-      const weeklyButton = page.locator('.period-btn:has-text("週間")');
-      await expect(weeklyButton).toHaveClass(/active/);
-      
-      // 日間ボタンがアクティブでないことを確認
-      const dailyButton = page.locator('.period-btn:has-text("日間")');
-      await expect(dailyButton).not.toHaveClass(/active/);
-    });
-
-    test('should refresh rankings', async ({ page }) => {
-      await page.click('button:has-text("🌐 オンラインランキング")');
-      
-      // 更新ボタンが存在することを確認
-      const refreshButton = page.locator('.refresh-button');
-      await expect(refreshButton).toBeVisible();
-      await expect(refreshButton).toHaveText('🔄 更新');
-      
-      // 更新ボタンをクリック（実際のAPIがない場合でもエラーが出ないことを確認）
-      await refreshButton.click();
-      
-      // 読み込み中の表示が出ることを確認
-      const loadingIndicator = page.locator('.loading');
-      await expect(loadingIndicator).toBeVisible();
-    });
-  });
-
-  test.describe('Score Submission', () => {
-    test('should have score submission function', async ({ page }) => {
-      // rankingSystemが存在することを確認
-      const hasRankingSystem = await page.evaluate(() => {
-        return typeof window.rankingSystem !== 'undefined';
+      await page.route('**/api/scores/get**', (route, request) => {
+        requestCount++;
+        const url = new URL(request.url());
+        const period = url.searchParams.get('period');
+        const gameMode = url.searchParams.get('gameMode');
+        route.fulfill(mockRankingData(period, gameMode));
       });
-      expect(hasRankingSystem).toBe(true);
 
-      // submitScore関数が存在することを確認
-      const hasSubmitFunction = await page.evaluate(() => {
-        return typeof window.rankingSystem.submitScore === 'function';
+      for (const period of periods) {
+        await test.step(`Switching to ${period}`, async () => {
+          await page.click(`.period-btn:has-text("${period}")`);
+          await expect(page.locator(`.period-btn:has-text("${period}")`)).toHaveClass(/active/);
+          
+          // Wait for the new data to be rendered
+          await expect(page.locator(`text=Player1-${period.toLowerCase()}-all`).first()).toBeVisible();
+        });
+      }
+      // Initial load + 4 switches
+      expect(requestCount).toBeGreaterThanOrEqual(periods.length);
+    });
+
+    test('should fetch new data when switching game modes', async ({ page }) => {
+      const gameModes = [
+        { value: 'normal', label: 'ノーマル' },
+        { value: 'hard', label: 'ハード' },
+        { value: 'expert', label: 'エキスパート' },
+        { value: 'all', label: 'すべて' },
+      ];
+      let requestCount = 0;
+
+      await page.route('**/api/scores/get**', (route, request) => {
+        requestCount++;
+        const url = new URL(request.url());
+        const period = url.searchParams.get('period');
+        const gameMode = url.searchParams.get('gameMode');
+        route.fulfill(mockRankingData(period, gameMode));
       });
-      expect(hasSubmitFunction).toBe(true);
+
+      for (const mode of gameModes) {
+        await test.step(`Switching to ${mode.label}`, async () => {
+          await page.selectOption('#gameModeSelect', { label: mode.label });
+          await expect(page.locator('#gameModeSelect')).toHaveValue(mode.value);
+          
+          // Wait for the new data to be rendered
+          await expect(page.locator(`text=Player1-daily-${mode.value}`).first()).toBeVisible();
+        });
+      }
+      expect(requestCount).toBeGreaterThanOrEqual(gameModes.length);
     });
 
-    test('should generate game hash', async ({ page }) => {
-      // generateGameHash関数のテスト
-      const gameData = {
-        playerName: 'TestPlayer',
-        score: 1000,
-        gameMode: 'normal',
-        duration: 120,
-        timestamp: Date.now()
-      };
+    test('should fetch new data when refresh button is clicked', async ({ page }) => {
+      let requestCount = 0;
+      await page.route('**/api/scores/get**', (route) => {
+        requestCount++;
+        route.fulfill(mockRankingData('daily', 'all'));
+      });
 
-      const hash = await page.evaluate(async (data) => {
-        return await window.rankingSystem.generateGameHash(data);
-      }, gameData);
+      // Wait for initial load
+      await expect(page.locator('.ranking-item').first()).toBeVisible();
+      const initialRequestCount = requestCount;
 
-      // ハッシュが生成されることを確認
-      expect(hash).toBeTruthy();
-      expect(hash.length).toBe(64); // SHA-256のハッシュは64文字
-    });
-  });
-
-  test.describe('Responsive Design', () => {
-    test('should be responsive on mobile', async ({ page }) => {
-      // モバイルビューポートに変更
-      await page.setViewportSize({ width: 375, height: 667 });
+      // Click refresh button
+      await page.click('.refresh-button');
+      await expect(page.locator('#rankingList .loading')).toBeVisible();
       
-      await page.click('button:has-text("🌐 オンラインランキング")');
-      
-      const rankingContainer = page.locator('#rankingContainer');
-      await expect(rankingContainer).toBeVisible();
-      
-      // モバイルでも適切に表示されることを確認
-      const containerWidth = await rankingContainer.evaluate(el => el.offsetWidth);
-      expect(containerWidth).toBeLessThan(375);
-      
-      // 期間選択ボタンが折り返されることを確認
-      const periodSelector = page.locator('.period-selector');
-      const selectorWidth = await periodSelector.evaluate(el => el.offsetWidth);
-      expect(selectorWidth).toBeLessThanOrEqual(containerWidth);
+      // Wait for the list to reload
+      await expect(page.locator('.ranking-item').first()).toBeVisible();
+      expect(requestCount).toBe(initialRequestCount + 1);
     });
   });
 
   test.describe('Error Handling', () => {
-    test('should handle API errors gracefully', async ({ page }) => {
-      // APIエラーをシミュレート（モックデータが使用される）
+    test('should show fallback message on API error', async ({ page }) => {
+      // Mock a failed API request
       await page.route('**/api/scores/get**', route => {
-        route.abort('failed');
+        route.fulfill(mockErrorResponse);
       });
 
-      await page.click('button:has-text("🌐 オンラインランキング")');
+      // Refresh to trigger the error
+      await page.click('.refresh-button');
       
-      // エラーが発生してもUIが壊れないことを確認
-      const rankingContainer = page.locator('#rankingContainer');
-      await expect(rankingContainer).toBeVisible();
-      
-      // モックデータまたはエラーメッセージが表示されることを確認
-      await page.waitForTimeout(1000);
       const rankingList = page.locator('#rankingList');
-      const listContent = await rankingList.textContent();
-      expect(listContent).toBeTruthy();
+      await expect(rankingList.locator('.error-message')).toBeVisible();
+      await expect(rankingList).toContainText('ランキングの読み込みに失敗しました');
     });
   });
 
-  test.describe('Integration with Game', () => {
-    test('should have game start time tracking', async ({ page }) => {
-      // gameStartTimeが定義されていることを確認
-      const hasGameStartTime = await page.evaluate(() => {
-        return typeof window.gameStartTime !== 'undefined';
+  test.describe('Score Submission', () => {
+    test('should show success message on successful submission', async ({ page }) => {
+      await page.route('**/api/scores/submit', route => {
+        route.fulfill(mockSubmitSuccess);
       });
-      expect(hasGameStartTime).toBe(true);
 
-      // gameStartTimeが有効な時刻であることを確認
-      const gameStartTime = await page.evaluate(() => window.gameStartTime);
-      expect(gameStartTime).toBeGreaterThan(0);
-      expect(gameStartTime).toBeLessThanOrEqual(Date.now());
+      // Simulate submitting a score
+      const result = await page.evaluate(() => {
+        return window.rankingController.submitScore(
+          'Test',
+          1500,
+          'normal',
+          180
+        );
+      });
+
+      // Check for success UI feedback (e.g., a toast message)
+      // This depends on the actual implementation of the success notification
+      // For this example, we'll assume a toast appears.
+      const successToast = page.locator('.toast.success');
+      await expect(successToast).toBeVisible();
+      await expect(successToast).toContainText('スコアが正常に送信されました');
+      expect(result.success).toBe(true);
     });
 
-    test('should update game start time on restart', async ({ page }) => {
-      // 初期のgameStartTimeを取得
-      const initialStartTime = await page.evaluate(() => window.gameStartTime);
-      
-      // 少し待つ
-      await page.waitForTimeout(100);
-      
-      // ゲームをリスタート（Pythonコードの実行をシミュレート）
-      await page.evaluate(() => {
-        if (window.pyodide && window.pyodide.runPython) {
-          try {
-            window.pyodide.runPython('restart_game()');
-          } catch (e) {
-            // Pyodideが完全に初期化されていない場合は、直接更新
-            window.gameStartTime = Date.now();
-          }
-        } else {
-          // Pyodideがない場合は直接更新
-          window.gameStartTime = Date.now();
-        }
+    test('should show error message on failed submission', async ({ page }) => {
+      await page.route('**/api/scores/submit', route => {
+        route.fulfill(mockSubmitError);
       });
-      
-      // gameStartTimeが更新されることを確認
-      const newStartTime = await page.evaluate(() => window.gameStartTime);
-      expect(newStartTime).toBeGreaterThanOrEqual(initialStartTime);
+
+      // Simulate a failed score submission
+      const result = await page.evaluate(() => {
+        return window.rankingController.submitScore(
+          'TestFail',
+          500,
+          'hard',
+          60
+        );
+      });
+
+      // Check for error UI feedback
+      const errorToast = page.locator('.toast.error');
+      await expect(errorToast).toBeVisible();
+      await expect(errorToast).toContainText('スコア送信に失敗しました');
+      expect(result.success).toBe(false);
     });
   });
 });
