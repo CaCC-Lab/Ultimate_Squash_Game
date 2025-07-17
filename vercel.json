@@ -4,13 +4,5 @@
   "cleanUrls": true,
   "env": {
     "RANKING_SECRET_KEY": "@ranking-secret-key"
-  },
-  "functions": {
-    "api/scores/submit.js": {
-      "maxDuration": 10
-    },
-    "api/scores/get.js": {
-      "maxDuration": 10
-    }
   }
 }
