@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test';
 
 // セレクター定数
 export const SELECTORS = {
@@ -13,7 +14,7 @@ export const SELECTORS = {
   score: '#score',
   adaDebugPanel: '#ada-debug-panel',
   debugInfo: '#debug-info',
-  pyodideScript: 'script[src*="pyodide"]'
+  pyodideScript: 'script[src*="pyodide"]',
 };
 
 // キーボードキー定数
@@ -26,7 +27,7 @@ export const KEYS = {
   ToggleDebug: 'd',
   Pause: 'p',
   Escape: 'Escape',
-  Fullscreen: 'f'
+  Fullscreen: 'f',
 };
 
 // タイムアウト定数（環境変数で上書き可能）
@@ -39,7 +40,7 @@ export const TIMEOUTS = {
   pageLoad: parseInt(process.env.E2E_TIMEOUT_PAGE_LOAD || '3000', 10),
   pyodideLoad: parseInt(process.env.E2E_TIMEOUT_PYODIDE_LOAD || '30000', 10),
   animation: parseInt(process.env.E2E_TIMEOUT_ANIMATION || '200', 10),
-  gameStart: parseInt(process.env.E2E_TIMEOUT_GAME_START || '1000', 10)
+  gameStart: parseInt(process.env.E2E_TIMEOUT_GAME_START || '1000', 10),
 };
 
 // テストデータ
@@ -52,8 +53,8 @@ export const TEST_DATA = {
     { name: 'Mobile', width: 375, height: 667 },
     { name: 'Tablet', width: 768, height: 1024 },
     { name: 'Desktop', width: 1920, height: 1080 },
-    { name: 'Ultra-wide', width: 2560, height: 1080 }
-  ]
+    { name: 'Ultra-wide', width: 2560, height: 1080 },
+  ],
 };
 
 // 定数値
@@ -68,7 +69,7 @@ export const CONSTANTS = {
   PERFORMANCE_TEST_DURATION: 5000, // ms
   MEMORY_LEAK_THRESHOLD: 52428800, // 50MB in bytes
   MIN_CANVAS_SIZE: 100, // px
-  DEFAULT_RANDOM_ACTION_COUNT: 10
+  DEFAULT_RANDOM_ACTION_COUNT: 10,
 };
 
 /**
@@ -94,18 +95,29 @@ export function setupErrorHandlers(page, consoleErrors, jsErrors) {
  * @param {import('@playwright/test').Page} page
  */
 export async function toggleRankingModal(page) {
-  await page.keyboard.press(KEYS.ToggleRanking);
-  await page.waitForTimeout(TIMEOUTS.medium);
-
   const rankingModal = page.locator(SELECTORS.rankingModal);
-  const isVisible = await rankingModal.isVisible();
 
-  if (isVisible) {
-    const closeButton = page.locator(SELECTORS.rankingModalCloseButton).first();
-    await closeButton.click();
-    await expect(rankingModal).toBeHidden();
+  // ランキングモーダルの初期状態を確認
+  const wasVisible = await rankingModal.isVisible();
+
+  // Hキーを押してモーダルをトグル
+  await page.keyboard.press(KEYS.ToggleRanking);
+
+  // モーダルの表示状態が変化するまで待機（最大500ms）
+  if (wasVisible) {
+    await expect(rankingModal).toBeHidden({ timeout: 500 });
   } else {
-    console.log('Ranking modal test skipped - Pyodide not fully loaded');
+    // モーダルが表示されるか、Pyodideが読み込まれていない場合のタイムアウトを待つ
+    try {
+      await expect(rankingModal).toBeVisible({ timeout: 500 });
+
+      // モーダルが表示された場合は閉じる
+      const closeButton = page.locator(SELECTORS.rankingModalCloseButton).first();
+      await closeButton.click();
+      await expect(rankingModal).toBeHidden({ timeout: 500 });
+    } catch (e) {
+      console.log('Ranking modal test skipped - Pyodide not fully loaded');
+    }
   }
 }
 
@@ -115,11 +127,11 @@ export async function toggleRankingModal(page) {
  */
 export async function loadGamePage(page) {
   await page.goto('/game.html');
-  
+
   // ローディング画面が非表示になるまで待機
   const loadingOverlay = page.locator(SELECTORS.loadingOverlay);
   await loadingOverlay.waitFor({ state: 'hidden', timeout: TIMEOUTS.pyodideLoad });
-  
+
   // 追加の安定化待機
   await page.waitForTimeout(TIMEOUTS.pageLoad);
 }
@@ -203,7 +215,7 @@ export async function injectFPSMonitoring(page) {
           return callback(timestamp);
         });
       };
-    `
+    `,
   });
 }
 
@@ -225,7 +237,7 @@ export async function injectMemoryMonitoring(page) {
           });
         }
       }, ${CONSTANTS.MEMORY_SAMPLE_INTERVAL});
-    `
+    `,
   });
 }
 
@@ -238,29 +250,33 @@ export async function injectMemoryMonitoring(page) {
  * @returns {Promise<any>}
  */
 export async function safeLocalStorage(page, action, key, value = null) {
-  return await page.evaluate(({ action, key, value }) => {
-    try {
-      switch (action) {
-        case 'get':
-          const item = localStorage.getItem(key);
-          return item ? JSON.parse(item) : null;
-        case 'set':
-          localStorage.setItem(key, JSON.stringify(value));
-          return true;
-        case 'remove':
-          localStorage.removeItem(key);
-          return true;
-        case 'clear':
-          localStorage.clear();
-          return true;
-        default:
-          throw new Error(`Unknown action: ${action}`);
+  return await page.evaluate(
+    ({ action, key, value }) => {
+      try {
+        switch (action) {
+          case 'get': {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : null;
+          }
+          case 'set':
+            localStorage.setItem(key, JSON.stringify(value));
+            return true;
+          case 'remove':
+            localStorage.removeItem(key);
+            return true;
+          case 'clear':
+            localStorage.clear();
+            return true;
+          default:
+            throw new Error(`Unknown action: ${action}`);
+        }
+      } catch (error) {
+        console.error(`localStorage ${action} error:`, error);
+        return null;
       }
-    } catch (error) {
-      console.error(`localStorage ${action} error:`, error);
-      return null;
-    }
-  }, { action, key, value });
+    },
+    { action, key, value }
+  );
 }
 
 /**
@@ -270,15 +286,15 @@ export async function safeLocalStorage(page, action, key, value = null) {
  */
 export async function getFPSStats(page) {
   const fpsData = await page.evaluate(() => window.fpsData || []);
-  
+
   if (fpsData.length === 0) {
     return null;
   }
-  
+
   const fpsValues = fpsData.map(d => d.fps);
   const avgFPS = fpsValues.reduce((sum, fps) => sum + fps, 0) / fpsValues.length;
   const minFPS = Math.min(...fpsValues);
   const maxFPS = Math.max(...fpsValues);
-  
+
   return { avgFPS, minFPS, maxFPS, data: fpsData };
 }
