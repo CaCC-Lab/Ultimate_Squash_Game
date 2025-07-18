@@ -126,7 +126,7 @@ export async function toggleRankingModal(page) {
  * @param {import('@playwright/test').Page} page
  */
 export async function loadGamePage(page) {
-  await page.goto('/game.html');
+  await page.goto('/docs/game.html');
 
   // ローディング画面が非表示になるまで待機
   const loadingOverlay = page.locator(SELECTORS.loadingOverlay);

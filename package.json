@@ -1,17 +1,14 @@
 {
   "name": "ultimate_squash_game",
   "version": "1.0.0",
-  "description": "AI パワーアップ機能を搭載したクラシックなスカッシュゲーム。MVCパターンで実装され、TDDで開発されています。",
+  "description": "AI パワーアップ機能を搭載したクラシックなスカッシュゲーム。WebSocket統合でブラウザ版対応。",
   "main": "index.js",
   "directories": {
     "doc": "docs",
     "test": "tests"
   },
   "scripts": {
-    "test": "npm run test:unit && npm run test:e2e",
-    "test:unit": "NODE_OPTIONS=--experimental-vm-modules jest tests/unit",
-    "test:unit:watch": "NODE_OPTIONS=--experimental-vm-modules jest tests/unit --watch",
-    "test:unit:coverage": "NODE_OPTIONS=--experimental-vm-modules jest tests/unit --coverage",
+    "test": "npm run test:e2e",
     "test:e2e": "playwright test",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
@@ -21,17 +18,23 @@
     "test:webkit": "playwright test --project=webkit",
     "test:mobile": "playwright test --project='Mobile Chrome'",
     "report": "playwright show-report",
-    "test:e2e:ada": "playwright test tests/e2e/ada-system.spec.js",
-    "test:e2e:sound": "playwright test tests/e2e/sound-system.spec.js",
-    "test:e2e:accessibility": "playwright test tests/e2e/accessibility.spec.js",
-    "test:e2e:pwa": "playwright test tests/e2e/pwa.spec.js",
-    "test:e2e:ranking": "playwright test tests/e2e/ranking.spec.js"
+    "test:e2e:websocket": "playwright test tests/e2e/websocket-game.spec.js",
+    "test:e2e:challenge": "playwright test tests/e2e/challenge-system.spec.js",
+    "test:e2e:integration": "playwright test tests/e2e/integration.spec.js"
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CaCC-Lab/Ultimate_Squash_Game.git"
   },
-  "keywords": [],
+  "keywords": [
+    "game",
+    "squash",
+    "websocket",
+    "browser",
+    "playwright",
+    "e2e",
+    "tdd"
+  ],
   "author": "",
   "license": "ISC",
   "bugs": {
@@ -39,15 +42,7 @@
   },
   "homepage": "https://github.com/CaCC-Lab/Ultimate_Squash_Game#readme",
   "devDependencies": {
-    "@babel/core": "^7.28.0",
-    "@babel/plugin-proposal-class-properties": "^7.18.0",
-    "@babel/plugin-proposal-decorators": "^7.22.0",
-    "@babel/plugin-transform-modules-commonjs": "^7.28.0",
-    "@babel/preset-env": "^7.22.0",
-    "@playwright/test": "1.54.1",
-    "babel-jest": "^29.7.0",
-    "jest": "^29.7.0",
-    "jest-environment-jsdom": "^29.7.0"
-  },
-  "dependencies": {}
+    "@playwright/test": "^1.54.1",
+    "ws": "^8.18.3"
+  }
 }
