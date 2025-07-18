@@ -571,6 +571,12 @@
     <script src="js/weekly-challenge.js"></script>
     <script src="js/challenge-evaluator.js"></script>
     <script src="js/challenge-rewards.js"></script>
+    
+    <!-- Phase 4: 並列初期化システムのスクリプト -->
+    <!-- Phase 5A: ブラウザ適応タイムアウトシステム -->
+    <script src="js/browser-adaptive-timeout.js"></script>
+    
+    <script src="js/parallel-initializer.js"></script>
 </head>
 <body>
     <div class="game-container">
@@ -744,6 +750,61 @@
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
     
     <script>
+        // Service Worker登録（早期実行）
+        let serviceWorkerReady = false;
+        let cacheStatus = { pyodideFiles: 0, gameFiles: 0 };
+        
+        if ('serviceWorker' in navigator) {
+            // Service Workerを即座に登録
+            navigator.serviceWorker.register('./sw.js')
+                .then(async (registration) => {
+                    console.log('[Main] Service Worker registered');
+                    
+                    // Service Workerがアクティブになるのを待つ
+                    if (registration.active) {
+                        serviceWorkerReady = true;
+                        await checkCacheStatus();
+                    } else if (registration.installing || registration.waiting) {
+                        registration.addEventListener('updatefound', async () => {
+                            const newWorker = registration.installing || registration.waiting;
+                            newWorker.addEventListener('statechange', async () => {
+                                if (newWorker.state === 'activated') {
+                                    serviceWorkerReady = true;
+                                    await checkCacheStatus();
+                                }
+                            });
+                        });
+                    }
+                })
+                .catch((error) => {
+                    console.error('[Main] Service Worker registration failed:', error);
+                });
+        }
+        
+        // キャッシュ状態を確認
+        async function checkCacheStatus() {
+            if (!navigator.serviceWorker.controller) return;
+            
+            return new Promise((resolve) => {
+                const messageChannel = new MessageChannel();
+                messageChannel.port1.onmessage = (event) => {
+                    if (event.data.type === 'CACHE_STATUS_RESPONSE') {
+                        cacheStatus = {
+                            pyodideFiles: event.data.pyodideFiles,
+                            gameFiles: event.data.gameFiles
+                        };
+                        console.log('[Main] Cache status:', cacheStatus);
+                        resolve();
+                    }
+                };
+                
+                navigator.serviceWorker.controller.postMessage(
+                    { type: 'CACHE_STATUS' },
+                    [messageChannel.port2]
+                );
+            });
+        }
+        
         // グローバル変数
         let pyodide = null;
         let gameLoopId = null;  // gameLoop → gameLoopIdに変更してredeclarationエラーを回避
@@ -1198,30 +1259,110 @@ if game_state:
             }, 500);
         }
         
-        // Pyodide初期化とゲーム開始
+        // Phase 4: 並列初期化とゲーム開始
         async function initializeGame() {
             try {
-                updateLoadingProgress('Pyodideを初期化中...');
+                // Service Workerが準備できるまで少し待つ（最大2秒）
+                let waitTime = 0;
+                while (!serviceWorkerReady && waitTime < 2000) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    waitTime += 100;
+                }
                 
-                // Pyodide初期化
-                pyodide = await loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                // Phase 4: 並列初期化システムの開始
+                console.log('[Main] Starting Phase 4: Parallel Initialization');
+                
+                // 並列初期化システムの初期化
+                const parallelInitializer = new ParallelInitializer();
+                window.parallelInitializer = parallelInitializer;
+                
+                // 初期化イベントのハンドリング
+                parallelInitializer.on('initializationStarted', (data) => {
+                    updateLoadingProgress('並列初期化を開始しています...');
+                    console.log('[Main] Parallel initialization started:', data);
                 });
                 
-                updateLoadingProgress('Pygame-CEを読み込み中...');
+                parallelInitializer.on('stageStarted', (data) => {
+                    const stageMessages = {
+                        'pyodide': 'Pyodide初期化中...',
+                        'pygame-ce': 'Pygame-CE読み込み中...',
+                        'game-code': 'ゲームコード読み込み中...',
+                        'audio-system': 'オーディオシステム初期化中...',
+                        'canvas-setup': 'Canvas統合設定中...',
+                        'finalization': '最終統合処理中...'
+                    };
+                    
+                    const message = stageMessages[data.stage] || data.message;
+                    updateLoadingProgress(message);
+                    
+                    // キャッシュ状態情報を追加
+                    if (data.stage === 'pyodide' && cacheStatus.pyodideFiles > 0) {
+                        updateLoadingProgress(`${message} (キャッシュ済み: ${cacheStatus.pyodideFiles}ファイル)`);
+                    }
+                    
+                    console.log(`[Main] Stage started: ${data.stage}`);
+                });
                 
-                // 必要なパッケージをインストール
-                await pyodide.loadPackage(["pygame-ce"]);
+                parallelInitializer.on('stageProgress', (data) => {
+                    const progressMessage = `${data.message} (${Math.round(data.progress)}%)`;
+                    updateLoadingProgress(progressMessage);
+                });
                 
-                updateLoadingProgress('ゲームコードを読み込み中...');
+                parallelInitializer.on('stageCompleted', (data) => {
+                    console.log(`[Main] Stage completed: ${data.stage} in ${data.duration}ms`);
+                });
                 
-                // ゲームコードを読み込み（最適化されたバージョン）
-                await loadGameCode();
+                parallelInitializer.on('initializationCompleted', (stats) => {
+                    console.log('[Main] Parallel initialization completed:', stats);
+                    
+                    // テスト用データを設定
+                    window.actualGameTestData = {
+                        pyodideInitialized: true,
+                        parallelInitializationTime: stats.totalDuration,
+                        parallelInitializationStats: stats
+                    };
+                    
+                    // 次のステップに進む
+                    continueGameInitialization();
+                });
                 
-                updateLoadingProgress('ゲームを初期化中...');
+                parallelInitializer.on('initializationError', (error) => {
+                    console.error('[Main] Parallel initialization failed:', error);
+                    
+                    // フォールバック: 従来の逐次初期化
+                    console.log('[Main] Falling back to sequential initialization');
+                    fallbackSequentialInitialization();
+                });
                 
-                // Canvasを初期化
+                // 並列初期化の開始
+                const initSuccess = await parallelInitializer.startInitialization();
+                
+                if (!initSuccess) {
+                    // 初期化失敗時のフォールバック処理
+                    console.warn('[Main] Parallel initialization failed, using fallback');
+                    await fallbackSequentialInitialization();
+                }
+                
+            } catch (error) {
+                console.error('[Main] Game initialization failed:', error);
+                updateLoadingProgress('初期化に失敗しました。リロードしてください。');
+                throw error;
+            }
+        }
+        
+        // 並列初期化完了後の処理
+        async function continueGameInitialization() {
+            try {
+                updateLoadingProgress('ゲームシステムを初期化中...');
+                
+                // Pyodideが並列初期化で準備されているはずなので、それを使用
+                pyodide = window.pyodide;
+                
+                // Canvasの初期化（並列初期化で準備済み）
                 canvas = document.getElementById('gameCanvas');
+                if (!canvas) {
+                    throw new Error('Canvas not found after parallel initialization');
+                }
                 ctx = canvas.getContext('2d');
                 
                 // パフォーマンス監視を開始
@@ -1240,6 +1381,89 @@ if game_state:
                 await initializeGameState();
                 
                 updateLoadingProgress('ゲーム開始準備完了');
+                
+                // テスト用データを更新（初期化完了）
+                if (window.actualGameTestData) {
+                    window.actualGameTestData.pyodideInitialized = true;
+                }
+                
+                // ローディング画面を非表示
+                hideLoadingScreen();
+                
+                // モバイルコントロールを追加
+                addMobileControls();
+                
+                // ゲームループ開始
+                startGameLoop();
+                
+                console.log('🎮 Ultimate Squash Game loaded successfully with parallel initialization!');
+                
+            } catch (error) {
+                console.error('[Main] Game initialization continuation failed:', error);
+                showError(
+                    'ゲームの初期化に失敗しました。ブラウザが最新版か確認してください。',
+                    error.message
+                );
+            }
+        }
+        
+        // フォールバック: 従来の逐次初期化
+        async function fallbackSequentialInitialization() {
+            try {
+                console.log('[Main] Starting fallback sequential initialization');
+                updateLoadingProgress('フォールバック初期化を開始しています...');
+                
+                // 従来の逐次初期化処理
+                if (cacheStatus.pyodideFiles > 0) {
+                    updateLoadingProgress(`Pyodideを初期化中... (キャッシュ済み: ${cacheStatus.pyodideFiles}ファイル)`);
+                } else {
+                    updateLoadingProgress('Pyodideを初期化中... (初回ダウンロード)');
+                }
+                
+                // Pyodide初期化
+                const startTime = performance.now();
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                
+                window.pyodide = pyodide;
+                const loadTime = performance.now() - startTime;
+                console.log(`[Main] Pyodide loaded (fallback) in ${Math.round(loadTime)}ms`);
+                
+                // テスト用データを設定
+                window.actualGameTestData = {
+                    pyodideInitialized: true,
+                    pyodideLoadTime: loadTime,
+                    fallbackMode: true
+                };
+                
+                updateLoadingProgress('Pygame-CEを読み込み中...');
+                await pyodide.loadPackage(["pygame-ce"]);
+                
+                updateLoadingProgress('ゲームコードを読み込み中...');
+                await loadGameCode();
+                
+                updateLoadingProgress('ゲームを初期化中...');
+                
+                // Canvas初期化
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                
+                // その他のシステム初期化
+                performanceMonitor = new PerformanceMonitor();
+                scoreRanking = new ScoreRanking();
+                loadAccessibilitySettings();
+                setupTouchEvents();
+                
+                // ゲーム状態を初期化
+                await initializeGameState();
+                
+                updateLoadingProgress('ゲーム開始準備完了');
+                
+                // テスト用データを更新（初期化完了）
+                if (window.actualGameTestData) {
+                    window.actualGameTestData.pyodideInitialized = true;
+                }
                 
                 // ローディング画面を非表示
                 hideLoadingScreen();
@@ -2228,34 +2452,11 @@ def restart_game():
             }
         }
         
-        // Service Worker登録
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then((registration) => {
-                        console.log('Service Worker registered:', registration);
-                        
-                        // Service Worker更新検知
-                        registration.addEventListener('updatefound', () => {
-                            const newWorker = registration.installing;
-                            
-                            newWorker.addEventListener('statechange', () => {
-                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                    // 新しいService Workerがインストールされ、古いものがまだアクティブ
-                                    console.log('New Service Worker available');
-                                    
-                                    // アップデート通知を表示（オプション）
-                                    if (confirm('新しいバージョンが利用可能です。更新しますか？')) {
-                                        newWorker.postMessage({ type: 'SKIP_WAITING' });
-                                        window.location.reload();
-                                    }
-                                }
-                            });
-                        });
-                    })
-                    .catch((error) => {
-                        console.error('Service Worker registration failed:', error);
-                    });
+        // Service Worker更新通知（既に上部で登録済み）
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                // Service Workerが更新された場合
+                console.log('Service Worker updated');
             });
             
             // PWAインストールプロンプト処理
