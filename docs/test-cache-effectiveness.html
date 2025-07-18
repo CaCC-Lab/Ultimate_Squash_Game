@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Worker キャッシュ効果テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-result {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: #4CAF50; }
+        .info { color: #2196F3; }
+        .warning { color: #FF9800; }
+        .error { color: #F44336; }
+        .loading { color: #666; font-style: italic; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Service Worker キャッシュ効果テスト</h1>
+    
+    <div class="test-result">
+        <h2>Service Worker 状態</h2>
+        <p id="sw-status" class="loading">確認中...</p>
+    </div>
+    
+    <div class="test-result">
+        <h2>Pyodide キャッシュ状態</h2>
+        <p id="cache-status" class="loading">確認中...</p>
+        <div id="cache-details"></div>
+    </div>
+    
+    <div class="test-result">
+        <h2>読み込み時間比較テスト</h2>
+        <button onclick="testPyodideLoadTime()">Pyodide読み込み時間テスト</button>
+        <div id="load-test-results"></div>
+    </div>
+    
+    <div class="test-result">
+        <h2>キャッシュ制御テスト</h2>
+        <button onclick="clearCacheAndTest()">キャッシュクリア後テスト</button>
+        <button onclick="forceCacheAndTest()">強制キャッシュ後テスト</button>
+        <div id="cache-control-results"></div>
+    </div>
+    
+    <script>
+        const log = (message, type = 'info') => {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        };
+        
+        // Service Worker状態確認
+        async function checkServiceWorkerStatus() {
+            const statusEl = document.getElementById('sw-status');
+            
+            if (!('serviceWorker' in navigator)) {
+                statusEl.textContent = 'Service Worker未対応';
+                statusEl.className = 'error';
+                return false;
+            }
+            
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (!registration) {
+                statusEl.textContent = 'Service Worker未登録 - 登録中...';
+                statusEl.className = 'warning';
+                
+                try {
+                    await navigator.serviceWorker.register('./sw.js');
+                    statusEl.textContent = 'Service Worker登録完了';
+                    statusEl.className = 'success';
+                    return true;
+                } catch (error) {
+                    statusEl.textContent = `Service Worker登録失敗: ${error.message}`;
+                    statusEl.className = 'error';
+                    return false;
+                }
+            }
+            
+            if (registration.active) {
+                statusEl.textContent = 'Service Worker有効';
+                statusEl.className = 'success';
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Pyodideキャッシュ状態確認
+        async function checkPyodideCache() {
+            const statusEl = document.getElementById('cache-status');
+            const detailsEl = document.getElementById('cache-details');
+            
+            try {
+                const cacheNames = await caches.keys();
+                const pyodideFiles = [
+                    'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js',
+                    'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.asm.js',
+                    'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.asm.wasm',
+                    'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide-lock.json',
+                    'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.asm.data'
+                ];
+                
+                let cachedFiles = [];
+                
+                for (const cacheName of cacheNames) {
+                    const cache = await caches.open(cacheName);
+                    for (const url of pyodideFiles) {
+                        const response = await cache.match(url);
+                        if (response) {
+                            cachedFiles.push({
+                                url: url,
+                                cache: cacheName,
+                                size: response.headers.get('content-length') || '不明'
+                            });
+                        }
+                    }
+                }
+                
+                if (cachedFiles.length > 0) {
+                    statusEl.textContent = `Pyodideファイル ${cachedFiles.length}/${pyodideFiles.length} がキャッシュ済み`;
+                    statusEl.className = 'success';
+                    
+                    let html = '<h3>キャッシュ済みファイル:</h3><ul>';
+                    cachedFiles.forEach(file => {
+                        const fileName = file.url.split('/').pop();
+                        html += `<li>${fileName} (${file.size} bytes) - ${file.cache}</li>`;
+                    });
+                    html += '</ul>';
+                    detailsEl.innerHTML = html;
+                } else {
+                    statusEl.textContent = 'Pyodideファイルがキャッシュされていません';
+                    statusEl.className = 'warning';
+                    detailsEl.innerHTML = '<p>キャッシュを確認するためにゲームを一度読み込んでください</p>';
+                }
+            } catch (error) {
+                statusEl.textContent = `キャッシュ確認エラー: ${error.message}`;
+                statusEl.className = 'error';
+            }
+        }
+        
+        // Pyodide読み込み時間テスト
+        async function testPyodideLoadTime() {
+            const resultsEl = document.getElementById('load-test-results');
+            resultsEl.innerHTML = '<p class="loading">テスト実行中...</p>';
+            
+            try {
+                const startTime = performance.now();
+                
+                // Pyodideスクリプトを読み込み
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+                
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+                
+                const scriptLoadTime = performance.now() - startTime;
+                
+                // Pyodide初期化
+                const initStartTime = performance.now();
+                const pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                const initTime = performance.now() - initStartTime;
+                
+                const totalTime = performance.now() - startTime;
+                
+                resultsEl.innerHTML = `
+                    <div class="success">
+                        <h3>✅ Pyodide読み込み完了</h3>
+                        <p>スクリプト読み込み: ${Math.round(scriptLoadTime)}ms</p>
+                        <p>初期化時間: ${Math.round(initTime)}ms</p>
+                        <p>総時間: ${Math.round(totalTime)}ms</p>
+                    </div>
+                `;
+                
+                // 簡単なテスト実行
+                const testResult = await pyodide.runPythonAsync('2 + 2');
+                resultsEl.innerHTML += `<p>Python実行テスト: 2 + 2 = ${testResult}</p>`;
+                
+                log(`Pyodide読み込み完了: ${Math.round(totalTime)}ms`, 'success');
+                
+            } catch (error) {
+                resultsEl.innerHTML = `<div class="error">❌ テスト失敗: ${error.message}</div>`;
+                log(`Pyodide読み込み失敗: ${error.message}`, 'error');
+            }
+        }
+        
+        // キャッシュクリア後テスト
+        async function clearCacheAndTest() {
+            const resultsEl = document.getElementById('cache-control-results');
+            
+            try {
+                // キャッシュクリア
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+                
+                resultsEl.innerHTML = '<p class="info">キャッシュクリア完了 - 読み込み時間測定中...</p>';
+                
+                const startTime = performance.now();
+                await testPyodideLoadTime();
+                const loadTime = performance.now() - startTime;
+                
+                resultsEl.innerHTML += `<p class="info">キャッシュなし読み込み時間: ${Math.round(loadTime)}ms</p>`;
+                
+            } catch (error) {
+                resultsEl.innerHTML = `<div class="error">キャッシュクリアテスト失敗: ${error.message}</div>`;
+            }
+        }
+        
+        // 強制キャッシュ後テスト
+        async function forceCacheAndTest() {
+            const resultsEl = document.getElementById('cache-control-results');
+            
+            try {
+                // Service Workerにキャッシュ更新を指示
+                if (navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'FORCE_CACHE_UPDATE'
+                    });
+                }
+                
+                resultsEl.innerHTML = '<p class="info">強制キャッシュ更新中...</p>';
+                
+                // 少し待ってからテスト
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                const startTime = performance.now();
+                await testPyodideLoadTime();
+                const loadTime = performance.now() - startTime;
+                
+                resultsEl.innerHTML += `<p class="info">キャッシュ後読み込み時間: ${Math.round(loadTime)}ms</p>`;
+                
+            } catch (error) {
+                resultsEl.innerHTML = `<div class="error">強制キャッシュテスト失敗: ${error.message}</div>`;
+            }
+        }
+        
+        // 初期化
+        window.addEventListener('load', async () => {
+            const swOK = await checkServiceWorkerStatus();
+            if (swOK) {
+                await checkPyodideCache();
+            }
+        });
+        
+        // Service Worker状態変更の監視
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                log('Service Worker更新検出', 'info');
+                checkServiceWorkerStatus();
+            });
+        }
+    </script>
+</body>
+</html>

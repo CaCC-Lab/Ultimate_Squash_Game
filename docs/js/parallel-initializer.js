@@ -795,5 +795,15 @@ class ParallelInitializer {
     }
 }
 
-// グローバルに公開
+// グローバルに公開（従来のスクリプトタグ読み込み用）
 window.ParallelInitializer = ParallelInitializer;
+
+// ES6モジュール形式でもエクスポート（テスト環境用）
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { ParallelInitializer };
+}
+
+// ES6 export（モジュールシステム用）
+if (typeof window !== 'undefined') {
+    window.ParallelInitializerModule = { ParallelInitializer };
+}

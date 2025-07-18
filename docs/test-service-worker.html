@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Worker キャッシュテスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .status {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success { color: #4CAF50; }
+        .info { color: #2196F3; }
+        .warning { color: #FF9800; }
+        .error { color: #F44336; }
+        button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+        .cache-list {
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .loading { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>Service Worker キャッシュテスト</h1>
+    
+    <div class="status">
+        <h2>Service Worker 状態</h2>
+        <p id="sw-status" class="loading">確認中...</p>
+    </div>
+    
+    <div class="status">
+        <h2>キャッシュ状態</h2>
+        <p id="cache-status" class="loading">確認中...</p>
+        <div id="cache-details"></div>
+    </div>
+    
+    <div class="status">
+        <h2>操作</h2>
+        <button onclick="registerServiceWorker()">Service Worker 登録</button>
+        <button onclick="checkCacheStatus()">キャッシュ状態更新</button>
+        <button onclick="clearCache()">キャッシュクリア</button>
+        <button onclick="testPyodideLoad()">Pyodide読み込みテスト</button>
+    </div>
+    
+    <div class="status">
+        <h2>ログ</h2>
+        <div id="log" class="cache-list"></div>
+    </div>
+    
+    <script>
+        const log = (message, type = 'info') => {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = type;
+            entry.textContent = `[${time}] ${message}`;
+            logDiv.insertBefore(entry, logDiv.firstChild);
+        };
+        
+        async function updateServiceWorkerStatus() {
+            const statusEl = document.getElementById('sw-status');
+            
+            if (!('serviceWorker' in navigator)) {
+                statusEl.textContent = 'Service Worker未対応のブラウザです';
+                statusEl.className = 'error';
+                return;
+            }
+            
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (!registration) {
+                statusEl.textContent = 'Service Worker未登録';
+                statusEl.className = 'warning';
+                return;
+            }
+            
+            if (registration.active) {
+                statusEl.textContent = 'Service Worker有効 (Active)';
+                statusEl.className = 'success';
+            } else if (registration.installing) {
+                statusEl.textContent = 'Service Workerインストール中';
+                statusEl.className = 'info';
+            } else if (registration.waiting) {
+                statusEl.textContent = 'Service Worker待機中';
+                statusEl.className = 'info';
+            }
+        }
+        
+        async function registerServiceWorker() {
+            try {
+                log('Service Worker登録開始...');
+                const registration = await navigator.serviceWorker.register('./sw.js');
+                log('Service Worker登録成功', 'success');
+                
+                registration.addEventListener('updatefound', () => {
+                    log('Service Worker更新を検出');
+                });
+                
+                await updateServiceWorkerStatus();
+                setTimeout(checkCacheStatus, 1000);
+            } catch (error) {
+                log(`Service Worker登録失敗: ${error.message}`, 'error');
+            }
+        }
+        
+        async function checkCacheStatus() {
+            const statusEl = document.getElementById('cache-status');
+            const detailsEl = document.getElementById('cache-details');
+            
+            if (!navigator.serviceWorker.controller) {
+                statusEl.textContent = 'Service Workerが有効ではありません';
+                statusEl.className = 'warning';
+                return;
+            }
+            
+            try {
+                const cacheNames = await caches.keys();
+                statusEl.textContent = `キャッシュ数: ${cacheNames.length}`;
+                statusEl.className = 'success';
+                
+                let html = '<h3>キャッシュ詳細:</h3>';
+                
+                for (const cacheName of cacheNames) {
+                    const cache = await caches.open(cacheName);
+                    const keys = await cache.keys();
+                    
+                    html += `<h4>${cacheName} (${keys.length}ファイル)</h4>`;
+                    html += '<div class="cache-list">';
+                    
+                    keys.forEach(request => {
+                        const url = new URL(request.url);
+                        html += `${url.pathname}<br>`;
+                    });
+                    
+                    html += '</div>';
+                }
+                
+                detailsEl.innerHTML = html;
+                log('キャッシュ状態を更新しました', 'success');
+            } catch (error) {
+                statusEl.textContent = 'キャッシュ状態の取得に失敗';
+                statusEl.className = 'error';
+                log(`エラー: ${error.message}`, 'error');
+            }
+        }
+        
+        async function clearCache() {
+            if (!confirm('すべてのキャッシュをクリアしますか？')) return;
+            
+            try {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+                log('キャッシュをクリアしました', 'success');
+                await checkCacheStatus();
+            } catch (error) {
+                log(`キャッシュクリア失敗: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testPyodideLoad() {
+            const startTime = performance.now();
+            log('Pyodide読み込みテスト開始...');
+            
+            try {
+                // Pyodideスクリプトを動的に読み込み
+                const script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+                
+                await new Promise((resolve, reject) => {
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+                
+                // Pyodide初期化
+                const pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                
+                const loadTime = performance.now() - startTime;
+                log(`Pyodide読み込み成功: ${Math.round(loadTime)}ms`, 'success');
+                
+                // 簡単なPythonコードを実行
+                const result = await pyodide.runPythonAsync('2 + 2');
+                log(`Python実行テスト: 2 + 2 = ${result}`, 'success');
+                
+            } catch (error) {
+                const loadTime = performance.now() - startTime;
+                log(`Pyodide読み込み失敗 (${Math.round(loadTime)}ms): ${error.message}`, 'error');
+            }
+        }
+        
+        // 初期化
+        window.addEventListener('load', async () => {
+            await updateServiceWorkerStatus();
+            if (navigator.serviceWorker.controller) {
+                await checkCacheStatus();
+            }
+        });
+        
+        // Service Worker状態変更の監視
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                log('Service Workerが更新されました', 'info');
+                updateServiceWorkerStatus();
+            });
+        }
+    </script>
+</body>
+</html>

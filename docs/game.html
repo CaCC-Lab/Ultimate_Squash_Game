@@ -577,6 +577,57 @@
     <script src="js/browser-adaptive-timeout.js"></script>
     
     <script src="js/parallel-initializer.js"></script>
+    
+    <!-- スクリプト読み込み確認用 -->
+    <script>
+        // グローバルなスクリプト読み込み状態の管理
+        window.scriptLoadingStatus = {
+            browserAdaptiveTimeout: false,
+            parallelInitializer: false,
+            allLoaded: false
+        };
+        
+        // スクリプト読み込み完了を確認する関数
+        window.checkScriptAvailability = function() {
+            const status = window.scriptLoadingStatus;
+            
+            // BrowserAdaptiveTimeoutManagerの確認
+            if (typeof window.BrowserAdaptiveTimeoutManager === 'function' && 
+                window.browserAdaptiveTimeout) {
+                status.browserAdaptiveTimeout = true;
+                console.log('[Script Check] ✅ BrowserAdaptiveTimeoutManager loaded');
+            }
+            
+            // ParallelInitializerの確認
+            if (typeof window.ParallelInitializer === 'function') {
+                status.parallelInitializer = true;
+                console.log('[Script Check] ✅ ParallelInitializer loaded');
+            }
+            
+            // 全スクリプトが読み込まれているかチェック
+            status.allLoaded = status.browserAdaptiveTimeout && status.parallelInitializer;
+            
+            if (status.allLoaded) {
+                console.log('[Script Check] ✅ All core scripts loaded successfully');
+                // カスタムイベントを発火
+                window.dispatchEvent(new CustomEvent('coreScriptsLoaded', { detail: status }));
+            } else {
+                console.warn('[Script Check] ⚠️ Missing scripts:', {
+                    browserAdaptiveTimeout: status.browserAdaptiveTimeout,
+                    parallelInitializer: status.parallelInitializer
+                });
+            }
+            
+            return status;
+        };
+        
+        // DOM読み込み完了後にスクリプト確認
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                window.checkScriptAvailability();
+            }, 100); // 短い遅延でスクリプト読み込み完了を待つ
+        });
+    </script>
 </head>
 <body>
     <div class="game-container">

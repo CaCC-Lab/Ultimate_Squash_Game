@@ -282,8 +282,18 @@ class BrowserAdaptiveTimeoutManager {
     }
 }
 
-// グローバルに公開
+// グローバルに公開（従来のスクリプトタグ読み込み用）
 window.BrowserAdaptiveTimeoutManager = BrowserAdaptiveTimeoutManager;
+
+// ES6モジュール形式でもエクスポート（テスト環境用）
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { BrowserAdaptiveTimeoutManager };
+}
+
+// ES6 export（モジュールシステム用）
+if (typeof window !== 'undefined') {
+    window.BrowserAdaptiveTimeoutModule = { BrowserAdaptiveTimeoutManager };
+}
 
 // 自動初期化
 if (typeof window !== 'undefined') {
