@@ -274,7 +274,7 @@ async def run_tests():
         success_count = sum(1 for result in results if result is True)
         total_count = len(results)
         
-        logger.info(f"\n=== テスト結果 ===")
+        logger.info("\n=== テスト結果 ===")
         logger.info(f"成功: {success_count}/{total_count}")
         logger.info(f"成功率: {success_count/total_count*100:.1f}%")
         

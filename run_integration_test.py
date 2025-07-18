@@ -14,7 +14,6 @@ import asyncio
 import logging
 import sys
 import os
-import signal
 from pathlib import Path
 
 # ログ設定

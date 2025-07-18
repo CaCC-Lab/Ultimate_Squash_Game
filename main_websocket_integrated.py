@@ -68,6 +68,7 @@ class WebSocketGameEngine:
         try:
             # ヘッドレスでPygame初期化（表示ドライバーなし）
             import os
+            # SDL環境変数をpygame.init()より前に設定
             os.environ['SDL_VIDEODRIVER'] = 'dummy'
             pygame.init()
             

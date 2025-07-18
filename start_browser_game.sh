@@ -9,6 +9,13 @@ echo "ステップ1: ヘッドレスWebSocketサーバーを起動中..."
 python main_websocket_integrated.py &
 SERVER_PID=$!
 
+# サーバーの起動を確認
+sleep 2
+if ! kill -0 $SERVER_PID 2>/dev/null; then
+    echo "❌ サーバーの起動に失敗しました"
+    exit 1
+fi
+
 echo "サーバーPID: $SERVER_PID"
 echo "WebSocketサーバーが起動しました (ws://localhost:8765)"
 echo ""
