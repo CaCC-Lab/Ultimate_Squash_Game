@@ -1,0 +1,320 @@
+/**
+ * ウィークリーチャレンジ統合システム用CSS
+ */
+
+/* チャレンジ表示コンテナ */
+.challenge-display {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 300px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #4ecdc4;
+    border-radius: 12px;
+    padding: 16px;
+    color: white;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.challenge-display.hidden {
+    transform: translateX(100%);
+    opacity: 0;
+}
+
+.challenge-info {
+    margin-bottom: 16px;
+}
+
+.challenge-title {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin-bottom: 8px;
+    color: #4ecdc4;
+    text-shadow: 0 0 10px rgba(78, 205, 196, 0.5);
+}
+
+.challenge-description {
+    font-size: 0.9rem;
+    margin-bottom: 12px;
+    color: #e0e0e0;
+    line-height: 1.4;
+}
+
+.challenge-reward {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: #ffd700;
+}
+
+.reward-points {
+    font-weight: bold;
+}
+
+.reward-badges {
+    font-style: italic;
+}
+
+/* プログレスバー */
+.challenge-progress {
+    margin-top: 16px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4ecdc4, #45b7d1);
+    width: 0%;
+    transition: width 0.5s ease;
+    border-radius: 10px;
+    position: relative;
+}
+
+.progress-fill::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: progress-shine 2s infinite;
+}
+
+.progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #4ecdc4;
+}
+
+.challenge-progress.completed .progress-fill {
+    background: linear-gradient(90deg, #00ff00, #4ecdc4);
+    animation: progress-complete 1s ease;
+}
+
+/* チャレンジボタン */
+.challenge-button {
+    position: fixed;
+    top: 20px;
+    right: 340px;
+    background: linear-gradient(45deg, #4ecdc4, #45b7d1);
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 25px;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(78, 205, 196, 0.3);
+}
+
+.challenge-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(78, 205, 196, 0.5);
+}
+
+.challenge-button:active {
+    transform: translateY(0);
+}
+
+/* 報酬通知 */
+.reward-notification {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, #1a1a2e, #16213e);
+    border: 3px solid #ffd700;
+    border-radius: 20px;
+    padding: 30px;
+    color: white;
+    text-align: center;
+    z-index: 2000;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    animation: reward-appear 0.5s ease;
+    min-width: 300px;
+}
+
+.reward-notification.hidden {
+    display: none;
+}
+
+.notification-content h4 {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    color: #ffd700;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.reward-details {
+    margin-bottom: 20px;
+}
+
+.points-earned {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #4ecdc4;
+    margin-bottom: 8px;
+}
+
+.badges-earned {
+    font-size: 1rem;
+    color: #e0e0e0;
+    margin-bottom: 8px;
+}
+
+.close-notification {
+    background: linear-gradient(45deg, #ff6b6b, #ff8e8e);
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.close-notification:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(255, 107, 107, 0.4);
+}
+
+/* アニメーション */
+@keyframes progress-shine {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(100%); }
+}
+
+@keyframes progress-complete {
+    0% { transform: scaleX(0); }
+    100% { transform: scaleX(1); }
+}
+
+@keyframes reward-appear {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.5);
+    }
+    50% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+/* レスポンシブデザイン */
+@media (max-width: 768px) {
+    .challenge-display {
+        top: 10px;
+        right: 10px;
+        width: 250px;
+        font-size: 0.9rem;
+    }
+    
+    .challenge-button {
+        right: 270px;
+        font-size: 0.8rem;
+        padding: 10px 16px;
+    }
+    
+    .reward-notification {
+        width: 90%;
+        max-width: 300px;
+        padding: 20px;
+    }
+    
+    .notification-content h4 {
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .challenge-display {
+        position: relative;
+        top: 0;
+        right: 0;
+        width: 100%;
+        margin: 10px 0;
+    }
+    
+    .challenge-button {
+        position: relative;
+        top: 0;
+        right: 0;
+        display: block;
+        margin: 10px auto;
+    }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    .challenge-display {
+        background: rgba(0, 0, 0, 0.95);
+        border-color: #4ecdc4;
+    }
+    
+    .progress-bar {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .reward-notification {
+        background: linear-gradient(135deg, #0f0f0f, #1a1a1a);
+    }
+}
+
+/* アクセシビリティ */
+@media (prefers-reduced-motion: reduce) {
+    .challenge-display,
+    .challenge-button,
+    .progress-fill,
+    .reward-notification {
+        transition: none;
+        animation: none;
+    }
+    
+    .progress-fill::after {
+        animation: none;
+    }
+}
+
+/* 高コントラストモード */
+@media (prefers-contrast: high) {
+    .challenge-display {
+        border: 3px solid #ffffff;
+        background: #000000;
+    }
+    
+    .challenge-title {
+        color: #ffffff;
+    }
+    
+    .progress-fill {
+        background: #ffffff;
+    }
+    
+    .challenge-button {
+        background: #ffffff;
+        color: #000000;
+        border: 2px solid #000000;
+    }
+}

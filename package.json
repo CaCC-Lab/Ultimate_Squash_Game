@@ -1,0 +1,48 @@
+{
+  "name": "ultimate_squash_game",
+  "version": "1.0.0",
+  "description": "AI パワーアップ機能を搭載したクラシックなスカッシュゲーム。WebSocket統合でブラウザ版対応。",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "npm run test:e2e",
+    "test:e2e": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project='Mobile Chrome'",
+    "report": "playwright show-report",
+    "test:e2e:websocket": "playwright test tests/e2e/websocket-game.spec.js",
+    "test:e2e:challenge": "playwright test tests/e2e/challenge-system.spec.js",
+    "test:e2e:integration": "playwright test tests/e2e/integration.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CaCC-Lab/Ultimate_Squash_Game.git"
+  },
+  "keywords": [
+    "game",
+    "squash",
+    "websocket",
+    "browser",
+    "playwright",
+    "e2e",
+    "tdd"
+  ],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/CaCC-Lab/Ultimate_Squash_Game/issues"
+  },
+  "homepage": "https://github.com/CaCC-Lab/Ultimate_Squash_Game#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.54.1",
+    "ws": "^8.18.3"
+  }
+}

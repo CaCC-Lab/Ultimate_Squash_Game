@@ -6,6 +6,7 @@
     <meta name="description" content="Ultimate Squash Game - Python/Pyodide WebAssembly版。ブラウザで動作する軽量(25KB)ゲーム">
     <meta name="keywords" content="squash,game,python,pyodide,webassembly,pygame">
     <meta name="author" content="Ultimate Squash Game Team">
+    <meta name="theme-color" content="#004274">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -19,6 +20,15 @@
     <meta name="twitter:description" content="ブラウザで動作する軽量スカッシュゲーム">
     
     <title>Ultimate Squash Game - WebAssembly版</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    
+    <!-- PWA iOS Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ultimate Squash">
+    <link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgdmlld0JveD0iMCAwIDE4MCAxODAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxODAiIGhlaWdodD0iMTgwIiByeD0iMjQiIGZpbGw9IiMwMDQyNzQiLz4KPGNpcmNsZSBjeD0iOTAiIGN5PSI5MCIgcj0iMjQiIGZpbGw9IiNmZmZmZmYiLz4KPHJlY3QgeD0iNzgiIHk9IjEzOCIgd2lkdGg9IjI0IiBoZWlnaHQ9IjM2IiByeD0iNCIgZmlsbD0iIzAwZmYwMCIvPgo8L3N2Zz4K">
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMDA0Mjc0Ii8+CjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjQiIGZpbGw9IiNmZmZmZmYiLz4KPHJlY3QgeD0iMTQiIHk9IjI0IiB3aWR0aD0iNCIgaGVpZ2h0PSI2IiBmaWxsPSIjMDBmZjAwIi8+Cjwvc3ZnPgo=">
@@ -217,6 +227,149 @@
         
         .error-button:hover {
             background: #ff5252;
+        }
+        
+        /* アクセシビリティパネル */
+        .accessibility-panel {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 8px;
+            color: white;
+            font-size: 0.9rem;
+            min-width: 250px;
+            display: none;
+        }
+        
+        .accessibility-option {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 8px 0;
+        }
+        
+        .accessibility-option label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .accessibility-option select,
+        .accessibility-option input[type="range"] {
+            width: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            padding: 4px;
+        }
+        
+        .accessibility-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .accessibility-toggle {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 12px;
+            border-radius: 6px;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .accessibility-toggle:hover {
+            background: rgba(0, 0, 0, 0.9);
+        }
+        
+        .install-button {
+            position: absolute;
+            bottom: 10px;
+            right: 180px;
+            background: #ff9800;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        
+        .install-button:hover {
+            background: #f57c00;
+        }
+        
+        /* 色覚モード用のフィルター */
+        .colorblind-protanopia {
+            filter: url(#protanopia-filter);
+        }
+        
+        .colorblind-deuteranopia {
+            filter: url(#deuteranopia-filter);
+        }
+        
+        .colorblind-tritanopia {
+            filter: url(#tritanopia-filter);
+        }
+        
+        .colorblind-achromatopsia {
+            filter: grayscale(100%);
+        }
+        
+        /* 高コントラストモード */
+        body.high-contrast {
+            background: #000000 !important;
+        }
+        
+        body.high-contrast .title {
+            background: none !important;
+            color: #FFFF00 !important;
+            -webkit-text-fill-color: #FFFF00 !important;
+        }
+        
+        body.high-contrast .subtitle {
+            color: #FFFFFF !important;
+        }
+        
+        body.high-contrast #gameCanvas {
+            border-color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .key {
+            background: #FFFFFF !important;
+            color: #000000 !important;
+            border-color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .control-item {
+            color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .modal-content {
+            background: #000000 !important;
+            border-color: #FFFFFF !important;
+        }
+        
+        body.high-contrast .modal-title {
+            color: #FFFF00 !important;
+        }
+        
+        body.high-contrast .modal-button {
+            background: #FFFFFF !important;
+            color: #000000 !important;
+        }
+        
+        body.high-contrast .modal-button:hover {
+            background: #FFFF00 !important;
         }
         
         /* モーダルスタイル */
@@ -436,15 +589,28 @@
             border-color: #666;
         }
     </style>
+    
+    <!-- ランキングシステムのスクリプト -->
+    <script type="module" src="js/ranking.js"></script>
+    
+    <!-- 週替わりチャレンジシステムのスクリプト -->
+    <script src="js/weekly-challenge.js"></script>
+    <script src="js/challenge-evaluator.js"></script>
+    <script src="js/challenge-rewards.js"></script>
+    
+    <!-- Phase 4: 並列初期化システムのスクリプト -->
+    <!-- Phase 5A: ブラウザ適応タイムアウトシステム -->
+    <script src="js/browser-adaptive-timeout.js"></script>
+    
+    <script src="js/parallel-initializer.js"></script>
 </head>
 <body>
     <div class="game-container">
         <header class="header">
             <h1 class="title">Ultimate Squash Game</h1>
             <p class="subtitle">Python/Pyodide WebAssembly版 - 軽量25KB</p>
+            <button class="control-button" style="position: absolute; right: 20px; top: 20px;" onclick="window.rankingController.showRanking()">🌐 オンラインランキング</button>
         </header>
-        
-        <button id="soundToggle" onclick="toggleSound()">🔊 サウンド ON</button>
         
         <div class="canvas-wrapper">
             <canvas id="gameCanvas" width="640" height="480"></canvas>
@@ -485,8 +651,59 @@
                     <span class="key">P</span>
                     <span>パワーアップ表示</span>
                 </div>
+                <div class="control-item">
+                    <span class="key">A</span>
+                    <span>アクセシビリティ</span>
+                </div>
             </div>
         </div>
+        
+        <!-- アクセシビリティパネル -->
+        <div class="accessibility-panel" id="accessibilityPanel">
+            <h4>アクセシビリティ設定</h4>
+            <div class="accessibility-option">
+                <label for="colorblindMode">色覚モード</label>
+                <select id="colorblindMode" onchange="applyColorblindMode(this.value)">
+                    <option value="none">標準</option>
+                    <option value="protanopia">P型（赤緑色覚）</option>
+                    <option value="deuteranopia">D型（赤緑色覚）</option>
+                    <option value="tritanopia">T型（青黄色覚）</option>
+                    <option value="achromatopsia">全色覚</option>
+                </select>
+            </div>
+            <div class="accessibility-option">
+                <label>
+                    <input type="checkbox" id="highContrastMode" onchange="toggleHighContrast()">
+                    高コントラストモード
+                </label>
+            </div>
+            <div class="accessibility-option">
+                <label for="gammaControl">明るさ調整: <span id="gammaValue">1.0</span></label>
+                <input type="range" id="gammaControl" min="0.5" max="2" step="0.1" value="1" onchange="applyGamma(this.value)">
+            </div>
+            <div class="accessibility-option">
+                <label>
+                    <input type="checkbox" id="reduceMotion" onchange="toggleReduceMotion()">
+                    モーション軽減
+                </label>
+            </div>
+            <div class="accessibility-option">
+                <label for="soundVolume">効果音の音量</label>
+                <input type="range" id="soundVolume" min="0" max="100" step="10" value="50" onchange="updateSoundVolume(this.value)">
+            </div>
+        </div>
+        
+        <!-- アクセシビリティトグル -->
+        <div class="accessibility-toggle" id="accessibilityToggle" onclick="toggleAccessibilityPanel()">
+            ♿ アクセシビリティ
+        </div>
+        
+        <!-- PWAインストールボタン -->
+        <div class="install-button" id="installButton" style="display: none;" onclick="installPWA()">
+            📥 インストール
+        </div>
+        
+        <button id="soundToggle" onclick="toggleSound()">🔊 サウンド ON</button>
     </div>
     
     <!-- エラーモーダル -->
@@ -525,16 +742,104 @@
         </div>
     </div>
     
+    <!-- SVGフィルター（色覚モード用） -->
+    <svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+        <defs>
+            <!-- Protanopia (P型色覚) フィルター -->
+            <filter id="protanopia-filter">
+                <feColorMatrix type="matrix" values="
+                    0.567, 0.433, 0,     0, 0
+                    0.558, 0.442, 0,     0, 0
+                    0,     0.242, 0.758, 0, 0
+                    0,     0,     0,     1, 0" />
+            </filter>
+            
+            <!-- Deuteranopia (D型色覚) フィルター -->
+            <filter id="deuteranopia-filter">
+                <feColorMatrix type="matrix" values="
+                    0.625, 0.375, 0,   0, 0
+                    0.700, 0.300, 0,   0, 0
+                    0,     0.300, 0.700, 0, 0
+                    0,     0,     0,   1, 0" />
+            </filter>
+            
+            <!-- Tritanopia (T型色覚) フィルター -->
+            <filter id="tritanopia-filter">
+                <feColorMatrix type="matrix" values="
+                    0.950, 0.050, 0,     0, 0
+                    0,     0.433, 0.567, 0, 0
+                    0,     0.475, 0.525, 0, 0
+                    0,     0,     0,     1, 0" />
+            </filter>
+        </defs>
+    </svg>
+    
     <!-- Pyodide読み込み -->
     <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
     
     <script>
+        // Service Worker登録（早期実行）
+        let serviceWorkerReady = false;
+        let cacheStatus = { pyodideFiles: 0, gameFiles: 0 };
+        
+        if ('serviceWorker' in navigator) {
+            // Service Workerを即座に登録
+            navigator.serviceWorker.register('./sw.js')
+                .then(async (registration) => {
+                    console.log('[Main] Service Worker registered');
+                    
+                    // Service Workerがアクティブになるのを待つ
+                    if (registration.active) {
+                        serviceWorkerReady = true;
+                        await checkCacheStatus();
+                    } else if (registration.installing || registration.waiting) {
+                        registration.addEventListener('updatefound', async () => {
+                            const newWorker = registration.installing || registration.waiting;
+                            newWorker.addEventListener('statechange', async () => {
+                                if (newWorker.state === 'activated') {
+                                    serviceWorkerReady = true;
+                                    await checkCacheStatus();
+                                }
+                            });
+                        });
+                    }
+                })
+                .catch((error) => {
+                    console.error('[Main] Service Worker registration failed:', error);
+                });
+        }
+        
+        // キャッシュ状態を確認
+        async function checkCacheStatus() {
+            if (!navigator.serviceWorker.controller) return;
+            
+            return new Promise((resolve) => {
+                const messageChannel = new MessageChannel();
+                messageChannel.port1.onmessage = (event) => {
+                    if (event.data.type === 'CACHE_STATUS_RESPONSE') {
+                        cacheStatus = {
+                            pyodideFiles: event.data.pyodideFiles,
+                            gameFiles: event.data.gameFiles
+                        };
+                        console.log('[Main] Cache status:', cacheStatus);
+                        resolve();
+                    }
+                };
+                
+                navigator.serviceWorker.controller.postMessage(
+                    { type: 'CACHE_STATUS' },
+                    [messageChannel.port2]
+                );
+            });
+        }
+        
         // グローバル変数
         let pyodide = null;
         let gameLoopId = null;  // gameLoop → gameLoopIdに変更してredeclarationエラーを回避
         let gameState = null;
         let canvas = null;
         let ctx = null;
+        let soundSystem = null;  // サウンドシステム
         let performanceMonitor = null;
         
         // 新機能用グローバル変数
@@ -815,6 +1120,69 @@
         
         // グローバルサウンドシステム
         const soundSystem = new SoundSystem();
+        let gameStartTime = Date.now(); // ゲーム開始時刻を記録
+        
+        // アクセシビリティ設定用グローバル変数
+        let accessibilitySettings = {
+            colorblindMode: 'none',
+            highContrast: false,
+            gamma: 1.0,
+            reduceMotion: false,
+            soundVolume: 0.5,
+            canvasColors: {
+                standard: {
+                    background: '#000000',
+                    ball: 'rgb(255, 255, 255)',
+                    racket: 'rgb(0, 255, 0)',
+                    text: 'white',
+                    ballAlt1: 'rgb(255, 200, 0)',
+                    ballAlt2: 'rgb(0, 200, 255)',
+                    powerupColors: {
+                        wide_racket: '#00ff00',
+                        slow_ball: '#00ffff',
+                        extra_points: '#ffff00',
+                        shield: '#ff00ff'
+                    }
+                },
+                highContrast: {
+                    background: '#000000',
+                    ball: '#FFFFFF',
+                    racket: '#FFFF00',
+                    text: '#FFFFFF',
+                    ballAlt1: '#FFFFFF',
+                    ballAlt2: '#FFFFFF',
+                    powerupColors: {
+                        wide_racket: '#FFFFFF',
+                        slow_ball: '#FFFFFF',
+                        extra_points: '#FFFFFF',
+                        shield: '#FFFFFF'
+                    }
+                }
+            }
+        };
+        
+        // ローカルストレージから設定を読み込み
+        function loadAccessibilitySettings() {
+            try {
+                const saved = localStorage.getItem('ultimateSquashAccessibility');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    Object.assign(accessibilitySettings, settings);
+                    applyAccessibilitySettings();
+                }
+            } catch (error) {
+                console.error('Failed to load accessibility settings:', error);
+            }
+        }
+        
+        // 設定をローカルストレージに保存
+        function saveAccessibilitySettings() {
+            try {
+                localStorage.setItem('ultimateSquashAccessibility', JSON.stringify(accessibilitySettings));
+            } catch (error) {
+                console.error('Failed to save accessibility settings:', error);
+            }
+        }
         
         // スコアランキングシステム
         class ScoreRanking {
@@ -924,62 +1292,40 @@
             }, 100);
         }
         
-        function confirmScoreEntry() {
+        async function confirmScoreEntry() {
             const playerName = document.getElementById('playerNameInput').value.trim() || 'Player';
-            if (pendingScoreData && scoreRanking) {
-                scoreRanking.addScore(
-                    pendingScoreData.score,
-                    playerName,
-                    pendingScoreData.combo || 0,
-                    pendingScoreData.powerUps || 0
-                );
+            if (pendingScoreData) {
+                // オンラインランキングに送信
+                try {
+                    const gameMode = 'normal'; // TODO: 実際のゲームモードを取得
+                    const duration = Math.floor((Date.now() - gameStartTime) / 1000); // 秒単位
+                    
+                    await window.rankingController.submitScore(
+                        playerName,
+                        pendingScoreData.score,
+                        gameMode,
+                        duration
+                    );
+                    console.log('スコアをオンラインランキングに送信しました');
+                } catch (error) {
+                    console.error('オンラインランキングへの送信に失敗しました:', error);
+                }
             }
             document.getElementById('nameInputModal').style.display = 'none';
             pendingScoreData = null;
-            showRankingModal();
+            window.rankingController.showRanking(); // 更新されたランキングを表示
         }
         
         function cancelScoreEntry() {
             document.getElementById('nameInputModal').style.display = 'none';
             pendingScoreData = null;
-            // Python側のハイスコアチェックも確実にクリア
             if (pyodide) {
                 pyodide.runPython('pending_high_score_check = None');
             }
         }
         
         function showRankingModal() {
-            if (!scoreRanking) return;
-            
-            const scores = scoreRanking.getHighScores();
-            const rankingList = document.getElementById('rankingList');
-            
-            if (scores.length === 0) {
-                rankingList.innerHTML = '<p style="text-align: center; color: #999;">まだスコアが記録されていません</p>';
-            } else {
-                rankingList.innerHTML = scores.map((score, index) => {
-                    const date = new Date(score.date);
-                    const dateStr = date.toLocaleDateString('ja-JP', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    });
-                    
-                    return `
-                        <div class="ranking-item">
-                            <div class="ranking-rank">${index + 1}位</div>
-                            <div class="ranking-details">
-                                <div class="ranking-name">${escapeHtml(score.name)}</div>
-                                <div class="ranking-meta">${dateStr} | コンボ:${score.combo || 0} | パワーアップ:${score.powerUps || 0}</div>
-                            </div>
-                            <div class="ranking-score">${score.score.toLocaleString()}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
-            
-            document.getElementById('rankingModal').style.display = 'flex';
+            window.rankingController.showRanking();
         }
         
         function closeRankingModal() {
@@ -1058,6 +1404,151 @@ json.dumps(powerup_info)
             }
         }
         
+        // アクセシビリティパネルの表示切り替え
+        function toggleAccessibilityPanel() {
+            const panel = document.getElementById('accessibilityPanel');
+            const currentDisplay = window.getComputedStyle(panel).display;
+            panel.style.display = currentDisplay === 'none' ? 'block' : 'none';
+        }
+        
+        // 色覚モードの適用
+        function applyColorblindMode(mode) {
+            accessibilitySettings.colorblindMode = mode;
+            const body = document.body;
+            
+            // 既存のクラスを削除
+            body.classList.remove('colorblind-protanopia', 'colorblind-deuteranopia', 
+                                  'colorblind-tritanopia', 'colorblind-achromatopsia');
+            
+            // 新しいクラスを適用
+            if (mode !== 'none') {
+                body.classList.add(`colorblind-${mode}`);
+            }
+            
+            saveAccessibilitySettings();
+        }
+        
+        // 高コントラストモードの切り替え
+        function toggleHighContrast() {
+            const checkbox = document.getElementById('highContrastMode');
+            accessibilitySettings.highContrast = checkbox.checked;
+            document.body.classList.toggle('high-contrast', checkbox.checked);
+            
+            // Python側に高コントラスト設定を反映
+            if (pyodide) {
+                updateGameColors();
+            }
+            
+            saveAccessibilitySettings();
+        }
+        
+        // ガンマ値の適用
+        function applyGamma(value) {
+            accessibilitySettings.gamma = parseFloat(value);
+            
+            // ガンマ値の表示を更新
+            const gammaValueElement = document.getElementById('gammaValue');
+            if (gammaValueElement) {
+                gammaValueElement.textContent = parseFloat(value).toFixed(1);
+            }
+            
+            // キャンバスにブライトネスフィルターを適用
+            const canvas = document.getElementById('gameCanvas');
+            if (canvas) {
+                const currentFilter = canvas.style.filter || '';
+                const filterParts = currentFilter.split(' ').filter(f => !f.includes('brightness'));
+                filterParts.push(`brightness(${value})`);
+                canvas.style.filter = filterParts.join(' ');
+            }
+            
+            // Canvas描画時にガンマ補正を適用
+            saveAccessibilitySettings();
+        }
+        
+        // モーション軽減の切り替え
+        function toggleReduceMotion() {
+            const checkbox = document.getElementById('reduceMotion');
+            accessibilitySettings.reduceMotion = checkbox.checked;
+            
+            // CSSアニメーションを無効化
+            if (checkbox.checked) {
+                document.documentElement.style.setProperty('--animation-duration', '0s');
+            } else {
+                document.documentElement.style.removeProperty('--animation-duration');
+            }
+            
+            saveAccessibilitySettings();
+        }
+        
+        // 音量の更新
+        function updateSoundVolume(value) {
+            accessibilitySettings.soundVolume = parseFloat(value) / 100;
+            // 音量設定をPython側に反映（将来的な実装用）
+            saveAccessibilitySettings();
+        }
+        
+        // 設定の適用
+        function applyAccessibilitySettings() {
+            // 色覚モード
+            if (accessibilitySettings.colorblindMode !== 'none') {
+                applyColorblindMode(accessibilitySettings.colorblindMode);
+            }
+            document.getElementById('colorblindMode').value = accessibilitySettings.colorblindMode;
+            
+            // 高コントラスト
+            document.getElementById('highContrastMode').checked = accessibilitySettings.highContrast;
+            if (accessibilitySettings.highContrast) {
+                document.body.classList.add('high-contrast');
+            }
+            
+            // ガンマ
+            document.getElementById('gammaControl').value = accessibilitySettings.gamma;
+            const gammaValueElement = document.getElementById('gammaValue');
+            if (gammaValueElement) {
+                gammaValueElement.textContent = accessibilitySettings.gamma.toFixed(1);
+            }
+            applyGamma(accessibilitySettings.gamma);
+            
+            // モーション軽減
+            document.getElementById('reduceMotion').checked = accessibilitySettings.reduceMotion;
+            if (accessibilitySettings.reduceMotion) {
+                document.documentElement.style.setProperty('--animation-duration', '0s');
+            }
+            
+            // 音量
+            document.getElementById('soundVolume').value = accessibilitySettings.soundVolume * 100;
+        }
+        
+        // ゲーム内の色を更新
+        function updateGameColors() {
+            if (!pyodide) return;
+            
+            const colors = accessibilitySettings.highContrast ? 
+                          accessibilitySettings.canvasColors.highContrast : 
+                          accessibilitySettings.canvasColors.standard;
+            
+            try {
+                pyodide.runPython(`
+# 色設定を更新
+if game_state:
+    # ボールの色
+    for i, ball in enumerate(game_state.balls):
+        if i == 0:
+            ball.color = ${JSON.stringify(colors.ball).replace('rgb', '')};
+        elif i == 1:
+            ball.color = ${JSON.stringify(colors.ballAlt1).replace('rgb', '')};
+        else:
+            ball.color = ${JSON.stringify(colors.ballAlt2).replace('rgb', '')};
+    
+    # ラケットの色
+    if game_state.racket:
+        game_state.racket.color = ${JSON.stringify(colors.racket).replace('rgb', '')};
+                `);
+            } catch (error) {
+                console.error('Failed to update game colors:', error);
+            }
+        }
+        
         // ローディング状態の更新
         function updateLoadingProgress(text) {
             document.getElementById('loadingProgress').textContent = text;
@@ -1072,30 +1563,110 @@ json.dumps(powerup_info)
             }, 500);
         }
         
-        // Pyodide初期化とゲーム開始
+        // Phase 4: 並列初期化とゲーム開始
         async function initializeGame() {
             try {
-                updateLoadingProgress('Pyodideを初期化中...');
+                // Service Workerが準備できるまで少し待つ（最大2秒）
+                let waitTime = 0;
+                while (!serviceWorkerReady && waitTime < 2000) {
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                    waitTime += 100;
+                }
                 
-                // Pyodide初期化
-                pyodide = await loadPyodide({
-                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                // Phase 4: 並列初期化システムの開始
+                console.log('[Main] Starting Phase 4: Parallel Initialization');
+                
+                // 並列初期化システムの初期化
+                const parallelInitializer = new ParallelInitializer();
+                window.parallelInitializer = parallelInitializer;
+                
+                // 初期化イベントのハンドリング
+                parallelInitializer.on('initializationStarted', (data) => {
+                    updateLoadingProgress('並列初期化を開始しています...');
+                    console.log('[Main] Parallel initialization started:', data);
                 });
                 
-                updateLoadingProgress('Pygame-CEを読み込み中...');
+                parallelInitializer.on('stageStarted', (data) => {
+                    const stageMessages = {
+                        'pyodide': 'Pyodide初期化中...',
+                        'pygame-ce': 'Pygame-CE読み込み中...',
+                        'game-code': 'ゲームコード読み込み中...',
+                        'audio-system': 'オーディオシステム初期化中...',
+                        'canvas-setup': 'Canvas統合設定中...',
+                        'finalization': '最終統合処理中...'
+                    };
+                    
+                    const message = stageMessages[data.stage] || data.message;
+                    updateLoadingProgress(message);
+                    
+                    // キャッシュ状態情報を追加
+                    if (data.stage === 'pyodide' && cacheStatus.pyodideFiles > 0) {
+                        updateLoadingProgress(`${message} (キャッシュ済み: ${cacheStatus.pyodideFiles}ファイル)`);
+                    }
+                    
+                    console.log(`[Main] Stage started: ${data.stage}`);
+                });
                 
-                // 必要なパッケージをインストール
-                await pyodide.loadPackage(["pygame-ce"]);
+                parallelInitializer.on('stageProgress', (data) => {
+                    const progressMessage = `${data.message} (${Math.round(data.progress)}%)`;
+                    updateLoadingProgress(progressMessage);
+                });
                 
-                updateLoadingProgress('ゲームコードを読み込み中...');
+                parallelInitializer.on('stageCompleted', (data) => {
+                    console.log(`[Main] Stage completed: ${data.stage} in ${data.duration}ms`);
+                });
                 
-                // ゲームコードを読み込み（最適化されたバージョン）
-                await loadGameCode();
+                parallelInitializer.on('initializationCompleted', (stats) => {
+                    console.log('[Main] Parallel initialization completed:', stats);
+                    
+                    // テスト用データを設定
+                    window.actualGameTestData = {
+                        pyodideInitialized: true,
+                        parallelInitializationTime: stats.totalDuration,
+                        parallelInitializationStats: stats
+                    };
+                    
+                    // 次のステップに進む
+                    continueGameInitialization();
+                });
                 
-                updateLoadingProgress('ゲームを初期化中...');
+                parallelInitializer.on('initializationError', (error) => {
+                    console.error('[Main] Parallel initialization failed:', error);
+                    
+                    // フォールバック: 従来の逐次初期化
+                    console.log('[Main] Falling back to sequential initialization');
+                    fallbackSequentialInitialization();
+                });
                 
-                // Canvasを初期化
+                // 並列初期化の開始
+                const initSuccess = await parallelInitializer.startInitialization();
+                
+                if (!initSuccess) {
+                    // 初期化失敗時のフォールバック処理
+                    console.warn('[Main] Parallel initialization failed, using fallback');
+                    await fallbackSequentialInitialization();
+                }
+                
+            } catch (error) {
+                console.error('[Main] Game initialization failed:', error);
+                updateLoadingProgress('初期化に失敗しました。リロードしてください。');
+                throw error;
+            }
+        }
+        
+        // 並列初期化完了後の処理
+        async function continueGameInitialization() {
+            try {
+                updateLoadingProgress('ゲームシステムを初期化中...');
+                
+                // Pyodideが並列初期化で準備されているはずなので、それを使用
+                pyodide = window.pyodide;
+                
+                // Canvasの初期化（並列初期化で準備済み）
                 canvas = document.getElementById('gameCanvas');
+                if (!canvas) {
+                    throw new Error('Canvas not found after parallel initialization');
+                }
                 ctx = canvas.getContext('2d');
                 
                 // パフォーマンス監視を開始
@@ -1103,6 +1674,9 @@ json.dumps(powerup_info)
                 
                 // スコアランキングシステムを初期化
                 scoreRanking = new ScoreRanking();
+                
+                // アクセシビリティ設定を読み込み
+                loadAccessibilitySettings();
                 
                 // タッチイベントリスナーを設定
                 setupTouchEvents();
@@ -1112,8 +1686,97 @@ json.dumps(powerup_info)
                 
                 updateLoadingProgress('ゲーム開始準備完了');
                 
+                // テスト用データを更新（初期化完了）
+                if (window.actualGameTestData) {
+                    window.actualGameTestData.pyodideInitialized = true;
+                }
+                
                 // ローディング画面を非表示
                 hideLoadingScreen();
+                
+                // サウンドシステムを初期化
+                soundSystem = new SoundSystem();
+                
+                // モバイルコントロールを追加
+                addMobileControls();
+                
+                // ゲームループ開始
+                startGameLoop();
+                
+                console.log('🎮 Ultimate Squash Game loaded successfully with parallel initialization!');
+                
+            } catch (error) {
+                console.error('[Main] Game initialization continuation failed:', error);
+                showError(
+                    'ゲームの初期化に失敗しました。ブラウザが最新版か確認してください。',
+                    error.message
+                );
+            }
+        }
+        
+        // フォールバック: 従来の逐次初期化
+        async function fallbackSequentialInitialization() {
+            try {
+                console.log('[Main] Starting fallback sequential initialization');
+                updateLoadingProgress('フォールバック初期化を開始しています...');
+                
+                // 従来の逐次初期化処理
+                if (cacheStatus.pyodideFiles > 0) {
+                    updateLoadingProgress(`Pyodideを初期化中... (キャッシュ済み: ${cacheStatus.pyodideFiles}ファイル)`);
+                } else {
+                    updateLoadingProgress('Pyodideを初期化中... (初回ダウンロード)');
+                }
+                
+                // Pyodide初期化
+                const startTime = performance.now();
+                pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+                });
+                
+                window.pyodide = pyodide;
+                const loadTime = performance.now() - startTime;
+                console.log(`[Main] Pyodide loaded (fallback) in ${Math.round(loadTime)}ms`);
+                
+                // テスト用データを設定
+                window.actualGameTestData = {
+                    pyodideInitialized: true,
+                    pyodideLoadTime: loadTime,
+                    fallbackMode: true
+                };
+                
+                updateLoadingProgress('Pygame-CEを読み込み中...');
+                await pyodide.loadPackage(["pygame-ce"]);
+                
+                updateLoadingProgress('ゲームコードを読み込み中...');
+                await loadGameCode();
+                
+                updateLoadingProgress('ゲームを初期化中...');
+                
+                // Canvas初期化
+                canvas = document.getElementById('gameCanvas');
+                ctx = canvas.getContext('2d');
+                
+                // その他のシステム初期化
+                performanceMonitor = new PerformanceMonitor();
+                scoreRanking = new ScoreRanking();
+                loadAccessibilitySettings();
+                setupTouchEvents();
+                
+                // ゲーム状態を初期化
+                await initializeGameState();
+                
+                updateLoadingProgress('ゲーム開始準備完了');
+                
+                // テスト用データを更新（初期化完了）
+                if (window.actualGameTestData) {
+                    window.actualGameTestData.pyodideInitialized = true;
+                }
+                
+                // ローディング画面を非表示
+                hideLoadingScreen();
+                
+                // サウンドシステムを初期化
+                soundSystem = new SoundSystem();
                 
                 // モバイルコントロールを追加
                 addMobileControls();
@@ -1139,6 +1802,24 @@ json.dumps(powerup_info)
 from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import math
+import random
+try:
+    import js
+except ImportError:
+    # Pyodideのjsモジュールがインポートできない場合のフォールバック
+    class MockJs:
+        def __init__(self):
+            self.window = self
+            self.Date = self
+            self.gameStartTime = 0
+        def now(self):
+            return int(time.time() * 1000)
+        def showRanking(self):
+            pass
+        @property
+        def rankingController(self):
+            return self
+    js = MockJs()
 
 class PygameBall:
     def __init__(self, x: float = 320, y: float = 240, dx: float = 200, dy: float = 200, 
@@ -1198,8 +1879,19 @@ class PygameGameState:
         self.powerup_spawn_chance = 0.1  # 10%の確率
         self.powerup_positions = []  # パワーアップアイテムの座標
         
-        # サウンドイベント管理
-        self.sound_events = []
+        # ADA (AI Dynamic Adjustment) システム
+        self.ada_system = {
+            'miss_count': 0,
+            'hit_count': 0,
+            'total_attempts': 0,
+            'miss_ratio': 0.0,
+            'base_ball_speed': 290.0,
+            'current_speed_multiplier': 1.0,
+            'angle_randomness': 0.0,
+            'evaluation_window': 10,  # 10回のアクションで評価
+            'last_evaluation_time': 0,  # タイムスタンプベースに変更
+            'adjustment_history': []
+        }
     
     def add_observer(self, observer: PygameGameStateObserver):
         self.observers.append(observer)
@@ -1207,6 +1899,84 @@ class PygameGameState:
     def notify_observers(self):
         for observer in self.observers:
             observer.on_game_state_changed(self)
+    
+    def evaluate_ada_difficulty(self):
+        """ADAシステムによる難易度評価と調整"""
+        ada = self.ada_system
+        
+        # 十分なデータが蓄積されたら評価実行
+        if ada['total_attempts'] >= ada['evaluation_window']:
+            ada['miss_ratio'] = ada['miss_count'] / ada['total_attempts']
+            
+            # 要件定義書に基づく調整ルール
+            # ミス率 > 30% → 速度 -20%
+            # ミス率 < 10% → 速度 +15%
+            old_multiplier = ada['current_speed_multiplier']
+            
+            if ada['miss_ratio'] > 0.30:
+                ada['current_speed_multiplier'] = max(0.5, ada['current_speed_multiplier'] * 0.8)
+                ada['angle_randomness'] = max(0.0, ada['angle_randomness'] - 0.1)
+            elif ada['miss_ratio'] < 0.10:
+                ada['current_speed_multiplier'] = min(2.0, ada['current_speed_multiplier'] * 1.15)
+                ada['angle_randomness'] = min(0.3, ada['angle_randomness'] + 0.05)
+            
+            # 調整履歴を記録
+            adjustment = {
+                'miss_ratio': ada['miss_ratio'],
+                'speed_change': ada['current_speed_multiplier'] - old_multiplier,
+                'new_speed_multiplier': ada['current_speed_multiplier'],
+                'angle_randomness': ada['angle_randomness'],
+                'timestamp': time.time()
+            }
+            ada['adjustment_history'].append(adjustment)
+            
+            # 履歴が長すぎる場合は古いものを削除
+            if len(ada['adjustment_history']) > 20:
+                ada['adjustment_history'].pop(0)
+            
+            # カウンターリセット
+            ada['miss_count'] = 0
+            ada['hit_count'] = 0
+            ada['total_attempts'] = 0
+            ada['last_evaluation_time'] = time.time()
+    
+    def record_ada_hit(self):
+        """ADAシステムにヒットを記録"""
+        ada = self.ada_system
+        ada['hit_count'] += 1
+        ada['total_attempts'] += 1
+        self.evaluate_ada_difficulty()
+    
+    def record_ada_miss(self):
+        """ADAシステムにミスを記録"""
+        ada = self.ada_system
+        ada['miss_count'] += 1
+        ada['total_attempts'] += 1
+        self.evaluate_ada_difficulty()
+    
+    def apply_ada_ball_physics(self, ball):
+        """ADAシステムによるボール物理の調整"""
+        ada = self.ada_system
+        
+        # 速度調整（固定基準速度からの倍率補正）
+        speed_factor = ada['current_speed_multiplier']
+        original_speed = (ball.dx ** 2 + ball.dy ** 2) ** 0.5
+        if original_speed > 0:
+            # 累積を防ぐため、固定基準速度から目標値を算出
+            target_speed = ada['base_ball_speed'] * speed_factor
+            ball.dx = (ball.dx / original_speed) * target_speed
+            ball.dy = (ball.dy / original_speed) * target_speed
+        
+        # 角度にランダム性を追加
+        if ada['angle_randomness'] > 0:
+            angle_offset = random.uniform(-ada['angle_randomness'], ada['angle_randomness'])
+            current_angle = math.atan2(ball.dy, ball.dx)
+            new_angle = current_angle + angle_offset
+            
+            # 新しい角度で速度を再計算
+            speed = (ball.dx ** 2 + ball.dy ** 2) ** 0.5
+            ball.dx = math.cos(new_angle) * speed
+            ball.dy = math.sin(new_angle) * speed
     
     def activate_multi_ball(self):
         """マルチボールモードを発動"""
@@ -1286,26 +2056,27 @@ class PygameGameState:
                         powerup['active'] = False
 
     def update_ball_position(self, ball: PygameBall, dt: float = 0.016):
+        # ADAシステムによる物理調整を適用
+        self.apply_ada_ball_physics(ball)
+        
         ball.x += ball.dx * dt
         ball.y += ball.dy * dt
         
         if ball.x <= ball.radius or ball.x >= self.canvas_width - ball.radius:
             ball.dx = -ball.dx
-            # 壁衝突音
-            self.sound_events.append(('ballHit', 0.7))
         if ball.y <= ball.radius:
             ball.dy = -ball.dy
-            # 壁衝突音
-            self.sound_events.append(('ballHit', 0.8))
         if ball.y >= self.canvas_height - ball.radius:
             # シールドパワーアップのチェック
             if self.active_powerups.get('shield', {}).get('active', False):
                 ball.dy = -abs(ball.dy)  # 跳ね返す
                 self.active_powerups['shield']['active'] = False  # シールド消費
+                # ADAシステム: シールドでの救済もヒットとして記録
+                self.record_ada_hit()
             else:
+                # ADAシステム: ミスを記録
+                self.record_ada_miss()
                 self.is_gameover = True
-                # ゲームオーバー音
-                self.sound_events.append(('gameOver',))
         
         if (ball.y + ball.radius >= self.racket.y and 
             ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
@@ -1313,8 +2084,8 @@ class PygameGameState:
             self.score.hits += 1
             self.consecutive_hits += 1
             
-            # サウンドイベント発生
-            self.sound_events.append(('ballHit', 1.0 + self.consecutive_hits * 0.1))
+            # ADAシステム: ヒットを記録
+            self.record_ada_hit()
             
             # エクストラポイント効果
             points = 10
@@ -1322,18 +2093,12 @@ class PygameGameState:
                 points *= 2
             self.score.player_score += points
             
-            # スコア獲得音
-            self.sound_events.append(('scoreUp',))
-            
             # マルチボール判定
             if (self.consecutive_hits >= self.multi_ball_threshold and 
                 not self.multi_ball_active and len(self.balls) == 1):
                 self.activate_multi_ball()
-                # パワーアップ音
-                self.sound_events.append(('powerUp',))
                 
             # パワーアップスポーン判定
-            import random
             if random.random() < self.powerup_spawn_chance:
                 self.spawn_powerup()
         else:
@@ -1348,7 +2113,6 @@ class PygameGameState:
     
     def spawn_powerup(self):
         """パワーアップアイテムをスポーン"""
-        import random
         powerup_types = ['wide_racket', 'slow_ball', 'extra_points', 'shield']
         powerup_type = random.choice(powerup_types)
         
@@ -1461,6 +2225,39 @@ class OptimizedWebCanvasView(PygameGameStateObserver):
             'font': '20px Arial'
         })
         
+        # ADAシステム情報表示
+        ada = game_state.ada_system
+        if ada['total_attempts'] > 0:
+            ada_text = f'ADA: Miss {ada["miss_ratio"]:.1%} | Speed x{ada["current_speed_multiplier"]:.2f}'
+            if ada['angle_randomness'] > 0:
+                ada_text += f' | Angle ±{ada["angle_randomness"]:.2f}'
+            
+            draw_commands.append({
+                'type': 'fillText',
+                'text': ada_text,
+                'x': 10, 'y': 55,
+                'color': '#ffff00',
+                'font': '14px Arial'
+            })
+        
+        # ADA調整履歴の表示（直近の調整のみ）
+        if ada['adjustment_history']:
+            last_adjustment = ada['adjustment_history'][-1]
+            if abs(last_adjustment['speed_change']) > 0.01:
+                adjustment_text = f'ADA調整: ミス率{last_adjustment["miss_ratio"]:.1%} → '
+                if last_adjustment['speed_change'] > 0:
+                    adjustment_text += f'難易度UP (Speed +{last_adjustment["speed_change"]:.2f})'
+                else:
+                    adjustment_text += f'難易度DOWN (Speed {last_adjustment["speed_change"]:.2f})'
+                
+                draw_commands.append({
+                    'type': 'fillText',
+                    'text': adjustment_text,
+                    'x': 10, 'y': 75,
+                    'color': '#ff8800',
+                    'font': '12px Arial'
+                })
+        
         return {
             'canvas_id': self.canvas_id,
             'draw_commands': draw_commands,
@@ -1524,6 +2321,18 @@ def get_pending_high_score():
     global pending_high_score_check
     return pending_high_score_check
 
+def get_ada_system_status():
+    """ADAシステムの現在の状態を取得"""
+    import json
+    ada = game_state.ada_system
+    return json.dumps({
+        'miss_ratio': ada['miss_ratio'],
+        'speed_multiplier': ada['current_speed_multiplier'],
+        'angle_randomness': ada['angle_randomness'],
+        'total_attempts': ada['total_attempts'],
+        'last_adjustments': ada['adjustment_history'][-5:] if ada['adjustment_history'] else []
+    })
+
 pending_high_score_check = None
 
 def handle_key_input(key):
@@ -1537,7 +2346,8 @@ def handle_key_input(key):
         restart_game()
     elif key == 'h' or key == 'H':
         # ランキング表示をJavaScriptで実行
-        return 'show_ranking'
+        js.window.rankingController.showRanking()
+        return None
     elif key == 'p' or key == 'P':
         # パワーアップ表示切り替えをJavaScriptで実行
         return 'toggle_powerup'
@@ -1548,6 +2358,9 @@ def restart_game():
     pending_high_score_check = None  # リスタート時にハイスコアチェックをクリア
     game_state = PygameGameState()
     game_state.add_observer(game_view)
+    # ADAシステムも新しいゲーム状態で初期化される
+    # JavaScript側のゲーム開始時刻を更新
+    js.gameStartTime = js.Date.now()
             `);
         }
         
@@ -1559,20 +2372,50 @@ def restart_game():
                 
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
+                // ガンマ補正を適用
+                if (accessibilitySettings.gamma !== 1.0) {
+                    ctx.filter = `brightness(${accessibilitySettings.gamma})`;
+                } else {
+                    ctx.filter = 'none';
+                }
+                
+                const colors = accessibilitySettings.highContrast ? 
+                              accessibilitySettings.canvasColors.highContrast : 
+                              accessibilitySettings.canvasColors.standard;
+                
                 for (const cmd of commands) {
                     switch (cmd.type) {
                         case 'fillRect':
-                            ctx.fillStyle = cmd.color;
+                            // 背景の場合は設定色を使用
+                            if (cmd.width === canvas.width && cmd.height === canvas.height) {
+                                ctx.fillStyle = colors.background;
+                            } else {
+                                ctx.fillStyle = cmd.color;
+                                // 高コントラストモードでラケットの場合
+                                if (accessibilitySettings.highContrast && cmd.color.includes('0, 255, 0')) {
+                                    ctx.fillStyle = colors.racket;
+                                }
+                            }
                             ctx.fillRect(cmd.x, cmd.y, cmd.width, cmd.height);
                             break;
                         case 'fillCircle':
                             ctx.fillStyle = cmd.color;
+                            // 高コントラストモードでの色変更
+                            if (accessibilitySettings.highContrast) {
+                                // パワーアップアイテムの場合
+                                if (cmd.radius === 15) {
+                                    ctx.fillStyle = colors.powerupColors.wide_racket;
+                                } else {
+                                    // ボールの場合
+                                    ctx.fillStyle = colors.ball;
+                                }
+                            }
                             ctx.beginPath();
                             ctx.arc(cmd.x, cmd.y, cmd.radius, 0, 2 * Math.PI);
                             ctx.fill();
                             break;
                         case 'fillText':
-                            ctx.fillStyle = cmd.color;
+                            ctx.fillStyle = accessibilitySettings.highContrast ? colors.text : cmd.color;
                             ctx.font = cmd.font;
                             ctx.fillText(cmd.text, cmd.x, cmd.y);
                             break;
@@ -1590,8 +2433,10 @@ def restart_game():
                 drawFrame(frameData);
                 performanceMonitor.update();
                 
-                // サウンドイベントの処理
-                processSoundEvents();
+                // サウンドイベント処理
+                if (soundSystem && frameData) {
+                    soundSystem.processSoundEvents(frameData);
+                }
                 
                 // パワーアップ表示を定期的に更新
                 if (Math.random() < 0.1) { // 10%の確率で更新（負荷軽減）
@@ -1600,36 +2445,20 @@ def restart_game():
                 
                 // ハイスコアチェック
                 checkPendingHighScore();
+                
+                // ADAシステムデバッグ情報の更新（開発者モード・5FPSに制限）
+                if (window.location.hash === '#debug') {
+                    const now = Date.now();
+                    if (now - debugUpdateTimer >= DEBUG_UPDATE_INTERVAL) {
+                        updateADADebugInfo();
+                        debugUpdateTimer = now;
+                    }
+                }
             } catch (error) {
                 console.error('Game loop error:', error);
             }
             
             gameLoopId = requestAnimationFrame(gameLoop);
-        }
-        
-        // サウンドイベントの処理
-        function processSoundEvents() {
-            if (!pyodide) return;
-            
-            try {
-                const soundEvents = pyodide.runPython('game_state.sound_events');
-                const events = soundEvents.toJs();
-                
-                if (events && events.length > 0) {
-                    // 各サウンドイベントを処理
-                    events.forEach(event => {
-                        if (Array.isArray(event)) {
-                            const [soundName, ...args] = event;
-                            soundSystem.playSound(soundName, ...args);
-                        }
-                    });
-                    
-                    // 処理したイベントをクリア
-                    pyodide.runPython('game_state.sound_events.clear()');
-                }
-            } catch (error) {
-                console.debug('Sound event processing error:', error);
-            }
         }
         
         // 保留中のハイスコアチェックを処理
@@ -1656,15 +2485,84 @@ def restart_game():
                 cancelAnimationFrame(gameLoopId);
             }
             gameLoopId = requestAnimationFrame(gameLoop);
-            
-            // BGMを開始
-            setTimeout(() => {
-                soundSystem.startBGM();
-            }, 1000); // 1秒後にBGM開始
+        }
+        
+        // サウンドの切り替え関数
+        function toggleSound() {
+            if (soundSystem) {
+                const newMuteState = !soundSystem.muted;
+                soundSystem.setMuted(newMuteState);
+                
+                const button = document.getElementById('soundToggle');
+                if (button) {
+                    if (newMuteState) {
+                        button.textContent = '🔇 サウンド OFF';
+                        button.style.opacity = '0.6';
+                    } else {
+                        button.textContent = '🔊 サウンド ON';
+                        button.style.opacity = '1.0';
+                    }
+                }
+            }
+        }
+        
+        // ADAデバッグ更新用のタイマー変数
+        let debugUpdateTimer = 0;
+        const DEBUG_UPDATE_INTERVAL = 200; // 200ms = 5FPS
+        
+        // ADAシステムデバッグ情報の更新
+        function updateADADebugInfo(forceUpdate = false) {
+            try {
+                const adaStatus = JSON.parse(pyodide.runPython('get_ada_system_status()'));
+                
+                // デバッグ情報の表示エリアを作成または更新
+                let debugPanel = document.getElementById('ada-debug-panel');
+                if (!debugPanel) {
+                    debugPanel = document.createElement('div');
+                    debugPanel.id = 'ada-debug-panel';
+                    debugPanel.style.cssText = `
+                        position: fixed;
+                        top: 100px;
+                        right: 20px;
+                        background: rgba(0, 0, 0, 0.8);
+                        color: white;
+                        padding: 10px;
+                        border-radius: 5px;
+                        font-family: monospace;
+                        font-size: 12px;
+                        z-index: 1000;
+                        max-width: 300px;
+                    `;
+                    document.body.appendChild(debugPanel);
+                }
+                
+                // ADAシステムの状態情報を表示
+                debugPanel.innerHTML = `
+                    <h4>ADA Debug Info</h4>
+                    <p>Miss Ratio: ${(adaStatus.miss_ratio * 100).toFixed(1)}%</p>
+                    <p>Speed Multiplier: ${adaStatus.speed_multiplier.toFixed(2)}</p>
+                    <p>Angle Randomness: ${adaStatus.angle_randomness.toFixed(2)}</p>
+                    <p>Total Attempts: ${adaStatus.total_attempts}</p>
+                    <h5>Recent Adjustments:</h5>
+                    <ul>
+                        ${adaStatus.last_adjustments.map(adj => 
+                            `<li>Miss: ${(adj.miss_ratio * 100).toFixed(1)}% → Speed: ${adj.new_speed_multiplier.toFixed(2)}</li>`
+                        ).join('')}
+                    </ul>
+                `;
+            } catch (error) {
+                console.debug('ADA debug info update error:', error);
+            }
         }
         
         // キーボードイベント
         document.addEventListener('keydown', function(event) {
+            // Aキーでアクセシビリティパネルのトグル
+            if (event.key === 'a' || event.key === 'A') {
+                toggleAccessibilityPanel();
+                return;
+            }
+            
             if (pyodide) {
                 try {
                     const result = pyodide.runPython(`handle_key_input('${event.key}')`);
@@ -1775,10 +2673,6 @@ def restart_game():
         }
         
         // モバイルコントロールボタンの追加
-        function toggleSound() {
-            soundSystem.toggle();
-        }
-        
         function addMobileControls() {
             const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
             
@@ -1873,6 +2767,67 @@ def restart_game():
         
         // ゲーム初期化開始
         initializeGame();
+        
+        // PWAインストール関数
+        let deferredPrompt;
+        
+        async function installPWA() {
+            if (deferredPrompt) {
+                // インストールプロンプトを表示
+                deferredPrompt.prompt();
+                
+                // ユーザーの選択を待つ
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response to install prompt: ${outcome}`);
+                
+                // 使用済みのプロンプトをクリア
+                deferredPrompt = null;
+                document.getElementById('installButton').style.display = 'none';
+            }
+        }
+        
+        // Service Worker更新通知（既に上部で登録済み）
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                // Service Workerが更新された場合
+                console.log('Service Worker updated');
+            });
+            
+            // PWAインストールプロンプト処理
+            window.addEventListener('beforeinstallprompt', (e) => {
+                // デフォルトのインストールプロンプトを防ぐ
+                e.preventDefault();
+                // 後で表示するために保存
+                deferredPrompt = e;
+                
+                // インストールボタンを表示（もしあれば）
+                const installButton = document.getElementById('installButton');
+                if (installButton) {
+                    installButton.style.display = 'block';
+                    
+                    installButton.addEventListener('click', async () => {
+                        if (deferredPrompt) {
+                            // インストールプロンプトを表示
+                            deferredPrompt.prompt();
+                            
+                            // ユーザーの選択を待つ
+                            const { outcome } = await deferredPrompt.userChoice;
+                            console.log(`User response to install prompt: ${outcome}`);
+                            
+                            // 使用済みのプロンプトをクリア
+                            deferredPrompt = null;
+                            installButton.style.display = 'none';
+                        }
+                    });
+                }
+            });
+            
+            // PWAインストール成功時の処理
+            window.addEventListener('appinstalled', () => {
+                console.log('Ultimate Squash Game was installed');
+                // Google Analytics等でトラッキング（オプション）
+            });
+        }
     </script>
 </body>
 </html>

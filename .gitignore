@@ -48,3 +48,5 @@ config.local.json
 htmlcov/
 *.cover
 .hypothesis/
+playwright-report/
+test-results/
