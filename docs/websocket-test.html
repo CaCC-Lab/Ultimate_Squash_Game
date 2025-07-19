@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket接続テスト</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .disconnected { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .connecting { background-color: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        #log { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; height: 300px; overflow-y: scroll; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>WebSocket接続テスト</h1>
+    
+    <div id="status" class="status disconnected">🔴 未接続</div>
+    
+    <button onclick="connect()">接続</button>
+    <button onclick="disconnect()">切断</button>
+    <button onclick="sendTest()">テストメッセージ送信</button>
+    <button onclick="clearLog()">ログクリア</button>
+    
+    <h3>ログ:</h3>
+    <div id="log"></div>
+    
+    <script>
+        let websocket = null;
+        
+        function log(message) {
+            const logElement = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            logElement.innerHTML += `[${time}] ${message}<br>`;
+            logElement.scrollTop = logElement.scrollHeight;
+            console.log(message);
+        }
+        
+        function updateStatus(status, message) {
+            const statusElement = document.getElementById('status');
+            statusElement.className = `status ${status}`;
+            
+            switch (status) {
+                case 'connected':
+                    statusElement.textContent = '🟢 接続中';
+                    break;
+                case 'connecting':
+                    statusElement.textContent = '🟡 接続中...';
+                    break;
+                case 'disconnected':
+                default:
+                    statusElement.textContent = '🔴 未接続';
+                    break;
+            }
+            
+            if (message) {
+                log(message);
+            }
+        }
+        
+        function connect() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                log('❗ 既に接続されています');
+                return;
+            }
+            
+            log('🔌 WebSocket接続を開始...');
+            updateStatus('connecting', 'WebSocket接続を試行中...');
+            
+            try {
+                websocket = new WebSocket('ws://localhost:8765');
+                
+                websocket.onopen = function(event) {
+                    log('✅ WebSocket接続成功!');
+                    updateStatus('connected', 'WebSocket接続が確立されました');
+                };
+                
+                websocket.onmessage = function(event) {
+                    log(`📨 メッセージ受信: ${event.data}`);
+                };
+                
+                websocket.onerror = function(error) {
+                    log(`❌ WebSocketエラー: ${error}`);
+                    updateStatus('disconnected', `WebSocketエラー: ${error}`);
+                };
+                
+                websocket.onclose = function(event) {
+                    log(`🔌 WebSocket接続が閉じられました (code: ${event.code}, reason: ${event.reason})`);
+                    updateStatus('disconnected', 'WebSocket接続が閉じられました');
+                };
+                
+            } catch (error) {
+                log(`❌ WebSocket接続エラー: ${error.message}`);
+                updateStatus('disconnected', `接続エラー: ${error.message}`);
+            }
+        }
+        
+        function disconnect() {
+            if (websocket) {
+                websocket.close();
+                log('🔌 接続を手動で切断しました');
+            } else {
+                log('❗ 接続されていません');
+            }
+        }
+        
+        function sendTest() {
+            if (websocket && websocket.readyState === WebSocket.OPEN) {
+                const testMessage = {
+                    type: 'game:request_state',
+                    payload: {}
+                };
+                websocket.send(JSON.stringify(testMessage));
+                log('📤 テストメッセージを送信しました');
+            } else {
+                log('❗ WebSocketが接続されていません');
+            }
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        // ページ読み込み時に自動接続
+        window.addEventListener('load', function() {
+            log('🌐 WebSocketテストページが読み込まれました');
+            log('💡 「接続」ボタンをクリックしてWebSocket接続をテストしてください');
+        });
+    </script>
+</body>
+</html>

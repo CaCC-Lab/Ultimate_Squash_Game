@@ -588,6 +588,108 @@
             color: #666;
             border-color: #666;
         }
+        
+        /* WebSocket接続ステータス */
+        .connection-status {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            background: rgba(26, 26, 46, 0.9);
+            color: #4ecdc4;
+            border: 2px solid #4ecdc4;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            z-index: 99;
+        }
+        
+        /* チャレンジシステムUI */
+        .challenge-container {
+            position: fixed;
+            top: 120px;
+            right: 20px;
+            z-index: 98;
+        }
+        
+        .challenge-button {
+            background: rgba(255, 193, 7, 0.9);
+            color: #1a1a2e;
+            border: 2px solid #ffc107;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .challenge-button:hover {
+            background: rgba(255, 193, 7, 1);
+            transform: translateY(-2px);
+        }
+        
+        .challenge-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            margin-top: 10px;
+            background: rgba(26, 26, 46, 0.95);
+            border: 2px solid #4ecdc4;
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 300px;
+            max-width: 400px;
+        }
+        
+        .challenge-selector h3 {
+            color: #4ecdc4;
+            margin: 0 0 15px 0;
+            text-align: center;
+        }
+        
+        .challenge-selector button {
+            background: rgba(78, 205, 196, 0.2);
+            color: #4ecdc4;
+            border: 1px solid #4ecdc4;
+            padding: 8px 16px;
+            border-radius: 6px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .challenge-selector button:hover {
+            background: rgba(78, 205, 196, 0.4);
+        }
+        
+        .challenge-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(78, 205, 196, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(78, 205, 196, 0.3);
+        }
+        
+        .challenge-item p {
+            margin: 0 0 8px 0;
+            color: #e0e6ed;
+            font-size: 0.9rem;
+        }
+        
+        .challenge-item button {
+            background: rgba(255, 193, 7, 0.8);
+            color: #1a1a2e;
+            border: 1px solid #ffc107;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        
+        .challenge-item button:hover {
+            background: rgba(255, 193, 7, 1);
+        }
     </style>
     
     <!-- ランキングシステムのスクリプト -->
@@ -597,6 +699,7 @@
     <script src="js/weekly-challenge.js"></script>
     <script src="js/challenge-evaluator.js"></script>
     <script src="js/challenge-rewards.js"></script>
+    <script type="module" src="js/bridge/python-js-bridge.js"></script>
     
     <!-- Phase 4: 並列初期化システムのスクリプト -->
     <!-- Phase 5A: ブラウザ適応タイムアウトシステム -->
@@ -755,6 +858,26 @@
         </div>
         
         <button id="soundToggle" onclick="toggleSound()">🔊 サウンド ON</button>
+        
+        <!-- WebSocket接続ステータス -->
+        <div class="connection-status" id="connectionStatus">
+            🔴 未接続
+        </div>
+        
+        <!-- チャレンジシステムUI -->
+        <div class="challenge-container">
+            <button id="challengeButton" class="challenge-button" onclick="openChallengeMenu()">
+                🏆 チャレンジ
+            </button>
+            <div id="challengeMenu" class="challenge-menu" style="display: none;">
+                <div class="challenge-selector">
+                    <h3>週替わりチャレンジ</h3>
+                    <div id="challengeList"></div>
+                    <button onclick="loadRandomChallenge()">ランダムチャレンジ</button>
+                    <button onclick="closeChallengeMenu()">閉じる</button>
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- エラーモーダル -->
@@ -885,6 +1008,7 @@
         }
         
         // グローバル変数
+        window.DEBUG_MODE = false;  // 本番環境ではfalseに設定
         let pyodide = null;
         let gameLoopId = null;  // gameLoop → gameLoopIdに変更してredeclarationエラーを回避
         let gameState = null;
@@ -892,6 +1016,8 @@
         let ctx = null;
         let soundSystem = null;  // サウンドシステム
         let performanceMonitor = null;
+        let pythonBridge = null;  // Python-JS Bridge
+        let challengeManager = null;  // チャレンジマネージャー
         
         // 新機能用グローバル変数
         let scoreRanking = null;
@@ -1027,6 +1153,25 @@
                     
                     oscillator.start();
                     oscillator.stop(this.audioContext.currentTime + 0.5);
+                };
+                
+                // ゲームオーバー音
+                this.sounds.gameOver = () => {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.type = 'sawtooth';
+                    oscillator.frequency.setValueAtTime(330, this.audioContext.currentTime);
+                    oscillator.frequency.exponentialRampToValueAtTime(165, this.audioContext.currentTime + 1.0);
+                    
+                    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 1.0);
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.sfxGain);
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + 1.0);
                 };
             }
             
@@ -1167,10 +1312,59 @@
                     this.stopBGM();
                 }
             }
+            
+            get muted() {
+                return !this.soundEnabled;
+            }
+            
+            setMuted(muteState) {
+                this.soundEnabled = !muteState;
+                const button = document.getElementById('soundToggle');
+                if (button) {
+                    if (muteState) {
+                        button.textContent = '🔇 サウンド OFF';
+                        button.classList.add('muted');
+                        this.stopBGM();
+                    } else {
+                        button.textContent = '🔊 サウンド ON';
+                        button.classList.remove('muted');
+                        if (this.isInitialized) {
+                            this.startBGM();
+                        }
+                    }
+                }
+            }
+            
+            processSoundEvents(frameData) {
+                // フレームデータに基づいてサウンドイベントを処理
+                if (!this.soundEnabled || !frameData) return;
+                
+                // ボールがパドルに衝突した場合
+                if (frameData.ballHit) {
+                    // ボールの速度に基づいてピッチを変化
+                    const speed = Math.sqrt(frameData.ballVelocityX**2 + frameData.ballVelocityY**2);
+                    const pitch = Math.min(2.0, 1.0 + speed / 10);
+                    this.playSound('ballHit', pitch);
+                }
+                
+                // スコアが変化した場合
+                if (frameData.scoreChanged) {
+                    this.playSound('scoreUp');
+                }
+                
+                // パワーアップを取得した場合
+                if (frameData.powerUpCollected) {
+                    this.playSound('powerUp');
+                }
+                
+                // ゲームオーバーの場合
+                if (frameData.gameOver) {
+                    this.playSound('gameOver');
+                }
+            }
         }
         
-        // グローバルサウンドシステム
-        const soundSystem = new SoundSystem();
+        // サウンドシステムはメイン初期化で作成される
         let gameStartTime = Date.now(); // ゲーム開始時刻を記録
         
         // アクセシビリティ設定用グローバル変数
@@ -1348,7 +1542,7 @@
             if (pendingScoreData) {
                 // オンラインランキングに送信
                 try {
-                    const gameMode = 'normal'; // TODO: 実際のゲームモードを取得
+                    const gameMode = gameState?.mode || 'normal'; // ゲームモードを取得（デフォルト: normal）
                     const duration = Math.floor((Date.now() - gameStartTime) / 1000); // 秒単位
                     
                     await window.rankingController.submitScore(
@@ -1597,6 +1791,10 @@ if game_state:
                 `);
             } catch (error) {
                 console.error('Failed to update game colors:', error);
+                // ユーザーへの通知（非侵襲的）
+                if (window.showNotification && typeof window.showNotification === 'function') {
+                    window.showNotification('色設定の更新に失敗しました', 'warning');
+                }
             }
         }
         
@@ -1748,13 +1946,21 @@ if game_state:
                 // サウンドシステムを初期化
                 soundSystem = new SoundSystem();
                 
+                // WebSocket接続ステータスを初期化
+                updateConnectionStatus('disconnected');
+                
                 // モバイルコントロールを追加
                 addMobileControls();
+                
+                // WebSocket接続を試行（非同期、失敗してもゲームは継続）
+                initializeWebSocketConnection();
                 
                 // ゲームループ開始
                 startGameLoop();
                 
-                console.log('🎮 Ultimate Squash Game loaded successfully with parallel initialization!');
+                if (window.DEBUG_MODE) {
+                    console.log('🎮 Ultimate Squash Game loaded successfully with parallel initialization!');
+                }
                 
             } catch (error) {
                 console.error('[Main] Game initialization continuation failed:', error);
@@ -1829,13 +2035,21 @@ if game_state:
                 // サウンドシステムを初期化
                 soundSystem = new SoundSystem();
                 
+                // WebSocket接続ステータスを初期化
+                updateConnectionStatus('disconnected');
+                
                 // モバイルコントロールを追加
                 addMobileControls();
+                
+                // WebSocket接続を試行（非同期、失敗してもゲームは継続）
+                initializeWebSocketConnection();
                 
                 // ゲームループ開始
                 startGameLoop();
                 
-                console.log('🎮 Ultimate Squash Game loaded successfully!');
+                if (window.DEBUG_MODE) {
+                    console.log('🎮 Ultimate Squash Game loaded successfully!');
+                }
                 
             } catch (error) {
                 showError(
@@ -2553,6 +2767,171 @@ def restart_game():
                         button.textContent = '🔊 サウンド ON';
                         button.style.opacity = '1.0';
                     }
+                }
+            }
+        }
+        
+        // WebSocket接続ステータス更新
+        function updateConnectionStatus(status) {
+            const statusElement = document.getElementById('connectionStatus');
+            if (statusElement) {
+                switch (status) {
+                    case 'connected':
+                        statusElement.textContent = '🟢 接続中';
+                        statusElement.style.color = '#4ecdc4';
+                        break;
+                    case 'connecting':
+                        statusElement.textContent = '🟡 接続中...';
+                        statusElement.style.color = '#ffc107';
+                        break;
+                    case 'disconnected':
+                    default:
+                        statusElement.textContent = '🔴 未接続';
+                        statusElement.style.color = '#ff6b6b';
+                        break;
+                }
+            }
+        }
+        
+        // チャレンジメニューの開閉
+        function openChallengeMenu() {
+            const menu = document.getElementById('challengeMenu');
+            if (menu) {
+                menu.style.display = 'block';
+                // 利用可能なチャレンジリストを読み込み
+                loadChallengeList();
+            }
+        }
+        
+        function closeChallengeMenu() {
+            const menu = document.getElementById('challengeMenu');
+            if (menu) {
+                menu.style.display = 'none';
+            }
+        }
+        
+        // チャレンジリストの読み込み
+        function loadChallengeList() {
+            const challengeList = document.getElementById('challengeList');
+            if (challengeList) {
+                challengeList.innerHTML = `
+                    <div class="challenge-item">
+                        <p>ハイスコアチャレンジ: 100点以上</p>
+                        <button onclick="startChallenge('high_score', {target: 100})">開始</button>
+                    </div>
+                    <div class="challenge-item">
+                        <p>速度チャレンジ: 30秒以内</p>
+                        <button onclick="startChallenge('time_limit', {limit: 30})">開始</button>
+                    </div>
+                    <div class="challenge-item">
+                        <p>精度チャレンジ: ミス5回以下</p>
+                        <button onclick="startChallenge('accuracy', {maxMisses: 5})">開始</button>
+                    </div>
+                `;
+            }
+        }
+        
+        // ランダムチャレンジの読み込み
+        function loadRandomChallenge() {
+            const challenges = [
+                { type: 'high_score', params: { target: Math.floor(Math.random() * 100) + 50 } },
+                { type: 'time_limit', params: { limit: Math.floor(Math.random() * 30) + 20 } },
+                { type: 'accuracy', params: { maxMisses: Math.floor(Math.random() * 10) + 3 } }
+            ];
+            
+            const randomChallenge = challenges[Math.floor(Math.random() * challenges.length)];
+            startChallenge(randomChallenge.type, randomChallenge.params);
+        }
+        
+        // チャレンジの開始
+        function startChallenge(type, params) {
+            // デバッグモード制御
+            const DEBUG = false;
+            if (DEBUG) {
+                console.log(`🏆 チャレンジ開始: ${type}`, params);
+            }
+            
+            // チャレンジデータをWebSocketで送信（実装予定）
+            if (window.pythonBridge && window.pythonBridge.sendMessage) {
+                window.pythonBridge.sendMessage({
+                    type: 'challenge_start',
+                    challenge: { type, params }
+                });
+            }
+            
+            // メニューを閉じる
+            closeChallengeMenu();
+            
+            // UI フィードバック
+            const button = document.getElementById('challengeButton');
+            if (button) {
+                button.textContent = `🏆 ${type} 実行中`;
+                button.style.background = 'rgba(40, 167, 69, 0.9)';
+            }
+        }
+        
+        // WebSocket接続の初期化を試行
+        async function initializeWebSocketConnection() {
+            // デバッグモード制御（本番環境ではfalseに設定）
+            const DEBUG = false;
+            const log = DEBUG ? console.log : () => {};
+            
+            log('🔌 initializeWebSocketConnection が呼び出されました');
+            
+            try {
+                log('📡 接続ステータスを"connecting"に更新中...');
+                updateConnectionStatus('connecting');
+                
+                log('📦 Python-JS Bridgeをインポート中...');
+                // Python-JS Bridge を動的にインポート
+                const { PythonJSBridge } = await import('./js/bridge/python-js-bridge.js');
+                log('✅ Python-JS Bridgeインポート成功');
+                
+                pythonBridge = new PythonJSBridge();
+                log('🔗 PythonJSBridgeインスタンス作成完了');
+                
+                // WebSocket接続を試行
+                log('🌐 WebSocket接続を試行中...');
+                await pythonBridge.connect();
+                log('WebSocket接続成功、ステータスを更新中...');
+                updateConnectionStatus('connected');
+                log('ステータス更新完了');
+                
+                // グローバルに設定
+                window.pythonBridge = pythonBridge;
+                
+                log('✅ WebSocket接続が確立されました');
+                
+                // チャレンジマネージャーの初期化（接続状態に関わらず一度だけ実行）
+                await initializeChallengeManager(log);
+                
+            } catch (error) {
+                console.error('❌ WebSocket接続エラー:', error);
+                updateConnectionStatus('disconnected');
+                
+                // オフラインモードでも基本機能は利用可能
+                await initializeChallengeManager(log);
+            }
+        }
+        
+        // チャレンジマネージャーの初期化を共通化
+        async function initializeChallengeManager(log = console.log) {
+            if (window.challengeManager) {
+                log('✅ チャレンジマネージャーは既に初期化されています');
+                return;
+            }
+            
+            try {
+                log('🎯 チャレンジマネージャーを初期化中...');
+                const { ChallengeGenerator } = await import('./js/weekly-challenge.js');
+                challengeManager = new ChallengeGenerator();
+                window.challengeManager = challengeManager;
+                log('✅ チャレンジマネージャーが初期化されました');
+            } catch (challengeError) {
+                console.warn('⚠️ チャレンジマネージャーの初期化に失敗:', challengeError.message);
+                // ユーザーへのフィードバック（非侵襲的な通知）
+                if (window.showNotification && typeof window.showNotification === 'function') {
+                    window.showNotification('一部の機能が利用できません', 'warning');
                 }
             }
         }

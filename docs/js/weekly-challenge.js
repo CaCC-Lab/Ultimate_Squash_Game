@@ -279,9 +279,21 @@ class ChallengeGenerator {
         // 条件を生成
         const condition = this.generateCondition(type, target, timeLimit, multiplier);
         
+        // 説明文の生成
+        let processedDescription = description;
+        if (typeof target === 'number') {
+            processedDescription = `${Math.floor(target * multiplier)}${description}`;
+        } else {
+            // 文字列の場合、targetをそのまま説明に埋め込む
+            processedDescription = description.replace('を発動してください', `(${target})を発動してください`)
+                                            .replace('の技術を使いこなそう', `(${target})の技術を使いこなそう`)
+                                            .replace('を成功させよう', `(${target})を成功させよう`)
+                                            .replace('を実行してマスターになろう', `(${target})を実行してマスターになろう`);
+        }
+        
         return {
             title: title,
-            description: `${Math.floor(typeof target === 'number' ? target * multiplier : target)}${description}`,
+            description: processedDescription,
             target: typeof target === 'number' ? Math.floor(target * multiplier) : target,
             timeLimit: timeLimit,
             condition: condition
@@ -349,5 +361,5 @@ if (typeof module !== 'undefined' && module.exports) {
 
 // ブラウザ環境でのグローバル利用
 if (typeof window !== 'undefined') {
-    window.ChallengeGenerator = new ChallengeGenerator();
+    window.ChallengeGenerator = ChallengeGenerator;
 }

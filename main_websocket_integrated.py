@@ -299,7 +299,7 @@ def main():
         engine.start_websocket_server_thread()
         
         # 4. ヘッドレスゲームループ実行
-        engine.run_game_loop(duration=30.0)  # 30秒間のテスト実行
+        engine.run_game_loop(duration=300.0)  # 5分間のテスト実行
         
         logger.info("ヘッドレスWebSocketゲームサーバーが正常に完了しました！")
         logger.info("🌐 ブラウザで docs/game.html を開いてゲームをお楽しみください")
