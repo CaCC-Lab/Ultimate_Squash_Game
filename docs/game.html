@@ -711,6 +711,146 @@
         .challenge-item button:hover {
             background: rgba(255, 193, 7, 1);
         }
+
+        /* Weekly Challenge UI Styles */
+        .weekly-challenge-section {
+            max-width: 640px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .challenge-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 10px;
+        }
+
+        .challenge-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .challenge-btn:first-child {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+        }
+
+        .challenge-btn:first-child:hover {
+            background: linear-gradient(135deg, #E55A2B, #E8851A);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .challenge-btn.normal-game {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .challenge-btn.normal-game:hover {
+            background: linear-gradient(135deg, #45a049, #3d8b40);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .challenge-progress {
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            border: 2px solid #333;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+
+        .challenge-info h3 {
+            color: #FF6B35;
+            margin: 0 0 8px 0;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .challenge-info p {
+            color: #FFF;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .challenge-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 12px;
+            color: #CCC;
+        }
+
+        .progress-bar {
+            background: #333;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, #4CAF50, #8BC34A);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        #challengeProgressText {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .exit-challenge-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            float: right;
+            transition: background 0.3s ease;
+        }
+
+        .exit-challenge-btn:hover {
+            background: #c82333;
+        }
+
+        /* Mobile Responsiveness for Challenge UI */
+        @media (max-width: 768px) {
+            .challenge-controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .challenge-btn {
+                width: 80%;
+                max-width: 300px;
+            }
+            
+            .challenge-stats {
+                flex-direction: column;
+                text-align: center;
+                gap: 5px;
+            }
+        }
     </style>
     
     <!-- ランキングシステムのスクリプト -->
@@ -802,6 +942,12 @@
             setTimeout(() => {
                 window.checkScriptAvailability();
                 
+                // ウィークリーチャレンジシステムを初期化
+                initializeChallengeSystem();
+                
+                // 保存された進捗を復元
+                loadChallengeProgress();
+                
                 // ベータテストプロンプトの表示（初回訪問かつ未拒否の場合）
                 if (!localStorage.getItem('beta_enrollment') && !localStorage.getItem('beta_declined')) {
                     const lastDeclined = localStorage.getItem('beta_declined');
@@ -829,6 +975,37 @@
             <button class="control-button" style="position: absolute; right: 20px; top: 20px;" onclick="window.rankingController.showRanking()">🌐 オンラインランキング</button>
         </header>
         
+        <!-- Weekly Challenge UI -->
+        <div id="weeklyChallenge" class="weekly-challenge-section" style="margin-bottom: 15px;">
+            <div class="challenge-controls">
+                <button id="challengeButton" class="challenge-btn" aria-label="ウィークリーチャレンジを開始">
+                    🏆 ウィークリーチャレンジ
+                </button>
+                <button id="normalGameButton" class="challenge-btn normal-game" aria-label="通常ゲームを開始">
+                    🎮 通常ゲーム
+                </button>
+            </div>
+            
+            <!-- Challenge Progress Display -->
+            <div id="challengeProgress" class="challenge-progress" style="display: none;">
+                <div class="challenge-info">
+                    <h3 id="challengeTitle">今週のチャレンジ</h3>
+                    <p id="challengeDescription">チャレンジを読み込み中...</p>
+                    <div class="challenge-stats">
+                        <span id="challengeTarget">目標: --</span>
+                        <span id="challengeTimeLeft">残り時間: --</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="challengeProgressBar" class="progress-fill"></div>
+                        <span id="challengeProgressText">0%</span>
+                    </div>
+                </div>
+                <button id="exitChallengeButton" class="exit-challenge-btn" aria-label="チャレンジを終了">
+                    ❌ チャレンジ終了
+                </button>
+            </div>
+        </div>
+
         <div class="canvas-wrapper">
             <canvas id="gameCanvas" width="640" height="480"></canvas>
             <div class="loading-overlay" id="loadingOverlay">
@@ -3304,6 +3481,343 @@ def restart_game():
             showError('ネットワークエラーまたは読み込みエラーが発生しました', event.reason);
         });
         
+        // ウィークリーチャレンジシステム統合
+        let weeklyChallenge = null;
+        let challengeManager = null;
+        let currentChallengeMode = false;
+        let challengeProgress = {
+            target: 0,
+            current: 0,
+            type: '',
+            startTime: null,
+            timeLimit: 0
+        };
+
+        // チャレンジシステムの初期化
+        function initializeChallengeSystem() {
+            try {
+                // ChallengeGeneratorが利用可能か確認
+                if (typeof ChallengeGenerator !== 'undefined') {
+                    challengeManager = new ChallengeGenerator();
+                    setupChallengeEventListeners();
+                    console.log('Weekly Challenge System initialized');
+                    
+                    // ベータテスターの場合は自動的にチャレンジボタンを表示
+                    if (window.betaTester && window.betaTester.betaEnabled) {
+                        document.getElementById('challengeButton').style.display = 'block';
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to initialize challenge system:', error);
+            }
+        }
+
+        // チャレンジイベントリスナーの設定
+        function setupChallengeEventListeners() {
+            const challengeButton = document.getElementById('challengeButton');
+            const normalGameButton = document.getElementById('normalGameButton');
+            const exitChallengeButton = document.getElementById('exitChallengeButton');
+
+            challengeButton.addEventListener('click', startWeeklyChallenge);
+            normalGameButton.addEventListener('click', startNormalGame);
+            exitChallengeButton.addEventListener('click', exitChallenge);
+        }
+
+        // ウィークリーチャレンジを開始
+        function startWeeklyChallenge() {
+            try {
+                weeklyChallenge = challengeManager.generateWeeklyChallenge(new Date());
+                currentChallengeMode = true;
+                
+                // チャレンジ情報をUIに表示
+                updateChallengeUI();
+                
+                // チャレンジ進捗を初期化
+                challengeProgress = {
+                    target: weeklyChallenge.target,
+                    current: 0,
+                    type: weeklyChallenge.type,
+                    startTime: Date.now(),
+                    timeLimit: weeklyChallenge.timeLimit * 1000 // ミリ秒に変換
+                };
+                
+                // 進捗をlocalStorageに保存
+                saveChallengeProgress();
+                
+                // ゲームをリスタート（チャレンジモードで）
+                if (pyodide) {
+                    pyodide.runPython('restart_game()');
+                    pyodide.runPython('game_state.challenge_mode = True');
+                    pyodide.runPython(`game_state.challenge_data = ${JSON.stringify(weeklyChallenge)}`);
+                }
+                
+                // アナリティクス追跡
+                if (window.gameAnalytics) {
+                    gameAnalytics.trackEvent('challenge_started', {
+                        challenge_type: weeklyChallenge.type,
+                        challenge_difficulty: weeklyChallenge.difficulty,
+                        challenge_id: weeklyChallenge.weekNumber
+                    });
+                }
+                
+                console.log('Weekly Challenge started:', weeklyChallenge);
+                
+            } catch (error) {
+                console.error('Failed to start weekly challenge:', error);
+                showError('チャレンジの開始に失敗しました', error.message);
+            }
+        }
+
+        // 通常ゲームを開始
+        function startNormalGame() {
+            currentChallengeMode = false;
+            
+            // チャレンジUIを非表示
+            document.getElementById('challengeProgress').style.display = 'none';
+            
+            // ゲームをリスタート（通常モードで）
+            if (pyodide) {
+                pyodide.runPython('restart_game()');
+                pyodide.runPython('game_state.challenge_mode = False');
+                pyodide.runPython('game_state.challenge_data = None');
+            }
+            
+            // ローカルストレージから進捗を削除
+            localStorage.removeItem('challenge_progress');
+            
+            console.log('Normal game started');
+        }
+
+        // チャレンジを終了
+        function exitChallenge() {
+            if (currentChallengeMode) {
+                currentChallengeMode = false;
+                weeklyChallenge = null;
+                
+                // チャレンジUIを非表示
+                document.getElementById('challengeProgress').style.display = 'none';
+                
+                // 通常ゲームに戻る
+                startNormalGame();
+                
+                // アナリティクス追跡
+                if (window.gameAnalytics) {
+                    gameAnalytics.trackEvent('challenge_exited', {
+                        progress_percentage: calculateProgressPercentage()
+                    });
+                }
+            }
+        }
+
+        // チャレンジUIを更新
+        function updateChallengeUI() {
+            if (!weeklyChallenge) return;
+            
+            const progressDiv = document.getElementById('challengeProgress');
+            const titleElement = document.getElementById('challengeTitle');
+            const descriptionElement = document.getElementById('challengeDescription');
+            const targetElement = document.getElementById('challengeTarget');
+            const timeLeftElement = document.getElementById('challengeTimeLeft');
+            
+            titleElement.textContent = weeklyChallenge.title;
+            descriptionElement.textContent = weeklyChallenge.description;
+            targetElement.textContent = `目標: ${weeklyChallenge.condition.requirement}`;
+            
+            // 時間制限の表示
+            if (challengeProgress.timeLimit > 0) {
+                updateTimeLeft();
+                setInterval(updateTimeLeft, 1000); // 1秒ごとに更新
+            } else {
+                timeLeftElement.textContent = '制限時間なし';
+            }
+            
+            progressDiv.style.display = 'block';
+        }
+
+        // 残り時間を更新
+        function updateTimeLeft() {
+            if (!challengeProgress.startTime || challengeProgress.timeLimit <= 0) return;
+            
+            const elapsed = Date.now() - challengeProgress.startTime;
+            const remaining = Math.max(0, challengeProgress.timeLimit - elapsed);
+            
+            if (remaining === 0) {
+                // 時間切れ
+                handleChallengeTimeout();
+                return;
+            }
+            
+            const minutes = Math.floor(remaining / 60000);
+            const seconds = Math.floor((remaining % 60000) / 1000);
+            
+            document.getElementById('challengeTimeLeft').textContent = 
+                `残り時間: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        // チャレンジタイムアウト処理
+        function handleChallengeTimeout() {
+            if (currentChallengeMode) {
+                showChallengeResult(false, 'タイムアップ！チャレンジ失敗');
+                
+                // アナリティクス追跡
+                if (window.gameAnalytics) {
+                    gameAnalytics.trackEvent('challenge_timeout', {
+                        challenge_type: weeklyChallenge.type,
+                        progress_percentage: calculateProgressPercentage()
+                    });
+                }
+            }
+        }
+
+        // チャレンジの進捗を更新（ゲームから呼び出される）
+        function updateChallengeProgress(gameData) {
+            if (!currentChallengeMode || !weeklyChallenge) return;
+            
+            let progress = 0;
+            
+            switch (weeklyChallenge.type) {
+                case 'score':
+                    progress = Math.max(gameData.player_score || 0, gameData.ai_score || 0);
+                    break;
+                case 'consecutive_hits':
+                    progress = gameData.consecutive_hits || 0;
+                    break;
+                case 'time_survival':
+                    progress = (Date.now() - challengeProgress.startTime) / 1000;
+                    break;
+                case 'special_action':
+                    progress = gameData.special_actions_performed || 0;
+                    break;
+            }
+            
+            challengeProgress.current = progress;
+            
+            // プログレスバーを更新
+            updateProgressBar();
+            
+            // 進捗を保存
+            saveChallengeProgress();
+            
+            // チャレンジ完了チェック
+            checkChallengeCompletion();
+        }
+
+        // プログレスバーを更新
+        function updateProgressBar() {
+            const percentage = calculateProgressPercentage();
+            const progressBar = document.getElementById('challengeProgressBar');
+            const progressText = document.getElementById('challengeProgressText');
+            
+            progressBar.style.width = `${Math.min(percentage, 100)}%`;
+            progressText.textContent = `${Math.floor(percentage)}%`;
+        }
+
+        // 進捗率を計算
+        function calculateProgressPercentage() {
+            if (challengeProgress.target === 0) return 0;
+            return Math.min((challengeProgress.current / challengeProgress.target) * 100, 100);
+        }
+
+        // チャレンジ完了をチェック
+        function checkChallengeCompletion() {
+            if (challengeProgress.current >= challengeProgress.target) {
+                showChallengeResult(true, 'チャレンジ達成！おめでとうございます！');
+                
+                // アナリティクス追跡
+                if (window.gameAnalytics) {
+                    gameAnalytics.trackEvent('challenge_completed', {
+                        challenge_type: weeklyChallenge.type,
+                        challenge_difficulty: weeklyChallenge.difficulty,
+                        completion_time: Date.now() - challengeProgress.startTime
+                    });
+                }
+            }
+        }
+
+        // チャレンジ結果を表示
+        function showChallengeResult(success, message) {
+            // モーダルでの結果表示（簡易版）
+            const resultModal = document.createElement('div');
+            resultModal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+            `;
+            
+            const resultContent = document.createElement('div');
+            resultContent.style.cssText = `
+                background: #1a1a2e;
+                color: white;
+                padding: 30px;
+                border-radius: 15px;
+                text-align: center;
+                max-width: 400px;
+                border: 3px solid ${success ? '#4CAF50' : '#dc3545'};
+            `;
+            
+            resultContent.innerHTML = `
+                <h2 style="color: ${success ? '#4CAF50' : '#dc3545'}; margin: 0 0 15px 0;">
+                    ${success ? '🏆 チャレンジ成功！' : '😞 チャレンジ失敗'}
+                </h2>
+                <p style="margin: 0 0 20px 0; font-size: 16px;">${message}</p>
+                <button onclick="this.parentElement.parentElement.remove(); exitChallenge();" 
+                        style="background: #007BFF; color: white; border: none; padding: 10px 20px; 
+                               border-radius: 5px; cursor: pointer; font-size: 16px;">
+                    OK
+                </button>
+            `;
+            
+            resultModal.appendChild(resultContent);
+            document.body.appendChild(resultModal);
+        }
+
+        // 進捗をローカルストレージに保存
+        function saveChallengeProgress() {
+            const progressData = {
+                challenge: weeklyChallenge,
+                progress: challengeProgress,
+                timestamp: Date.now()
+            };
+            localStorage.setItem('challenge_progress', JSON.stringify(progressData));
+        }
+
+        // 保存された進捗を読み込み
+        function loadChallengeProgress() {
+            try {
+                const saved = localStorage.getItem('challenge_progress');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    
+                    // 24時間以内の進捗のみ復元
+                    if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
+                        weeklyChallenge = data.challenge;
+                        challengeProgress = data.progress;
+                        currentChallengeMode = true;
+                        
+                        updateChallengeUI();
+                        updateProgressBar();
+                        
+                        console.log('Challenge progress restored');
+                        return true;
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load challenge progress:', error);
+            }
+            return false;
+        }
+
+        // グローバル関数として公開（Pythonから呼び出すため）
+        window.updateChallengeProgress = updateChallengeProgress;
+        window.checkChallengeCompletion = checkChallengeCompletion;
+
         // ゲーム初期化開始
         initializeGame();
         
