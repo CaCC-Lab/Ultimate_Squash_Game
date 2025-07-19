@@ -3,21 +3,25 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 
-// ChallengeGeneratorクラスを読み込む
-const challengeGeneratorCode = fs.readFileSync(
-  path.join(__dirname, '../../docs/js/weekly-challenge.js'), 
-  'utf8'
-);
+// ChallengeGeneratorクラスを非同期で読み込む
+let ChallengeGenerator;
 
-// Node.js環境でChallengeGeneratorを実行可能にする
-const vm = require('vm');
-const context = vm.createContext({ 
-  window: {}, 
-  module: { exports: {} },
-  console: console
+test.beforeAll(async () => {
+  const challengeGeneratorCode = await fs.promises.readFile(
+    path.join(__dirname, '../../docs/js/weekly-challenge.js'), 
+    'utf8'
+  );
+
+  // Node.js環境でChallengeGeneratorを実行可能にする
+  const vm = require('vm');
+  const context = vm.createContext({ 
+    window: {}, 
+    module: { exports: {} },
+    console: console
+  });
+  vm.runInContext(challengeGeneratorCode, context);
+  ChallengeGenerator = context.module.exports || context.window.ChallengeGenerator;
 });
-vm.runInContext(challengeGeneratorCode, context);
-const ChallengeGenerator = context.module.exports || context.window.ChallengeGenerator;
 
 test.describe('ChallengeGenerator Unit Tests', () => {
   let generator;

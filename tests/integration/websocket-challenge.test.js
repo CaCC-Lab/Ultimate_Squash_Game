@@ -13,7 +13,7 @@ class MockWebSocket {
     this.sentMessages = [];
     
     // 接続をシミュレート
-    setTimeout(() => {
+    this.connectionTimer = setTimeout(() => {
       this.readyState = MockWebSocket.OPEN;
       if (this.onopen) {
         this.onopen({ type: 'open' });
@@ -29,6 +29,10 @@ class MockWebSocket {
   }
   
   close() {
+    if (this.connectionTimer) {
+      clearTimeout(this.connectionTimer);
+      this.connectionTimer = null;
+    }
     this.readyState = MockWebSocket.CLOSED;
     if (this.onclose) {
       this.onclose({ type: 'close', code: 1000, reason: 'Normal closure' });
@@ -155,9 +159,17 @@ test.describe('WebSocket-Challenge Integration Tests', () => {
     // WebSocketエラーをシミュレート
     const originalWebSocket = MockWebSocket;
     global.MockWebSocket = class FailingWebSocket extends MockWebSocket {
-      constructor() {
-        super();
-        setTimeout(() => this.simulateError(), 5);
+      constructor(url) {
+        super(url);
+        this.errorTimer = setTimeout(() => this.simulateError(), 5);
+      }
+      
+      close() {
+        if (this.errorTimer) {
+          clearTimeout(this.errorTimer);
+          this.errorTimer = null;
+        }
+        super.close();
       }
     };
     

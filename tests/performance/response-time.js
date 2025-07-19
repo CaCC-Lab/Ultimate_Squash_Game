@@ -30,14 +30,12 @@ class PrecisionTimer {
     }
   }
   
-  measureAsync(label, asyncFn) {
-    return new Promise(async (resolve) => {
-      this.mark(`${label}_start`);
-      const result = await asyncFn();
-      this.mark(`${label}_end`);
-      const duration = this.measure(`${label}_start`, `${label}_end`);
-      resolve({ result, duration });
-    });
+  async measureAsync(label, asyncFn) {
+    this.mark(`${label}_start`);
+    const result = await asyncFn();
+    this.mark(`${label}_end`);
+    const duration = this.measure(`${label}_start`, `${label}_end`);
+    return { result, duration };
   }
 }
 

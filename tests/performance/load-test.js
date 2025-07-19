@@ -324,7 +324,7 @@ test.describe('Performance Under Load', () => {
     // 並行してさまざまな操作を実行
     for (let i = 0; i < concurrentOperations; i++) {
       promises.push(
-        new Promise((resolve) => {
+        Promise.resolve().then(() => {
           // サウンドイベント
           const events = harness.generateSoundEvents(operationsPerType);
           events.forEach(e => harness.soundSystem.processSoundEvents(e));
@@ -336,8 +336,6 @@ test.describe('Performance Under Load', () => {
           // WebSocketメッセージ
           const messages = harness.generateWebSocketMessages(operationsPerType);
           messages.forEach(m => harness.websocketManager.send(JSON.stringify(m)));
-          
-          resolve();
         })
       );
     }

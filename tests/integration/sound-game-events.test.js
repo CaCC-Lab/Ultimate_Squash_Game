@@ -329,29 +329,37 @@ test.describe('Sound-Game Integration Tests', () => {
     expect(soundSystem.getPlayedSoundsByType('scoreUp')).toHaveLength(scoreEvents.length);
   });
 
-  test('サウンドイベントのタイミングが正確', () => {
+  test('サウンドイベントのタイミングが正確', async () => {
     const startTime = Date.now();
+    const timers = [];
     
     // 一定間隔でイベントを発生
     const intervals = [100, 200, 300];
     intervals.forEach((interval, index) => {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         gameSimulator.simulateBallHit(3 + index, 3 + index);
       }, interval);
+      timers.push(timer);
     });
     
     // すべてのイベントが処理されるまで待つ
-    setTimeout(() => {
-      const ballHitSounds = soundSystem.getPlayedSoundsByType('ballHit');
-      expect(ballHitSounds).toHaveLength(3);
-      
-      // タイムスタンプが適切に記録されている
-      for (let i = 1; i < ballHitSounds.length; i++) {
-        const timeDiff = ballHitSounds[i].timestamp - ballHitSounds[i-1].timestamp;
-        expect(timeDiff).toBeGreaterThanOrEqual(90); // 多少の誤差を許容
-        expect(timeDiff).toBeLessThanOrEqual(110);
-      }
-    }, 400);
+    await new Promise(resolve => {
+      setTimeout(() => {
+        const ballHitSounds = soundSystem.getPlayedSoundsByType('ballHit');
+        expect(ballHitSounds).toHaveLength(3);
+        
+        // タイムスタンプが適切に記録されている
+        for (let i = 1; i < ballHitSounds.length; i++) {
+          const timeDiff = ballHitSounds[i].timestamp - ballHitSounds[i-1].timestamp;
+          expect(timeDiff).toBeGreaterThanOrEqual(90); // 多少の誤差を許容
+          expect(timeDiff).toBeLessThanOrEqual(110);
+        }
+        
+        // タイマーをクリーンアップ
+        timers.forEach(timer => clearTimeout(timer));
+        resolve();
+      }, 400);
+    });
   });
 
   test('無効なイベントデータでもクラッシュしない', () => {

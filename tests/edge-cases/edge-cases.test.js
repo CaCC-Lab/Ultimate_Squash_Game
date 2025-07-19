@@ -316,9 +316,14 @@ test.describe('Edge Cases', () => {
       
       // タイマーの精度低下をシミュレート（実際のブラウザでは自動的に発生）
       const startTime = Date.now();
+      const timeoutId = setTimeout(() => {}, 100);
+      
       await new Promise(resolve => {
         // バックグラウンドでは最小タイマー解像度が1秒になる
-        setTimeout(resolve, 100);
+        setTimeout(() => {
+          clearTimeout(timeoutId);
+          resolve();
+        }, 100);
       });
       const elapsed = Date.now() - startTime;
       

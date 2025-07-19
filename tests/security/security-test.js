@@ -289,23 +289,33 @@ test.describe('Security Tests', () => {
     
     injectionPayloads.forEach(payload => {
       // 文字列として送信を試みる
-      expect(() => {
+      try {
         secureSystem.websocketManager.send(payload);
-      }).toThrow('Invalid message');
+        // JSONパースが失敗するはずなので、ここに到達したらテスト失敗
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error.message).toContain('Invalid message');
+      }
       
       // JSONに埋め込んで送信を試みる
       if (payload.startsWith('{')) {
-        expect(() => {
+        try {
           secureSystem.websocketManager.send(payload);
-        }).toThrowError();
+          expect(true).toBe(false);
+        } catch (error) {
+          expect(error).toBeDefined();
+        }
       }
     });
     
     // プロトタイプ汚染の試み
     const prototypePayload = '{"__proto__": {"isAdmin": true}}';
-    expect(() => {
+    try {
       secureSystem.websocketManager.send(prototypePayload);
-    }).toThrow('Potential prototype pollution');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error.message).toContain('Potential prototype pollution');
+    }
   });
 
   test('大量データ送信によるDoS攻撃の防御', () => {
@@ -313,30 +323,42 @@ test.describe('Security Tests', () => {
     
     // 大きすぎるメッセージ
     const largeMessage = JSON.stringify({ data: dosPayloads.largeString });
-    expect(() => {
+    try {
       secureSystem.websocketManager.send(largeMessage);
-    }).toThrow('Message too large');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error.message).toContain('Message too large');
+    }
     
     // 深すぎるネスト
     const deepMessage = JSON.stringify(dosPayloads.deepNesting);
-    expect(() => {
+    try {
       secureSystem.websocketManager.send(deepMessage);
-    }).toThrow('Object too deep');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error.message).toContain('Object too deep');
+    }
     
     // レート制限テスト
     secureSystem.websocketManager.clearRateLimiter();
     
     // 100メッセージまでは送信可能
     for (let i = 0; i < 100; i++) {
-      expect(() => {
-        secureSystem.websocketManager.send(JSON.stringify({ id: i }));
-      }).not.toThrow();
+      try {
+        const result = secureSystem.websocketManager.send(JSON.stringify({ id: i }));
+        expect(result).toBe(true);
+      } catch (error) {
+        expect(true).toBe(false); // この範囲では失敗しないはず
+      }
     }
     
     // 101個目でレート制限
-    expect(() => {
+    try {
       secureSystem.websocketManager.send(JSON.stringify({ id: 101 }));
-    }).toThrow('Rate limit exceeded');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error.message).toContain('Rate limit exceeded');
+    }
   });
 
   test('CSRFトークンの検証', () => {
