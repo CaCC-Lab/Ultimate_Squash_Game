@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ベータテストシステム - テストページ</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            color: white;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .test-section {
+            background: #2a2a2a;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        button.danger {
+            background: #dc3545;
+        }
+        
+        button.danger:hover {
+            background: #c82333;
+        }
+        
+        .status {
+            background: #1a1a1a;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        .success {
+            color: #4CAF50;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        canvas {
+            border: 1px solid #444;
+            background: #000;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>ベータテストシステム - テストページ</h1>
+    
+    <div class="test-section">
+        <h2>1. ベータ登録テスト</h2>
+        <button onclick="testBetaEnrollment()">ベータ登録画面を表示</button>
+        <button onclick="checkBetaStatus()">ベータ状態を確認</button>
+        <button onclick="clearBetaData()" class="danger">ベータデータをクリア</button>
+        <div id="enrollment-status" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. フィードバックシステムテスト</h2>
+        <button onclick="showFeedbackForm()">フィードバックフォームを表示</button>
+        <button onclick="submitTestFeedback()">テストフィードバックを送信</button>
+        <button onclick="viewFeedbackHistory()">フィードバック履歴を表示</button>
+        <div id="feedback-status" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. ベータ機能テスト</h2>
+        <button onclick="testBetaFeatures()">ベータ機能の状態を確認</button>
+        <button onclick="toggleFeature('weekly_challenge')">ウィークリーチャレンジ切替</button>
+        <button onclick="toggleFeature('custom_paddles')">カスタムパドル切替</button>
+        <div id="features-status" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>4. UIテスト</h2>
+        <button onclick="showBetaDashboard()">ベータダッシュボードを表示</button>
+        <button onclick="showPaddleCustomizer()">パドルカスタマイザーを表示</button>
+        <button onclick="testNotifications()">通知システムをテスト</button>
+        <div id="ui-status" class="status"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>5. スクリーンショットテスト</h2>
+        <canvas id="test-canvas" width="400" height="300"></canvas>
+        <br>
+        <button onclick="captureScreenshot()">スクリーンショットを取得</button>
+        <div id="screenshot-status" class="status"></div>
+    </div>
+    
+    <!-- アナリティクスとベータテストシステムの読み込み -->
+    <script src="docs/js/analytics.js"></script>
+    <script src="docs/js/beta-test.js"></script>
+    
+    <script>
+        // テストキャンバスの初期化
+        const canvas = document.getElementById('test-canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // サンプル描画
+        function drawTestScene() {
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 400, 300);
+            
+            // ボール
+            ctx.fillStyle = '#fff';
+            ctx.beginPath();
+            ctx.arc(200, 150, 10, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // パドル
+            ctx.fillRect(50, 130, 10, 40);
+            ctx.fillRect(340, 130, 10, 40);
+            
+            // スコア
+            ctx.font = '20px Arial';
+            ctx.fillText('5 : 3', 180, 30);
+        }
+        
+        drawTestScene();
+        
+        // テスト関数
+        function testBetaEnrollment() {
+            if (window.betaTester) {
+                betaTester.showBetaEnrollment();
+                updateStatus('enrollment-status', 'ベータ登録画面を表示しました', 'success');
+            } else {
+                updateStatus('enrollment-status', 'ベータテストシステムが読み込まれていません', 'error');
+            }
+        }
+        
+        function checkBetaStatus() {
+            const enrollment = localStorage.getItem('beta_enrollment');
+            if (enrollment) {
+                const data = JSON.parse(enrollment);
+                updateStatus('enrollment-status', 
+                    `ベータ登録済み\nユーザーID: ${data.userId}\n登録日: ${new Date(data.enrolledAt).toLocaleString()}\n有効期限: ${new Date(data.expiresAt).toLocaleString()}`, 
+                    'success'
+                );
+            } else {
+                updateStatus('enrollment-status', 'ベータ未登録', 'error');
+            }
+        }
+        
+        function clearBetaData() {
+            if (confirm('本当にベータデータをクリアしますか？')) {
+                localStorage.removeItem('beta_enrollment');
+                localStorage.removeItem('beta_declined');
+                localStorage.removeItem('beta_feedbacks');
+                localStorage.removeItem('paddle_customization');
+                updateStatus('enrollment-status', 'ベータデータをクリアしました', 'success');
+                setTimeout(() => location.reload(), 1000);
+            }
+        }
+        
+        function showFeedbackForm() {
+            if (window.betaTester && betaTester.betaEnabled) {
+                betaTester.showFeedbackForm();
+                updateStatus('feedback-status', 'フィードバックフォームを表示しました', 'success');
+            } else {
+                updateStatus('feedback-status', 'ベータ登録が必要です', 'error');
+            }
+        }
+        
+        function submitTestFeedback() {
+            if (!window.betaTester || !betaTester.betaEnabled) {
+                updateStatus('feedback-status', 'ベータ登録が必要です', 'error');
+                return;
+            }
+            
+            const testFeedback = {
+                id: 'test_' + Date.now(),
+                userId: betaTester.betaUserId,
+                timestamp: new Date().toISOString(),
+                category: 'bug',
+                severity: 'minor',
+                title: 'テストフィードバック',
+                description: 'これはテストフィードバックです。システムが正常に動作しているか確認しています。',
+                frequency: 'once',
+                systemInfo: betaTester.getSystemInfo(),
+                gameState: { test: true }
+            };
+            
+            betaTester.saveFeedbackLocally(testFeedback);
+            updateStatus('feedback-status', 'テストフィードバックを保存しました', 'success');
+        }
+        
+        function viewFeedbackHistory() {
+            const feedbacks = JSON.parse(localStorage.getItem('beta_feedbacks') || '[]');
+            if (feedbacks.length > 0) {
+                const summary = feedbacks.map((fb, i) => 
+                    `${i + 1}. ${fb.title} (${fb.category}/${fb.severity}) - ${new Date(fb.timestamp).toLocaleDateString()}`
+                ).join('\n');
+                updateStatus('feedback-status', `フィードバック履歴 (${feedbacks.length}件):\n${summary}`, 'success');
+            } else {
+                updateStatus('feedback-status', 'フィードバック履歴はありません', 'error');
+            }
+        }
+        
+        function testBetaFeatures() {
+            if (window.betaTester) {
+                const features = betaTester.betaFeatures;
+                const summary = Object.entries(features).map(([key, enabled]) => 
+                    `${betaTester.getFeatureName(key)}: ${enabled ? '✓ 有効' : '✗ 無効'}`
+                ).join('\n');
+                updateStatus('features-status', `ベータ機能の状態:\n${summary}`, 'success');
+            } else {
+                updateStatus('features-status', 'ベータテストシステムが読み込まれていません', 'error');
+            }
+        }
+        
+        function toggleFeature(featureName) {
+            if (window.betaTester) {
+                betaTester.betaFeatures[featureName] = !betaTester.betaFeatures[featureName];
+                updateStatus('features-status', 
+                    `${betaTester.getFeatureName(featureName)}を${betaTester.betaFeatures[featureName] ? '有効' : '無効'}にしました`, 
+                    'success'
+                );
+                testBetaFeatures();
+            }
+        }
+        
+        function showBetaDashboard() {
+            if (window.betaTester && betaTester.betaEnabled) {
+                betaTester.showBetaDashboard();
+                updateStatus('ui-status', 'ベータダッシュボードを表示しました', 'success');
+            } else {
+                updateStatus('ui-status', 'ベータ登録が必要です', 'error');
+            }
+        }
+        
+        function showPaddleCustomizer() {
+            if (window.betaTester && betaTester.betaEnabled) {
+                betaTester.showPaddleCustomizer();
+                updateStatus('ui-status', 'パドルカスタマイザーを表示しました', 'success');
+            } else {
+                updateStatus('ui-status', 'ベータ登録が必要です', 'error');
+            }
+        }
+        
+        function testNotifications() {
+            if (window.betaTester) {
+                betaTester.showSuccessMessage('これはテスト通知です！');
+                updateStatus('ui-status', '通知を表示しました', 'success');
+            }
+        }
+        
+        function captureScreenshot() {
+            const dataUrl = canvas.toDataURL('image/png');
+            const preview = document.createElement('img');
+            preview.src = dataUrl;
+            preview.style.width = '200px';
+            preview.style.marginTop = '10px';
+            preview.style.border = '1px solid #444';
+            
+            const status = document.getElementById('screenshot-status');
+            status.innerHTML = 'スクリーンショットを取得しました:';
+            status.appendChild(document.createElement('br'));
+            status.appendChild(preview);
+            status.classList.add('success');
+            
+            console.log('Screenshot data URL length:', dataUrl.length);
+        }
+        
+        function updateStatus(elementId, message, type) {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.className = `status ${type}`;
+        }
+        
+        // 初期状態チェック
+        window.addEventListener('load', () => {
+            checkBetaStatus();
+            
+            // ベータシステムの状態を表示
+            if (window.betaTester) {
+                console.log('Beta tester system loaded:', betaTester);
+            }
+            
+            // アナリティクスの状態を表示
+            if (window.gameAnalytics) {
+                console.log('Analytics system loaded:', gameAnalytics);
+            }
+        });
+    </script>
+</body>
+</html>

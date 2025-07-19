@@ -21,6 +21,27 @@
     
     <title>Ultimate Squash Game - WebAssembly版</title>
     
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        
+        // プライバシー設定のデフォルト値
+        gtag('consent', 'default', {
+            'analytics_storage': 'denied',
+            'ad_storage': 'denied',
+            'wait_for_update': 500
+        });
+        
+        gtag('js', new Date());
+        // 測定IDは環境変数または設定ファイルから読み込む
+        gtag('config', 'G-XXXXXXXXXX', {
+            'anonymize_ip': true,
+            'send_page_view': false // 手動でページビューを制御
+        });
+    </script>
+    
     <!-- PWA Manifest -->
     <link rel="manifest" href="manifest.json">
     
@@ -708,6 +729,31 @@
     
     <script src="js/parallel-initializer.js"></script>
     
+    <!-- アナリティクスシステム -->
+    <script src="js/analytics.js"></script>
+    <script src="js/beta-test.js"></script>
+    
+    <!-- Google Analytics 4 -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+        // デフォルトで同意を拒否状態に設定（プライバシーファースト）
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        
+        // 初期状態では分析を無効化
+        gtag('consent', 'default', {
+            'analytics_storage': 'denied'
+        });
+        
+        // 基本設定（IPアドレスの匿名化を有効化）
+        gtag('config', 'G-XXXXXXXXXX', {
+            'anonymize_ip': true,
+            'allow_google_signals': false,
+            'allow_ad_personalization_signals': false
+        });
+    </script>
+    
     <!-- スクリプト読み込み確認用 -->
     <script>
         // グローバルなスクリプト読み込み状態の管理
@@ -755,6 +801,22 @@
         document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 window.checkScriptAvailability();
+                
+                // ベータテストプロンプトの表示（初回訪問かつ未拒否の場合）
+                if (!localStorage.getItem('beta_enrollment') && !localStorage.getItem('beta_declined')) {
+                    const lastDeclined = localStorage.getItem('beta_declined');
+                    const daysSinceDeclined = lastDeclined ? 
+                        (Date.now() - new Date(lastDeclined).getTime()) / (1000 * 60 * 60 * 24) : 999;
+                    
+                    // 拒否から7日以上経過、またはURLにbetaパラメータがある場合
+                    if (daysSinceDeclined > 7 || window.location.search.includes('beta=true')) {
+                        setTimeout(() => {
+                            if (window.betaTester) {
+                                betaTester.showBetaEnrollment();
+                            }
+                        }, 2000); // ゲーム開始2秒後に表示
+                    }
+                }
             }, 100); // 短い遅延でスクリプト読み込み完了を待つ
         });
     </script>
@@ -2069,6 +2131,7 @@ from typing import List, Dict, Optional, Callable
 from dataclasses import dataclass
 import math
 import random
+import json
 try:
     import js
 except ImportError:
@@ -2133,6 +2196,9 @@ class PygameGameState:
         self.observers = []
         self.canvas_width = 640
         self.canvas_height = 480
+        
+        # ゲーム開始時刻を記録
+        self.start_time = time.time()
         
         # マルチボール機能
         self.multi_ball_active = False
@@ -2343,6 +2409,15 @@ class PygameGameState:
                 # ADAシステム: ミスを記録
                 self.record_ada_miss()
                 self.is_gameover = True
+                
+                # アナリティクス: ゲーム終了イベント
+                try:
+                    duration = time.time() - self.start_time
+                    final_score = {"player": self.score.player_score, "ai": self.score.ai_score}
+                    winner = "ai"  # ボールを落としたのでAIの勝利
+                    js.gameAnalytics.trackGameEnd(json.dumps(final_score), duration, winner)
+                except:
+                    pass
         
         if (ball.y + ball.radius >= self.racket.y and 
             ball.x >= self.racket.x and ball.x <= self.racket.x + self.racket.size):
@@ -2358,6 +2433,12 @@ class PygameGameState:
             if self.active_powerups.get('extra_points', {}).get('active', False):
                 points *= 2
             self.score.player_score += points
+            
+            # アナリティクス: スコア変更をトラッキング
+            try:
+                js.gameAnalytics.trackScoreChange(self.score.player_score, self.score.ai_score)
+            except:
+                pass  # アナリティクスが利用できない場合は無視
             
             # マルチボール判定
             if (self.consecutive_hits >= self.multi_ball_threshold and 
@@ -2550,6 +2631,12 @@ game_state = PygameGameState()
 game_view = OptimizedWebCanvasView()
 game_state.add_observer(game_view)
 
+# アナリティクス: 初回ゲーム開始をトラッキング
+try:
+    js.gameAnalytics.trackGameStart("normal", "single_player")
+except:
+    pass
+
 def update_game(dt=0.016):
     if not game_state.is_paused and not game_state.is_gameover:
         for ball in game_state.balls[:]:  # コピーを作成（削除に対応）
@@ -2604,8 +2691,18 @@ pending_high_score_check = None
 def handle_key_input(key):
     if key == 'ArrowLeft' and game_state.racket.x > 0:
         game_state.update_racket_position(game_state.racket.x - 20)
+        # アナリティクス: アクションをトラッキング
+        try:
+            js.gameAnalytics.trackAction("paddle_move", True)
+        except:
+            pass
     elif key == 'ArrowRight' and game_state.racket.x < 590:
         game_state.update_racket_position(game_state.racket.x + 20)
+        # アナリティクス: アクションをトラッキング
+        try:
+            js.gameAnalytics.trackAction("paddle_move", True)
+        except:
+            pass
     elif key == ' ':
         game_state.is_paused = not game_state.is_paused
     elif key == 'r' or key == 'R':
@@ -2622,7 +2719,18 @@ def handle_key_input(key):
 def restart_game():
     global game_state, pending_high_score_check
     pending_high_score_check = None  # リスタート時にハイスコアチェックをクリア
+    
+    # アナリティクス: ゲーム終了イベント（再開の場合）
+    if hasattr(game_state, 'start_time') and game_state.start_time:
+        duration = time.time() - game_state.start_time
+        final_score = {"player": game_state.scores[0], "ai": game_state.scores[1]}
+        winner = "player" if game_state.scores[0] > game_state.scores[1] else "ai"
+        js.gameAnalytics.trackGameEnd(json.dumps(final_score), duration, winner)
+    
     game_state = PygameGameState()
+    
+    # アナリティクス: ゲーム開始イベント
+    js.gameAnalytics.trackGameStart("normal", "single_player")
     game_state.add_observer(game_view)
     # ADAシステムも新しいゲーム状態で初期化される
     # JavaScript側のゲーム開始時刻を更新
