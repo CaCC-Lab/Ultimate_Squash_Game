@@ -96,6 +96,27 @@ export default defineConfig({
         isMobile: true
       },
     },
+    
+    // ネットワーク条件テスト専用プロジェクト
+    {
+      name: 'network-conditions',
+      testMatch: ['**/network-conditions.spec.js', '**/network-performance.spec.js'],
+      use: { 
+        ...devices['Desktop Chrome'],
+        // ネットワークテスト用の設定
+        launchOptions: {
+          args: [
+            '--disable-web-security', 
+            '--allow-running-insecure-content',
+            '--disable-features=NetworkService', // ネットワーク制御のため
+          ]
+        },
+        // 長いタイムアウト設定（ネットワーク遅延を考慮）
+        actionTimeout: 30000,
+        navigationTimeout: 60000,
+      },
+      timeout: 120000, // 2分（ネットワーク条件テスト用）
+    },
   ],
 
   // 出力ディレクトリ

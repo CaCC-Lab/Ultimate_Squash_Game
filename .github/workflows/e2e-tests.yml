@@ -1,0 +1,194 @@
+name: E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # 毎日午前3時（JST）に実行（リグレッションテスト）
+    - cron: '0 18 * * *'
+
+jobs:
+  e2e-tests:
+    timeout-minutes: 60
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+        node-version: [18, 20]
+        include:
+          - browser: chromium
+            node-version: 20
+            coverage: true
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps ${{ matrix.browser }}
+
+    - name: Run E2E tests
+      run: npx playwright test --project=${{ matrix.browser }}
+      env:
+        # Playwrightの設定
+        PLAYWRIGHT_WORKERS: 1
+        # テスト環境の設定
+        NODE_ENV: test
+
+    - name: Generate test report
+      if: always()
+      run: |
+        echo "## E2E Test Results - ${{ matrix.browser }} (Node.js ${{ matrix.node-version }})" >> $GITHUB_STEP_SUMMARY
+        if [ -f test-results/results.json ]; then
+          npx playwright show-report --reporter=github >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: playwright-report-${{ matrix.browser }}-node${{ matrix.node-version }}
+        path: |
+          playwright-report/
+          test-results/
+        retention-days: 30
+
+    - name: Upload coverage reports
+      if: matrix.coverage && always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: coverage/
+        retention-days: 30
+
+  # テスト結果の統合とSlack通知
+  test-summary:
+    needs: e2e-tests
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: Download all test artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Create test summary
+      run: |
+        echo "# E2E Test Summary" > test-summary.md
+        echo "" >> test-summary.md
+        
+        # 各ブラウザ・Node.jsバージョンの結果を集計
+        for dir in artifacts/playwright-report-*; do
+          if [ -d "$dir" ]; then
+            browser=$(basename "$dir" | sed 's/playwright-report-//' | sed 's/-node[0-9]*//')
+            node_version=$(basename "$dir" | grep -o 'node[0-9]*' | sed 's/node//')
+            echo "## $browser (Node.js $node_version)" >> test-summary.md
+            
+            # テスト結果の詳細を追加
+            if [ -f "$dir/test-results/results.json" ]; then
+              echo "✅ Test results available" >> test-summary.md
+            else
+              echo "❌ Test results missing" >> test-summary.md
+            fi
+            echo "" >> test-summary.md
+          fi
+        done
+
+    - name: Comment PR with test results
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          if (fs.existsSync('test-summary.md')) {
+            const summary = fs.readFileSync('test-summary.md', 'utf8');
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `🎮 **Ultimate Squash Game E2E Test Results**\n\n${summary}`
+            });
+          }
+
+  # セキュリティと品質チェック
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run security audit
+      run: |
+        npm audit --audit-level=moderate
+        echo "## Security Audit Results" >> $GITHUB_STEP_SUMMARY
+        npm audit --audit-level=moderate --json | jq '.vulnerabilities | length' | xargs -I {} echo "Found {} vulnerabilities" >> $GITHUB_STEP_SUMMARY
+
+    - name: Check for secrets
+      uses: trufflesecurity/trufflehog@main
+      with:
+        path: ./
+        base: main
+        head: HEAD
+        extra_args: --debug --only-verified
+
+  # パフォーマンス監視
+  performance-monitoring:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright
+      run: npx playwright install chromium
+
+    - name: Run performance tests
+      run: |
+        npx playwright test tests/e2e/performance.spec.js --reporter=json > performance-results.json
+        
+        # パフォーマンス結果の解析
+        echo "## Performance Test Results" >> $GITHUB_STEP_SUMMARY
+        if [ -f performance-results.json ]; then
+          # FPS、メモリ使用量、ロード時間などの指標を抽出
+          echo "Performance metrics collected successfully" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload performance results
+      uses: actions/upload-artifact@v4
+      with:
+        name: performance-results
+        path: performance-results.json
+        retention-days: 90

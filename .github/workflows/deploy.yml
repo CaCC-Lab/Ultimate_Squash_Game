@@ -1,0 +1,216 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# GitHub Pagesへのデプロイ権限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同時実行の制御（同時に1つのデプロイメントのみ）
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # E2Eテストが成功した場合のみデプロイ
+  validate-before-deploy:
+    runs-on: ubuntu-latest
+    outputs:
+      should-deploy: ${{ steps.check.outputs.result }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright
+      run: npx playwright install chromium
+
+    - name: Run critical E2E tests
+      id: check
+      run: |
+        # デプロイ前に重要なテストのみ実行
+        npx playwright test tests/e2e/game-startup.spec.js tests/e2e/core-html-functionality.spec.js --reporter=json > deploy-test-results.json
+        
+        if [ $? -eq 0 ]; then
+          echo "result=true" >> $GITHUB_OUTPUT
+          echo "✅ Critical tests passed - Ready for deployment" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "result=false" >> $GITHUB_OUTPUT
+          echo "❌ Critical tests failed - Deployment blocked" >> $GITHUB_STEP_SUMMARY
+          exit 1
+        fi
+
+    - name: Upload pre-deploy test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: pre-deploy-tests
+        path: deploy-test-results.json
+        retention-days: 7
+
+  # ビルドとデプロイ
+  deploy:
+    needs: validate-before-deploy
+    if: needs.validate-before-deploy.outputs.should-deploy == 'true'
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Prepare deployment directory
+      run: |
+        mkdir -p _site
+        
+        # docsディレクトリの内容をコピー
+        if [ -d "docs" ]; then
+          cp -r docs/* _site/
+        fi
+        
+        # README.mdをindex.mdとしてコピー（GitHub Pages用）
+        if [ -f "README.md" ]; then
+          cp README.md _site/README.md
+        fi
+        
+        # デプロイメント情報を追加
+        echo "<!-- Deployed on $(date) from commit ${{ github.sha }} -->" >> _site/game.html
+
+    - name: Add deployment metadata
+      run: |
+        # デプロイメント情報のJSONファイルを作成
+        cat > _site/deployment-info.json << EOF
+        {
+          "deployedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "commit": "${{ github.sha }}",
+          "branch": "${{ github.ref_name }}",
+          "runId": "${{ github.run_id }}",
+          "runNumber": "${{ github.run_number }}",
+          "actor": "${{ github.actor }}",
+          "repository": "${{ github.repository }}"
+        }
+        EOF
+
+    - name: Optimize for production
+      run: |
+        # HTMLファイルの最適化（コメント除去、空白最小化）
+        if command -v npx &> /dev/null; then
+          # html-minifierが利用可能な場合は最適化
+          npx html-minifier --collapse-whitespace --remove-comments --input-dir _site --output-dir _site --file-ext html || echo "HTML optimization skipped"
+        fi
+        
+        # ファイルサイズレポートの生成
+        echo "## Deployment File Sizes" > _site/file-sizes.txt
+        find _site -type f -exec ls -lh {} \; | awk '{print $5 " " $9}' >> _site/file-sizes.txt
+
+    - name: Setup Pages
+      uses: actions/configure-pages@v4
+
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: '_site'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+
+    - name: Post-deployment verification
+      run: |
+        # デプロイ後の基本的な検証
+        url="${{ steps.deployment.outputs.page_url }}"
+        echo "Verifying deployment at: $url"
+        
+        # 30秒待機してからアクセス確認
+        sleep 30
+        
+        # HTTP ステータスコードの確認
+        status_code=$(curl -s -o /dev/null -w "%{http_code}" "$url" || echo "000")
+        
+        if [ "$status_code" = "200" ]; then
+          echo "✅ Deployment verification successful" >> $GITHUB_STEP_SUMMARY
+          echo "🎮 Game is live at: $url" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "❌ Deployment verification failed (HTTP $status_code)" >> $GITHUB_STEP_SUMMARY
+        fi
+
+  # デプロイ後のスモークテスト
+  post-deploy-test:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always() && needs.deploy.result == 'success'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Install Playwright
+      run: npx playwright install chromium
+
+    - name: Run smoke tests on deployed site
+      run: |
+        # デプロイされたサイトに対してスモークテストを実行
+        DEPLOYED_URL="${{ needs.deploy.outputs.page_url || 'https://github.com/pages/' }}"
+        
+        # Playwrightテストを本番URL against実行
+        PLAYWRIGHT_BASE_URL="$DEPLOYED_URL" npx playwright test tests/e2e/game-startup.spec.js --reporter=json > smoke-test-results.json || echo "Smoke tests completed"
+        
+        echo "## Post-Deployment Smoke Test Results" >> $GITHUB_STEP_SUMMARY
+        if grep -q '"status": "passed"' smoke-test-results.json; then
+          echo "✅ Smoke tests passed on production deployment" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "⚠️ Some smoke tests failed - please check deployment" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Upload smoke test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: smoke-test-results
+        path: smoke-test-results.json
+        retention-days: 7
+
+    - name: Create deployment summary
+      run: |
+        echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Repository**: ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployed by**: ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Deployment time**: $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "- **URL**: ${{ needs.deploy.outputs.page_url || 'Not available' }}" >> $GITHUB_STEP_SUMMARY

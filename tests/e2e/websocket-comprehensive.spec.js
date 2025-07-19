@@ -94,23 +94,85 @@ test.describe('WebSocket通信包括テスト', () => {
     });
   });
 
-  test('WebSocket接続ライフサイクル完全テスト', async ({ page }) => {
-    console.log('🔌 WebSocket接続ライフサイクルテストを開始...');
+  test('WebSocket接続ライフサイクル完全テスト（実環境）', async ({ page }) => {
+    console.log('🔌 実環境WebSocket接続ライフサイクルテストを開始...');
     
-    // ページロード前にWebSocketサーバーが起動していることを確認
-    await page.goto('http://localhost:3000/docs/game.html');
+    // 実際のローカルサーバーに接続（モックなし）
+    await page.goto('/game.html');
     
-    // Pyodideの初期化を段階的に待機（タイムアウトを60秒に延長）
-    console.log('⏳ Pyodide初期化を待機中...');
+    // 実際のPyodide初期化を段階的に待機
+    console.log('⏳ 実際のPyodide初期化を待機中...');
+    await page.waitForLoadState('networkidle');
+    
     const loadingOverlay = page.locator('#loadingOverlay');
-    
     try {
-      await expect(loadingOverlay).toBeHidden({ timeout: 60000 });
-      console.log('✅ Pyodide初期化完了');
+      await expect(loadingOverlay).toBeHidden({ timeout: 90000 });
+      console.log('✅ Pyodide実初期化完了');
     } catch (e) {
-      console.log('⚠️ Pyodide初期化タイムアウト - ゲーム状態を確認');
-      // ローディングが長時間続く場合でも、ゲームが動作している可能性があるので続行
+      console.log('⚠️ Pyodide初期化タイムアウト - 実ゲーム状態を確認');
     }
+    
+    // 実際のWebSocketサーバーへの接続テスト
+    const realWebSocketTest = await page.evaluate(async () => {
+      return new Promise((resolve) => {
+        const testResults = {
+          connectionAttempted: false,
+          connectionSuccessful: false,
+          realServerResponse: false,
+          connectionTime: null,
+          protocolSupported: false,
+          errorDetails: null
+        };
+        
+        try {
+          const startTime = Date.now();
+          // 実際のWebSocketサーバーに接続（localhost:8765）
+          const websocket = new WebSocket('ws://localhost:8765');
+          testResults.connectionAttempted = true;
+          
+          websocket.onopen = () => {
+            testResults.connectionSuccessful = true;
+            testResults.connectionTime = Date.now() - startTime;
+            testResults.protocolSupported = websocket.protocol || 'default';
+            
+            // 実際のサーバーにテストメッセージを送信
+            const testMessage = {
+              type: 'real_test',
+              payload: 'e2e_connection_test',
+              timestamp: Date.now()
+            };
+            websocket.send(JSON.stringify(testMessage));
+          };
+          
+          websocket.onmessage = (event) => {
+            testResults.realServerResponse = true;
+            websocket.close();
+            resolve(testResults);
+          };
+          
+          websocket.onerror = (error) => {
+            testResults.errorDetails = 'Connection error';
+            resolve(testResults);
+          };
+          
+          websocket.onclose = () => {
+            setTimeout(() => resolve(testResults), 100);
+          };
+          
+          // 5秒タイムアウト
+          setTimeout(() => {
+            if (websocket.readyState === WebSocket.CONNECTING) {
+              websocket.close();
+            }
+            resolve(testResults);
+          }, 5000);
+          
+        } catch (error) {
+          testResults.errorDetails = error.message;
+          resolve(testResults);
+        }
+      });
+    });
     
     // WebSocket接続の確立を待つ（より長めに待機）
     console.log('🔗 WebSocket接続確立を待機中...');

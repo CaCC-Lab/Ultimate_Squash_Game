@@ -1,5 +1,9 @@
 # Ultimate Squash Game
 
+![E2E Tests](https://github.com/CaCC-Lab/ultimate-squash-game/workflows/E2E%20Tests/badge.svg)
+![Code Quality](https://github.com/CaCC-Lab/ultimate-squash-game/workflows/Code%20Quality%20&%20Security/badge.svg)
+![Deploy](https://github.com/CaCC-Lab/ultimate-squash-game/workflows/Deploy%20to%20GitHub%20Pages/badge.svg)
+
 AI パワーアップ機能を搭載したクラシックなスカッシュゲーム。MVCパターンで実装され、TDDで開発されています。
 
 ## 🎮 ゲーム概要
@@ -82,6 +86,8 @@ src/
 
 ### テスト駆動開発（TDD）
 
+#### Python単体テスト
+
 ```bash
 # すべてのテストを実行
 python -m pytest
@@ -93,12 +99,60 @@ python -m pytest tests/test_game_state.py -v
 python -m pytest --cov=src tests/
 ```
 
+#### E2Eテスト（Playwright）
+
+```bash
+# E2Eテストの実行
+npm test
+
+# ヘッドフルモード（ブラウザ表示）
+npm run test:headed
+
+# UIモード（テストデバッガー）
+npm run test:ui
+
+# 特定のブラウザでテスト
+npm run test:chromium
+npm run test:firefox
+npm run test:webkit
+```
+
 ### テスト構成
+
+#### Python単体テスト
 - **特性化テスト**: 既存動作の記録（11テスト）
 - **ユニットテスト**: 各コンポーネントの単体テスト
   - GameState: 18テスト
   - GameController: 5テスト
 - **統合テスト**: MVC連携の検証
+
+#### E2Eテスト（WebAssembly版）
+- **ゲーム起動テスト**: HTML読み込み、Pyodide初期化の確認
+- **インタラクションテスト**: キーボード操作、マウス操作の確認
+- **サウンドシステムテスト**: AudioContext、BGM、効果音の確認
+- **ADAシステムテスト**: 適応的難易度調整の確認
+- **UIコントロールテスト**: ランキング、設定保存の確認
+- **レスポンシブテスト**: 異なる画面サイズでの動作確認
+- **クロスブラウザテスト**: Chromium、Firefox、WebKitでの確認
+- **パフォーマンステスト**: FPS、メモリリーク、安定性の確認
+
+### CI/CDパイプライン
+
+プロジェクトは包括的なCI/CDパイプラインを備えています：
+
+#### 自動テスト（GitHub Actions）
+- **E2E Tests**: すべてのプッシュとPRで自動実行
+- **Code Quality & Security**: 依存関係監査、コード品質メトリクス
+- **クロスブラウザ・Node.jsマトリックステスト**: 複数環境での検証
+
+#### 自動デプロイ
+- **GitHub Pages**: mainブランチへのマージ時にE2Eテスト通過後の自動デプロイ
+- **スモークテスト**: デプロイ後の本番環境での動作確認
+
+#### 品質監視
+- **セキュリティ監査**: 週次での脆弱性チェック
+- **パフォーマンス監視**: ファイルサイズ、読み込み時間の追跡
+- **テストカバレッジ**: 自動的なカバレッジレポート生成
 
 ### 開発規約
 - **TDD必須**: テストファースト開発
