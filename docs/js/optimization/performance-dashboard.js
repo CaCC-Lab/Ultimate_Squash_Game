@@ -10,6 +10,7 @@ export class PerformanceDashboard {
         this.isVisible = false;
         this.updateInterval = null;
         this.dashboardElement = null;
+        this.bundleMetrics = null;
         this.charts = {
             fps: null,
             memory: null,
@@ -183,6 +184,14 @@ export class PerformanceDashboard {
                     <div class="metric-value">
                         <span class="label">接続タイプ:</span>
                         <span id="connection-type" class="value">-</span>
+                    </div>
+                </div>
+                
+                <!-- Python Bundle 情報 (Gemini最適化) -->
+                <div class="metric-card bundle">
+                    <div id="bundle-info">
+                        <h4>🚀 Python Bundle (待機中...)</h4>
+                        <p>バンドルローダー初期化中...</p>
                     </div>
                 </div>
                 
@@ -368,6 +377,35 @@ export class PerformanceDashboard {
                 margin-bottom: 5px;
                 color: #ffaa88;
             }
+            
+            /* Python Bundle 情報スタイル */
+            .metric-card.bundle {
+                background: linear-gradient(135deg, #1a1a2e, #16213e);
+                border: 1px solid #3498db;
+            }
+            
+            .bundle-recommendations {
+                margin-top: 10px;
+                padding-top: 8px;
+                border-top: 1px solid #444;
+                font-size: 10px;
+            }
+            
+            .bundle-recommendations ul {
+                margin: 5px 0 0 0;
+                padding-left: 12px;
+            }
+            
+            .bundle-recommendations li {
+                margin-bottom: 3px;
+                color: #88aaff;
+            }
+            
+            /* バンドル最適化レベルのカラーリング */
+            .metric-value.excellent { color: #00ff88; }
+            .metric-value.good { color: #88ff00; }
+            .metric-value.warning { color: #ffaa00; }
+            .metric-value.error { color: #ff4444; }
             
             .dashboard-footer {
                 display: flex;
@@ -856,6 +894,93 @@ export class PerformanceDashboard {
         }
         
         console.log('[Performance Dashboard] Metrics reset');
+    }
+    
+    /**
+     * Pythonバンドルメトリクスの更新（Gemini提案バンドリング統合）
+     */
+    updateBundleMetrics(bundleStats) {
+        if (!bundleStats) return;
+        
+        this.bundleMetrics = bundleStats;
+        
+        // ダッシュボードが表示されている場合のみ更新
+        if (!this.isVisible) return;
+        
+        const bundleInfoElement = document.getElementById('bundle-info');
+        if (!bundleInfoElement) return;
+        
+        const metrics = bundleStats.loadMetrics;
+        const performance = bundleStats.performance;
+        
+        bundleInfoElement.innerHTML = `
+            <h4>🚀 Python Bundle (Gemini最適化)</h4>
+            <div class="metric-row">
+                <span>最適化レベル:</span>
+                <span class="metric-value ${this.getOptimizationClass(metrics.optimizationLevel)}">${metrics.optimizationLevel}</span>
+            </div>
+            <div class="metric-row">
+                <span>バンドルサイズ:</span>
+                <span class="metric-value">${this.formatBytes(metrics.bundleSize)}</span>
+            </div>
+            <div class="metric-row">
+                <span>ロード時間:</span>
+                <span class="metric-value">${metrics.loadTime.toFixed(2)}ms</span>
+            </div>
+            <div class="metric-row">
+                <span>パース時間:</span>
+                <span class="metric-value">${metrics.parseTime.toFixed(2)}ms</span>
+            </div>
+            <div class="metric-row">
+                <span>キャッシュ:</span>
+                <span class="metric-value ${metrics.cacheHit ? 'good' : 'warning'}">${metrics.cacheHit ? 'HIT' : 'MISS'}</span>
+            </div>
+            <div class="metric-row">
+                <span>効率性:</span>
+                <span class="metric-value ${this.getEfficiencyClass(performance.efficiency)}">${performance.efficiency}%</span>
+            </div>
+            ${bundleStats.recommendations.length > 0 ? 
+                `<div class="bundle-recommendations">
+                    <strong>推奨:</strong>
+                    <ul>${bundleStats.recommendations.map(rec => `<li>${rec}</li>`).join('')}</ul>
+                </div>` : ''
+            }
+        `;
+        
+        console.log('[Performance Dashboard] Bundle metrics updated:', bundleStats);
+    }
+    
+    /**
+     * 最適化レベルのCSSクラス取得
+     */
+    getOptimizationClass(level) {
+        switch (level) {
+            case 'precompiled': return 'excellent';
+            case 'bundled': return 'good';
+            case 'fallback': return 'warning';
+            default: return 'error';
+        }
+    }
+    
+    /**
+     * 効率性のCSSクラス取得
+     */
+    getEfficiencyClass(efficiency) {
+        if (efficiency >= 80) return 'excellent';
+        if (efficiency >= 60) return 'good';
+        if (efficiency >= 40) return 'warning';
+        return 'error';
+    }
+    
+    /**
+     * バイトサイズのフォーマット
+     */
+    formatBytes(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     }
     
     /**

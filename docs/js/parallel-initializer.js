@@ -43,6 +43,10 @@ class ParallelInitializer {
             this.loadPerformanceTracker();
         }
         
+        // Python Bundle Loader の統合（Gemini提案のバンドリング最適化）
+        this.pythonBundleLoader = null;
+        this.loadPythonBundleLoader();
+        
         console.log('[Parallel Initializer] Initialized with', this.loadingStages.length, 'stages');
         console.log('[Parallel Initializer] Browser optimizations:', this.browserOptimizations);
     }
@@ -57,6 +61,19 @@ class ParallelInitializer {
             console.log('[Parallel Initializer] Performance tracker loaded dynamically');
         } catch (error) {
             console.warn('[Parallel Initializer] Could not load performance tracker:', error);
+        }
+    }
+    
+    /**
+     * Python Bundle Loader の動的読み込み
+     */
+    async loadPythonBundleLoader() {
+        try {
+            const { PythonBundleLoader } = await import('./optimization/python-bundle-loader.js');
+            this.pythonBundleLoader = new PythonBundleLoader();
+            console.log('[Parallel Initializer] Python Bundle Loader integrated');
+        } catch (error) {
+            console.warn('[Parallel Initializer] Could not load Python Bundle Loader:', error);
         }
     }
     
@@ -226,6 +243,29 @@ class ParallelInitializer {
             this.performanceTracker.recordStage('pyodide_packages_loaded');
         }
         
+        // Python Bundle Loader による最適化読み込み（Gemini提案のバンドリング実装）
+        if (this.pythonBundleLoader) {
+            console.log('[Parallel Initializer] Starting Python bundle optimization...');
+            this.emit('stageProgress', { stage: 'pyodide', progress: 85, message: 'Pythonバンドル最適化中...' });
+            
+            try {
+                const gameInstance = await this.pythonBundleLoader.initializePyodideWithBundle(window.pyodide);
+                window.gameInstance = gameInstance;
+                
+                if (this.performanceTracker) {
+                    this.performanceTracker.recordStage('python_bundle_optimized');
+                }
+                
+                console.log('[Parallel Initializer] Python bundle optimization successful');
+            } catch (error) {
+                console.warn('[Parallel Initializer] Python bundle optimization failed, using fallback:', error);
+                
+                if (this.performanceTracker) {
+                    this.performanceTracker.recordStage('python_bundle_fallback');
+                }
+            }
+        }
+        
         this.initializationStatus.pyodideReady = true;
         this.initializationStatus.stages.pyodide = {
             completed: true,
@@ -236,7 +276,7 @@ class ParallelInitializer {
         this.emit('stageCompleted', { 
             stage: 'pyodide', 
             duration: Date.now() - startTime,
-            message: 'Pyodide初期化完了'
+            message: 'Pyodide初期化完了（バンドル最適化済み）'
         });
         
         return true;
