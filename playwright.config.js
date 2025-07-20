@@ -151,7 +151,7 @@ export default defineConfig({
       port: 3000,
       timeout: 10000,
       reuseExistingServer: !process.env.CI,
-      cwd: '.',
+      cwd: './docs',  // docsディレクトリでHTTPサーバーを起動
       stdout: 'pipe',
       stderr: 'pipe'
     }

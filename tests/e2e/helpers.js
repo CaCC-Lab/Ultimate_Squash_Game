@@ -38,7 +38,7 @@ export const TIMEOUTS = {
   gameAction: parseInt(process.env.E2E_TIMEOUT_GAME_ACTION || '50', 10),
   navigation: parseInt(process.env.E2E_TIMEOUT_NAVIGATION || '5000', 10),
   pageLoad: parseInt(process.env.E2E_TIMEOUT_PAGE_LOAD || '3000', 10),
-  pyodideLoad: parseInt(process.env.E2E_TIMEOUT_PYODIDE_LOAD || '30000', 10),
+  pyodideLoad: parseInt(process.env.E2E_TIMEOUT_PYODIDE_LOAD || '60000', 10), // 60秒に延長してPyodide初期化を確実に
   animation: parseInt(process.env.E2E_TIMEOUT_ANIMATION || '200', 10),
   gameStart: parseInt(process.env.E2E_TIMEOUT_GAME_START || '1000', 10),
 };
@@ -126,7 +126,7 @@ export async function toggleRankingModal(page) {
  * @param {import('@playwright/test').Page} page
  */
 export async function loadGamePage(page) {
-  await page.goto('/docs/game.html');
+  await page.goto('/game.html');  // HTTPサーバーがdocsディレクトリで起動するため /game.html で直接アクセス可能
 
   // ローディング画面が非表示になるまで待機
   const loadingOverlay = page.locator(SELECTORS.loadingOverlay);
