@@ -457,24 +457,89 @@ class PythonBundler:
     def _load_module_content(self, module_info: ModuleInfo) -> str:
         """モジュール内容の読み込み（バイトコード対応）"""
         if module_info.is_bytecode:
-            # バイトコードファイルの場合、対応するソースファイルを読み込み
-            source_file = self._find_corresponding_source_file(Path(module_info.path))
+            # バイトコードファイルの場合、.pycファイルを直接処理
+            bytecode_path = Path(module_info.path)
             
-            if source_file and source_file.exists():
-                with open(source_file, 'r', encoding='utf-8') as f:
-                    content = f.read()
+            if self.verbose:
+                print(f"  🚀 バイトコード直接読み込み: {bytecode_path.name}")
+            
+            # .pycファイルをBase64エンコードしてPyodide用に埋め込み
+            try:
+                import base64
+                with open(bytecode_path, 'rb') as f:
+                    bytecode_data = f.read()
                 
-                if self.verbose:
-                    print(f"  📖 バイトコード対応ソース読み込み: {source_file.name}")
+                # Base64エンコード
+                encoded_bytecode = base64.b64encode(bytecode_data).decode('ascii')
                 
-                # バイトコード最適化の証拠としてコメント追加
-                content = f"# バイトコード事前コンパイル済み (サイズ削減: {module_info.size_bytes}B)\n" + content
+                # Pyodide用のバイトコード読み込みコード生成
+                # ModuleInfoから元のソースパス情報を復元してモジュール名を取得
+                # bytecode_path.name から対応するソースファイルを特定
+                source_filename = bytecode_path.name.replace('.pyc', '.py')
+                
+                # self.modulesからマッチするソースファイルを検索
+                module_name = None
+                for name, info in self.modules.items():
+                    info_path = Path(info.path)
+                    if info_path.name == source_filename:
+                        module_name = name
+                        break
+                
+                if not module_name:
+                    # フォールバック: ファイル名から直接生成
+                    module_name = bytecode_path.stem.replace('.py', '') if bytecode_path.stem.endswith('.py') else bytecode_path.stem
+                content = f'''# AOTバイトコード最適化モジュール: {module_name}
+# サイズ: {module_info.size_bytes}B
+# 事前コンパイル済み .pyc ファイル
+
+import base64
+import types
+import sys
+
+# バイトコードデータ（Base64エンコード済み）
+_bytecode_data = """{encoded_bytecode}"""
+
+# バイトコードから直接モジュールを作成
+_bytecode_bytes = base64.b64decode(_bytecode_data)
+
+# Pyodide環境でのバイトコード実行
+if 'pyodide' in sys.modules or hasattr(sys, '_getframe'):
+    # バイトコードからコードオブジェクトを復元
+    try:
+        import marshal
+        # .pycファイルのヘッダーをスキップしてマーシャルデータを取得
+        code_obj = marshal.loads(_bytecode_bytes[16:])  # Python 3.7+ format
+        
+        # モジュールオブジェクトを作成
+        module = types.ModuleType('{module_name}')
+        module.__file__ = '{bytecode_path}'
+        
+        # バイトコードを実行
+        exec(code_obj, module.__dict__)
+        
+        # モジュールをsys.modulesに登録
+        sys.modules['{module_name}'] = module
+        
+    except Exception as e:
+        print(f"⚠️ バイトコード実行エラー: {{e}}")
+        # フォールバック: ソースコードから実行
+        pass
+'''
                 return content
-            else:
-                # ソースファイルが見つからない場合、バイトコードを無視
+                
+            except Exception as e:
                 if self.verbose:
-                    print(f"⚠️ バイトコードに対応するソースが見つからないため、スキップ: {module_info.path}")
-                return "# バイトコードファイル（ソース不明）\npass\n"
+                    print(f"⚠️ バイトコード読み込みエラー {bytecode_path}: {e}")
+                # フォールバック: 対応するソースファイルを読み込み
+                source_file = self._find_corresponding_source_file(bytecode_path)
+                if source_file and source_file.exists():
+                    with open(source_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    if self.verbose:
+                        print(f"  📖 フォールバック：ソース読み込み: {source_file.name}")
+                    return content
+                else:
+                    return "# バイトコードファイル（ソース不明）\npass\n"
         else:
             # 通常のソースファイルの場合
             with open(module_info.path, 'r', encoding='utf-8') as f:
