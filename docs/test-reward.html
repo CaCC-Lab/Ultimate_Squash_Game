@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>報酬表示UIテスト</title>
+    <link rel="stylesheet" href="css/reward-display.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .test-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 30px;
+            border-radius: 10px;
+            border: 2px solid #333;
+        }
+        .test-button {
+            background: linear-gradient(135deg, #FF6B35, #F7931E);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            background: linear-gradient(135deg, #E55A2B, #E8851A);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .error { background: rgba(220, 53, 69, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🧪 報酬表示UIテスト</h1>
+        <p>このページは報酬表示システムの動作確認用です。</p>
+        
+        <div class="test-controls">
+            <button class="test-button" onclick="testRewardUI()">報酬表示UIテスト</button>
+            <button class="test-button" onclick="testChallengeCompletion()">チャレンジ完了シミュレート</button>
+            <button class="test-button" onclick="checkDependencies()">依存関係チェック</button>
+        </div>
+        
+        <div id="status" class="status">
+            テストを実行してください...
+        </div>
+    </div>
+
+    <!-- 必要なJSファイルを読み込み -->
+    <script src="js/weekly-challenge-persistence.js"></script>
+    <script src="js/challenge-rewards.js"></script>
+    <script src="js/reward-display-ui.js"></script>
+    <script src="js/weekly-challenge-integration.js"></script>
+    
+    <script>
+        let statusDiv = document.getElementById('status');
+        
+        function updateStatus(message, type = 'normal') {
+            statusDiv.innerHTML = message;
+            statusDiv.className = 'status ' + type;
+        }
+        
+        function checkDependencies() {
+            updateStatus('依存関係をチェック中...', 'normal');
+            
+            const deps = {
+                'RewardDisplayUI': !!window.RewardDisplayUI,
+                'rewardDisplayUI': !!window.rewardDisplayUI,
+                'WeeklyChallengeIntegration': !!window.WeeklyChallengeIntegration,
+                'ChallengeRewards': !!window.ChallengeRewards,
+                'WeeklyChallengePersistence': !!window.WeeklyChallengePersistence
+            };
+            
+            let html = '<h3>依存関係チェック結果:</h3><ul>';
+            let allOk = true;
+            
+            Object.entries(deps).forEach(([name, available]) => {
+                html += `<li>${available ? '✅' : '❌'} ${name}</li>`;
+                if (!available) allOk = false;
+            });
+            
+            html += '</ul>';
+            html += `<p><strong>総合判定: ${allOk ? '✅ すべて利用可能' : '❌ 一部欠如'}</strong></p>`;
+            
+            updateStatus(html, allOk ? 'success' : 'error');
+        }
+        
+        function testRewardUI() {
+            updateStatus('報酬表示UIテストを実行中...', 'normal');
+            
+            if (!window.rewardDisplayUI) {
+                updateStatus('❌ RewardDisplayUIが初期化されていません', 'error');
+                return;
+            }
+            
+            try {
+                // テスト用報酬データ
+                const rewardData = {
+                    totalPoints: 1850,
+                    titles: ['スコアマスター', 'コンボキング', 'スピードスター'],
+                    badges: ['初回達成', '15連続ヒット', 'パワーアップ収集家', '3分以内クリア'],
+                    achievements: [
+                        {
+                            id: 'score_2000',
+                            name: 'スコアマスター',
+                            description: '2000点以上を達成',
+                            icon: '🏆',
+                            points: 300
+                        },
+                        {
+                            id: 'combo_15',
+                            name: 'コンボキング',
+                            description: '15回連続ヒット達成',
+                            icon: '🔥',
+                            points: 250
+                        },
+                        {
+                            id: 'speed_clear',
+                            name: 'スピードスター',
+                            description: '3分以内でクリア',
+                            icon: '⚡',
+                            points: 200
+                        }
+                    ],
+                    summary: {
+                        basePoints: 800,
+                        bonusPoints: 500,
+                        achievementPoints: 750,
+                        streakPoints: 100,
+                        rankingPoints: 50
+                    }
+                };
+                
+                const challengeData = {
+                    id: 'test-challenge-2024',
+                    name: 'マスターチャレンジ',
+                    type: 'score',
+                    difficulty: 'hard'
+                };
+                
+                const gameStats = {
+                    score: 2420,
+                    gameDuration: 165000, // 2分45秒
+                    missCount: 3,
+                    powerupsUsed: 4,
+                    maxCombo: 22,
+                    consecutiveHits: 18,
+                    totalHits: 35
+                };
+                
+                // 報酬表示を実行
+                window.rewardDisplayUI.show(rewardData, challengeData, gameStats);
+                
+                updateStatus('✅ 報酬表示UIテスト実行成功！報酬画面が表示されているはずです。', 'success');
+                
+            } catch (error) {
+                updateStatus(`❌ 報酬表示UIテスト失敗: ${error.message}`, 'error');
+                console.error('Reward UI test error:', error);
+            }
+        }
+        
+        function testChallengeCompletion() {
+            updateStatus('チャレンジ完了シミュレーションを実行中...', 'normal');
+            
+            if (!window.WeeklyChallengeIntegration) {
+                updateStatus('❌ WeeklyChallengeIntegrationが利用できません', 'error');
+                return;
+            }
+            
+            try {
+                // インスタンス作成
+                const integration = new WeeklyChallengeIntegration();
+                
+                // モックチャレンジを設定
+                integration.currentChallenge = {
+                    id: 'simulation-test-1',
+                    title: 'シミュレーションチャレンジ',
+                    type: 'score',
+                    difficulty: 'intermediate',
+                    target: 2000,
+                    description: '2000点以上を獲得してマスターの称号を獲得せよ！',
+                    reward: {
+                        points: 600,
+                        badges: ['シミュレーター', 'テスター'],
+                        titles: ['デバッグマスター']
+                    }
+                };
+                
+                // ゲームセッションを設定
+                integration.gameSession = {
+                    startTime: Date.now() - 200000, // 3分20秒前に開始
+                    sessionStats: {
+                        score: 2180,
+                        hits: 28,
+                        duration: 200000,
+                        maxCombo: 16,
+                        ballSpeed: 8,
+                        paddleSize: 85
+                    }
+                };
+                
+                // チャレンジ完了評価データ
+                const evaluation = {
+                    completed: true,
+                    score: 2180,
+                    progress: 100,
+                    duration: 200000,
+                    missCount: 4,
+                    powerupsUsed: 3,
+                    maxCombo: 16,
+                    consecutiveHits: 14,
+                    totalHits: 28,
+                    specialActions: ['powerup_collected', 'combo_achieved', 'speed_boost']
+                };
+                
+                // チャレンジ完了処理を実行
+                integration.onChallengeCompleted(evaluation);
+                
+                updateStatus('✅ チャレンジ完了シミュレーション成功！統合された報酬表示が実行されました。', 'success');
+                
+            } catch (error) {
+                updateStatus(`❌ チャレンジ完了シミュレーション失敗: ${error.message}`, 'error');
+                console.error('Challenge completion simulation error:', error);
+            }
+        }
+        
+        // ページ読み込み完了時に依存関係チェック
+        window.addEventListener('load', function() {
+            setTimeout(checkDependencies, 1000);
+        });
+    </script>
+</body>
+</html>
