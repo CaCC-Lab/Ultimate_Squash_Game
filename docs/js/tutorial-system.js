@@ -90,6 +90,12 @@ class TutorialSystem {
      * チュートリアルを開始
      */
     async start(forceStart = false) {
+        // 多重実行防止
+        if (this.isActive && !forceStart) {
+            console.warn('Tutorial is already active');
+            return false;
+        }
+        
         this.isActive = true;
         this.currentStep = 0;
         this.isForceStarted = forceStart;

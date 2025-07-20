@@ -48,6 +48,18 @@ test.describe('WebSocket統合基本テスト', () => {
   test('WebSocket接続テスト', async ({ page }) => {
     console.log('🔌 WebSocket接続テストを開始...');
     
+    // 動的ポート読み込み（ファイルが存在する場合）
+    let websocketPort = 8765; // デフォルト
+    try {
+      const fs = require('fs');
+      if (fs.existsSync('websocket_port.txt')) {
+        websocketPort = parseInt(fs.readFileSync('websocket_port.txt', 'utf8'));
+        console.log(`📡 動的WebSocketポート検出: ${websocketPort}`);
+      }
+    } catch (error) {
+      console.log('⚠️ ポートファイル読み込み失敗、デフォルトポート使用');
+    }
+    
     // ゲームページを開く
     await page.goto('http://localhost:3000/docs/game.html');
     

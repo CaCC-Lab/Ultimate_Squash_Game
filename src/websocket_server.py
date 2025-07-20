@@ -178,18 +178,39 @@ class GameWebSocketServer:
         asyncio.create_task(self.broadcast("powerup:collected", powerup_data))
 
 async def start_server(host="localhost", port=8765, game_engine=None):
-    """WebSocketサーバーを起動"""
+    """WebSocketサーバーを起動（ポート競合チェック付き）"""
     server = GameWebSocketServer(game_engine)
     
-    # ゲームループを開始
-    asyncio.create_task(server.game_loop())
-    
-    # WebSocketサーバーを開始（簡潔な形式）
-    start_server_coro = websockets.serve(server.handle_client, host, port)
-    
-    await start_server_coro
-    logger.info(f"WebSocket server started on ws://{host}:{port}")
-    await asyncio.Future()  # 永続的に実行
+    # ポート競合チェック
+    import socket
+    for attempt_port in range(port, port + 10):  # 10ポート範囲で試行
+        try:
+            # ポートが使用可能かチェック
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.bind((host, attempt_port))
+            
+            # ゲームループを開始
+            asyncio.create_task(server.game_loop())
+            
+            # WebSocketサーバーを開始
+            start_server_coro = websockets.serve(server.handle_client, host, attempt_port)
+            
+            await start_server_coro
+            logger.info(f"WebSocket server started on ws://{host}:{attempt_port}")
+            
+            # ポート情報をファイルに保存（テスト用）
+            with open("websocket_port.txt", "w") as f:
+                f.write(str(attempt_port))
+            
+            await asyncio.Future()  # 永続的に実行
+            
+        except OSError as e:
+            if attempt_port == port + 9:  # 最後の試行
+                logger.error(f"All ports {port}-{port+9} are in use")
+                raise e
+            else:
+                logger.warning(f"Port {attempt_port} is in use, trying next port...")
+                continue
 
 # スタンドアロン実行用
 if __name__ == "__main__":
