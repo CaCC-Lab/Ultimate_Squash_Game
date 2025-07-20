@@ -130,14 +130,59 @@ class WeeklyChallengeIntegration {
         this.challengeProgress.completedAt = Date.now();
         this.challengeProgress.finalScore = evaluation.score;
         
-        // 報酬を計算
-        const reward = this.challengeRewards.calculateReward(
+        // ゲーム統計を取得
+        const gameStats = {
+            score: evaluation.score,
+            gameDuration: evaluation.duration || (Date.now() - this.gameSession?.startTime) || 0,
+            missCount: evaluation.missCount || 0,
+            powerupsUsed: evaluation.powerupsUsed || 0,
+            maxCombo: evaluation.maxCombo || 0,
+            consecutiveHits: evaluation.consecutiveHits || 0,
+            totalHits: evaluation.totalHits || 0,
+            specialActions: evaluation.specialActions || []
+        };
+        
+        // ChallengeRewardsクラスを使用して詳細な報酬を計算
+        let detailedReward = null;
+        if (window.ChallengeRewards) {
+            const rewardsCalculator = new ChallengeRewards();
+            
+            // 追加データ（連続クリア数、ランキングなど）
+            const additionalData = {
+                streakCount: this.getStreakCount(),
+                rank: null, // TODO: ランキングシステムから取得
+                totalPlayers: null // TODO: ランキングシステムから取得
+            };
+            
+            // 詳細な報酬計算
+            detailedReward = rewardsCalculator.calculateTotalReward(
+                this.currentChallenge,
+                gameStats,
+                additionalData
+            );
+        }
+        
+        // 既存の報酬計算（フォールバック）
+        const basicReward = this.challengeRewards.calculateReward(
             this.currentChallenge,
             evaluation.score
         );
         
+        // 報酬データをマージ
+        const reward = detailedReward || basicReward;
+        
         this.challengeProgress.reward = reward;
         this.saveChallengeProgress();
+        
+        // 永続化システムに進捗を保存
+        if (window.weeklyChallengePersistence) {
+            window.weeklyChallengePersistence.saveProgress(this.currentChallenge.id, {
+                score: evaluation.score,
+                completedAt: new Date().toISOString(),
+                attempts: (this.challengeProgress.attempts || 0) + 1,
+                metadata: gameStats
+            });
+        }
         
         // 報酬通知を表示
         this.showRewardNotification(reward);
@@ -146,14 +191,27 @@ class WeeklyChallengeIntegration {
         this.notifyListeners('challengeCompleted', {
             challenge: this.currentChallenge,
             evaluation: evaluation,
-            reward: reward
+            reward: reward,
+            gameStats: gameStats
         });
         
         console.log('チャレンジ完了!', {
             challenge: this.currentChallenge.title,
             score: evaluation.score,
-            reward: reward
+            reward: reward,
+            gameStats: gameStats
         });
+    }
+    
+    /**
+     * 連続クリア数を取得
+     */
+    getStreakCount() {
+        if (!window.weeklyChallengePersistence) return 0;
+        
+        const stats = window.weeklyChallengePersistence.getStatistics();
+        // TODO: 実際の連続クリア数計算ロジックを実装
+        return 0;
     }
     
     /**
@@ -310,19 +368,58 @@ class WeeklyChallengeIntegration {
      * @param {Object} reward - 報酬オブジェクト
      */
     showRewardNotification(reward) {
-        if (!this.uiControls.rewardNotification) return;
-        
-        const notification = this.uiControls.rewardNotification;
-        notification.querySelector('.points-earned').textContent = `${reward.points}ポイント獲得！`;
-        notification.querySelector('.badges-earned').textContent = reward.badges.length > 0 ? 
-            `バッジ獲得: ${reward.badges.join(', ')}` : '';
-        
-        notification.classList.remove('hidden');
-        
-        // 3秒後に自動で閉じる
-        setTimeout(() => {
-            notification.classList.add('hidden');
-        }, 3000);
+        // 新しい報酬表示UIを使用
+        if (window.rewardDisplayUI) {
+            // 報酬データの詳細を準備
+            const rewardData = {
+                totalPoints: reward.points || 0,
+                titles: reward.titles || [],
+                badges: reward.badges || [],
+                achievements: reward.achievements || [],
+                summary: reward.summary || {
+                    basePoints: reward.basePoints || reward.points || 0,
+                    bonusPoints: reward.bonusPoints || 0,
+                    achievementPoints: reward.achievementPoints || 0,
+                    streakPoints: reward.streakPoints || 0,
+                    rankingPoints: reward.rankingPoints || 0
+                }
+            };
+            
+            // チャレンジデータ
+            const challengeData = {
+                id: this.currentChallenge.id,
+                name: this.currentChallenge.title || this.currentChallenge.name,
+                type: this.currentChallenge.type,
+                difficulty: this.currentChallenge.difficulty
+            };
+            
+            // ゲーム統計
+            const gameStats = this.gameSession ? this.gameSession.sessionStats : {
+                score: reward.score || 0,
+                gameDuration: Date.now() - (this.gameSession?.startTime || Date.now()),
+                missCount: 0,
+                powerupsUsed: 0,
+                maxCombo: 0
+            };
+            
+            // 新しい報酬表示UIを表示
+            window.rewardDisplayUI.show(rewardData, challengeData, gameStats);
+        } else {
+            // フォールバック: 既存の簡易通知を使用
+            if (!this.uiControls.rewardNotification) return;
+            
+            const notification = this.uiControls.rewardNotification;
+            notification.querySelector('.points-earned').textContent = `${reward.points}ポイント獲得！`;
+            notification.querySelector('.badges-earned').textContent = reward.badges.length > 0 ? 
+                `バッジ獲得: ${reward.badges.join(', ')}` : '';
+            
+            notification.classList.remove('hidden');
+            
+            // 3秒後に自動で閉じる
+            setTimeout(() => {
+                notification.classList.add('hidden');
+            }, 3000);
+        }
     }
     
     /**

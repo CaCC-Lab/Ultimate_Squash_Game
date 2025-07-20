@@ -1,0 +1,585 @@
+/**
+ * 報酬表示UIのスタイルシート
+ * アニメーション、レスポンシブ対応、ダークモード対応
+ */
+
+/* オーバーレイ */
+.reward-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* パーティクルキャンバス */
+.reward-particle-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+/* メインコンテナ */
+.reward-container {
+    position: relative;
+    width: 90%;
+    max-width: 600px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    transform: translateY(20px);
+    opacity: 0;
+    animation: slideUpFadeIn 0.5s ease-out 0.2s forwards;
+}
+
+/* ステージの基本スタイル */
+.reward-stage {
+    padding: 40px;
+    text-align: center;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+/* タイトルスタイル */
+.reward-title {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 10px;
+    background: linear-gradient(45deg, #ff6b6b, #ff8e53);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.reward-challenge-name {
+    font-size: 1.5rem;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+/* メイン報酬表示 */
+.reward-main {
+    margin: 20px 0;
+}
+
+.reward-points-large {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.points-number {
+    font-size: 4rem;
+    font-weight: bold;
+    color: #ff6b6b;
+    line-height: 1;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.points-label {
+    font-size: 1.2rem;
+    color: #666;
+    margin-top: 10px;
+}
+
+/* 称号獲得 */
+.reward-title-earned {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 30px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.title-icon {
+    font-size: 1.5rem;
+}
+
+/* ブレークダウンステージ */
+.breakdown-title {
+    font-size: 1.8rem;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+.points-breakdown {
+    width: 100%;
+    max-width: 400px;
+    margin: 0 auto 30px;
+}
+
+.breakdown-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transform: translateX(-20px);
+    opacity: 0;
+}
+
+.item-icon {
+    font-size: 1.5rem;
+    margin-right: 10px;
+}
+
+.item-label {
+    flex: 1;
+    text-align: left;
+    color: #555;
+    font-weight: 500;
+}
+
+.item-points {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #ff6b6b;
+}
+
+.breakdown-total {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px;
+    margin-top: 20px;
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+    color: white;
+    border-radius: 10px;
+    font-size: 1.3rem;
+    font-weight: bold;
+    box-shadow: 0 4px 20px rgba(255, 107, 107, 0.3);
+}
+
+.total-label {
+    font-size: 1.1rem;
+}
+
+.total-points {
+    font-size: 1.5rem;
+}
+
+/* 実績セクション */
+.achievements-earned {
+    margin-top: 30px;
+    width: 100%;
+}
+
+.achievements-earned h4 {
+    font-size: 1.3rem;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.achievements-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    justify-content: center;
+}
+
+.achievement-badge {
+    background: white;
+    border: 2px solid #f0f0f0;
+    border-radius: 15px;
+    padding: 15px;
+    width: 150px;
+    text-align: center;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    transform: scale(0);
+}
+
+.badge-icon {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.badge-name {
+    font-weight: bold;
+    color: #333;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.badge-description {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+/* アクションステージ */
+.congrats-message {
+    margin-bottom: 30px;
+}
+
+.congrats-message h3 {
+    font-size: 2rem;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.congrats-message p {
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.congrats-message strong {
+    color: #ff6b6b;
+    font-size: 1.3rem;
+}
+
+/* アクションボタン */
+.reward-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+    max-width: 300px;
+    margin: 0 auto 30px;
+}
+
+.reward-button {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    transform: translateY(20px);
+    opacity: 0;
+}
+
+.reward-button.primary {
+    background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.reward-button.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+}
+
+.reward-button.secondary {
+    background: white;
+    color: #ff6b6b;
+    border: 2px solid #ff6b6b;
+}
+
+.reward-button.secondary:hover {
+    background: #ff6b6b;
+    color: white;
+}
+
+.reward-button.tertiary {
+    background: #f0f0f0;
+    color: #666;
+}
+
+.reward-button.tertiary:hover {
+    background: #e0e0e0;
+}
+
+/* シェアセクション */
+.share-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.share-section p {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.share-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.share-button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    color: #333;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.share-button:hover {
+    background: #f0f0f0;
+    transform: translateY(-1px);
+}
+
+.share-button.twitter {
+    border-color: #1DA1F2;
+    color: #1DA1F2;
+}
+
+.share-button.twitter:hover {
+    background: #1DA1F2;
+    color: white;
+}
+
+/* トーストメッセージ */
+.reward-toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    z-index: 10001;
+    animation: slideUpFadeIn 0.3s ease-out;
+}
+
+/* アニメーション定義 */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUpFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleUp {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes bounceIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes shine {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+/* アニメーションクラス */
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+.animate-slide-down {
+    animation: slideDown 0.5s ease-out forwards;
+}
+
+.animate-slide-in {
+    animation: slideIn 0.5s ease-out forwards;
+}
+
+.animate-slide-up {
+    animation: slideUpFadeIn 0.5s ease-out forwards;
+}
+
+.animate-scale-up {
+    animation: scaleUp 0.5s ease-out forwards;
+}
+
+.animate-bounce-in {
+    animation: bounceIn 0.6s ease-out forwards;
+}
+
+.animate-shine {
+    background-size: 200% 100%;
+    animation: shine 2s linear infinite;
+}
+
+.animate-pulse {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.fade-out {
+    animation: fadeIn 0.3s ease-out reverse forwards;
+}
+
+/* モバイル対応 */
+@media (max-width: 600px) {
+    .reward-container {
+        width: 95%;
+        margin: 10px;
+    }
+    
+    .reward-stage {
+        padding: 30px 20px;
+        min-height: 350px;
+    }
+    
+    .reward-title {
+        font-size: 2rem;
+    }
+    
+    .points-number {
+        font-size: 3rem;
+    }
+    
+    .breakdown-item {
+        padding: 12px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .achievement-badge {
+        width: 120px;
+        padding: 12px;
+    }
+    
+    .reward-actions {
+        max-width: 100%;
+    }
+    
+    .reward-button {
+        font-size: 1rem;
+        padding: 12px 24px;
+    }
+}
+
+/* ダークモード対応 */
+@media (prefers-color-scheme: dark) {
+    .reward-container {
+        background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    }
+    
+    .reward-title,
+    .breakdown-title,
+    .congrats-message h3 {
+        color: #f0f0f0;
+    }
+    
+    .reward-challenge-name,
+    .points-label,
+    .item-label,
+    .congrats-message p,
+    .share-section p {
+        color: #aaa;
+    }
+    
+    .breakdown-item {
+        background: rgba(255, 255, 255, 0.1);
+    }
+    
+    .achievement-badge {
+        background: #2d2d2d;
+        border-color: #444;
+    }
+    
+    .badge-name {
+        color: #f0f0f0;
+    }
+    
+    .badge-description {
+        color: #aaa;
+    }
+    
+    .reward-button.secondary {
+        background: #2d2d2d;
+        border-color: #ff6b6b;
+    }
+    
+    .reward-button.tertiary {
+        background: #333;
+        color: #ccc;
+    }
+    
+    .share-button {
+        background: #2d2d2d;
+        border-color: #444;
+        color: #f0f0f0;
+    }
+}
