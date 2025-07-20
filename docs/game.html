@@ -858,6 +858,7 @@
     
     <!-- 週替わりチャレンジシステムのスクリプト -->
     <script src="js/weekly-challenge.js"></script>
+    <script src="js/weekly-challenge-persistence.js"></script>
     <script src="js/network-monitor.js"></script>
     <script src="js/challenge-evaluator.js"></script>
     <script src="js/challenge-rewards.js"></script>
@@ -3779,34 +3780,48 @@ def restart_game():
         }
 
         // 進捗をローカルストレージに保存
-        function saveChallengeProgress() {
-            const progressData = {
-                challenge: weeklyChallenge,
-                progress: challengeProgress,
-                timestamp: Date.now()
-            };
-            localStorage.setItem('challenge_progress', JSON.stringify(progressData));
+        // 新しい永続化モジュールを使用した進捗保存
+        function saveChallengeProgress(immediate = false) {
+            if (!weeklyChallenge || !challengeProgress) return;
+            
+            // グローバル変数に現在のチャレンジと進捗を保存（自動保存用）
+            window.currentWeeklyChallenge = weeklyChallenge;
+            window.currentChallengeProgress = challengeProgress;
+            
+            // 永続化モジュールを使用して保存
+            if (window.WeeklyChallengeStorage) {
+                window.WeeklyChallengeStorage.saveChallengeProgress(
+                    weeklyChallenge,
+                    challengeProgress,
+                    immediate
+                );
+            }
         }
 
-        // 保存された進捗を読み込み
+        // 新しい永続化モジュールを使用した進捗読み込み
         function loadChallengeProgress() {
+            if (!window.WeeklyChallengeStorage) {
+                console.warn('WeeklyChallengeStorage not available');
+                return false;
+            }
+            
             try {
-                const saved = localStorage.getItem('challenge_progress');
-                if (saved) {
-                    const data = JSON.parse(saved);
+                const savedData = window.WeeklyChallengeStorage.loadChallengeProgress();
+                if (savedData && savedData.challengeDefinition && savedData.progress) {
+                    // チャレンジデータと進捗を復元
+                    weeklyChallenge = savedData.challengeDefinition;
+                    challengeProgress = savedData.progress;
+                    currentChallengeMode = true;
                     
-                    // 24時間以内の進捗のみ復元
-                    if (Date.now() - data.timestamp < 24 * 60 * 60 * 1000) {
-                        weeklyChallenge = data.challenge;
-                        challengeProgress = data.progress;
-                        currentChallengeMode = true;
-                        
-                        updateChallengeUI();
-                        updateProgressBar();
-                        
-                        console.log('Challenge progress restored');
-                        return true;
-                    }
+                    // グローバル変数にも設定
+                    window.currentWeeklyChallenge = weeklyChallenge;
+                    window.currentChallengeProgress = challengeProgress;
+                    
+                    updateChallengeUI();
+                    updateProgressBar();
+                    
+                    console.log('Challenge progress restored from WeeklyChallengeStorage');
+                    return true;
                 }
             } catch (error) {
                 console.error('Failed to load challenge progress:', error);
@@ -3820,6 +3835,12 @@ def restart_game():
 
         // ゲーム初期化開始
         initializeGame();
+        
+        // 自動保存機能のセットアップ
+        if (window.WeeklyChallengeStorage) {
+            window.WeeklyChallengeStorage.setupAutoSave();
+            console.log('Challenge auto-save enabled');
+        }
         
         // PWAインストール関数
         let deferredPrompt;

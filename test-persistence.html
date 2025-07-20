@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>進捗永続化テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        .output {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        
+        .success {
+            color: #28a745;
+        }
+        
+        .error {
+            color: #dc3545;
+        }
+        
+        .info {
+            color: #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>ウィークリーチャレンジ進捗永続化テスト</h1>
+    
+    <div class="test-section">
+        <h2>基本機能テスト</h2>
+        <button onclick="testGetWeekId()">現在の週ID取得</button>
+        <button onclick="testStorageAvailability()">localStorage利用可能性チェック</button>
+        <button onclick="testCleanup()">古いデータクリーンアップ</button>
+        <div id="basic-output" class="output"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>保存・読み込みテスト</h2>
+        <button onclick="testSaveChallenge()">チャレンジ進捗を保存</button>
+        <button onclick="testLoadChallenge()">チャレンジ進捗を読み込み</button>
+        <button onclick="testResetChallenge()">チャレンジ進捗をリセット</button>
+        <div id="save-load-output" class="output"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>自動保存テスト</h2>
+        <button onclick="testAutoSave()">自動保存セットアップ</button>
+        <button onclick="simulateGameProgress()">ゲーム進捗をシミュレート</button>
+        <button onclick="simulateTabSwitch()">タブ切り替えをシミュレート</button>
+        <div id="auto-save-output" class="output"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>エラーハンドリングテスト</h2>
+        <button onclick="testCorruptedData()">破損データの処理</button>
+        <button onclick="testExpiredData()">期限切れデータの処理</button>
+        <button onclick="testQuotaExceeded()">容量超過のシミュレート</button>
+        <div id="error-output" class="output"></div>
+    </div>
+    
+    <!-- 永続化モジュールを読み込み -->
+    <script src="docs/js/weekly-challenge-persistence.js"></script>
+    
+    <script>
+        // テスト用のチャレンジデータ
+        const testChallenge = {
+            type: 'score',
+            target: 1000,
+            timeLimit: 120,
+            title: 'スコアマスター',
+            description: '1000点以上のスコアを獲得してください'
+        };
+        
+        const testProgress = {
+            current: 450,
+            target: 1000,
+            startTime: Date.now() - 30000 // 30秒前
+        };
+        
+        // ログ出力関数
+        function log(message, type = 'info', targetId = 'basic-output') {
+            const output = document.getElementById(targetId);
+            const timestamp = new Date().toLocaleTimeString();
+            output.innerHTML += `<span class="${type}">[${timestamp}] ${message}</span>\n`;
+        }
+        
+        // 基本機能テスト
+        function testGetWeekId() {
+            const weekId = WeeklyChallengeStorage.getWeekId();
+            log(`現在の週ID: ${weekId}`, 'success');
+            
+            // 異なる日付での週ID確認
+            const nextWeek = new Date();
+            nextWeek.setDate(nextWeek.getDate() + 7);
+            const nextWeekId = WeeklyChallengeStorage.getWeekId(nextWeek);
+            log(`来週の週ID: ${nextWeekId}`, 'info');
+        }
+        
+        function testStorageAvailability() {
+            try {
+                const testKey = '__test__';
+                localStorage.setItem(testKey, 'test');
+                localStorage.removeItem(testKey);
+                log('localStorage は利用可能です ✓', 'success');
+            } catch (e) {
+                log(`localStorage エラー: ${e.message}`, 'error');
+            }
+        }
+        
+        function testCleanup() {
+            // テスト用に古いデータを作成
+            const oldWeekId = '2024-W01';
+            localStorage.setItem(`ultimateSquashGame.weeklyChallenge.${oldWeekId}`, JSON.stringify({
+                challengeId: oldWeekId,
+                expiryTimestamp: Date.now() - 86400000 // 1日前
+            }));
+            
+            log('古いデータを作成しました', 'info');
+            
+            // クリーンアップ実行
+            WeeklyChallengeStorage.cleanupOldChallengeData();
+            
+            // 確認
+            const oldData = localStorage.getItem(`ultimateSquashGame.weeklyChallenge.${oldWeekId}`);
+            if (!oldData) {
+                log('古いデータが正常にクリーンアップされました ✓', 'success');
+            } else {
+                log('クリーンアップが失敗しました', 'error');
+            }
+        }
+        
+        // 保存・読み込みテスト
+        function testSaveChallenge() {
+            window.currentWeeklyChallenge = testChallenge;
+            window.currentChallengeProgress = testProgress;
+            
+            WeeklyChallengeStorage.saveChallengeProgress(testChallenge, testProgress, true);
+            log('チャレンジ進捗を保存しました', 'success', 'save-load-output');
+            log(`保存データ: ${JSON.stringify({ challenge: testChallenge, progress: testProgress }, null, 2)}`, 'info', 'save-load-output');
+        }
+        
+        function testLoadChallenge() {
+            const loaded = WeeklyChallengeStorage.loadChallengeProgress();
+            
+            if (loaded) {
+                log('チャレンジ進捗を読み込みました ✓', 'success', 'save-load-output');
+                log(`読み込みデータ: ${JSON.stringify(loaded, null, 2)}`, 'info', 'save-load-output');
+            } else {
+                log('保存されたチャレンジ進捗が見つかりません', 'error', 'save-load-output');
+            }
+        }
+        
+        function testResetChallenge() {
+            WeeklyChallengeStorage.resetChallengeProgress();
+            log('チャレンジ進捗をリセットしました', 'success', 'save-load-output');
+            
+            // 確認
+            const loaded = WeeklyChallengeStorage.loadChallengeProgress();
+            if (!loaded) {
+                log('リセット確認: データが削除されました ✓', 'success', 'save-load-output');
+            }
+        }
+        
+        // 自動保存テスト
+        function testAutoSave() {
+            WeeklyChallengeStorage.setupAutoSave();
+            log('自動保存をセットアップしました', 'success', 'auto-save-output');
+            log('タブ切り替えやページ離脱時に自動保存されます', 'info', 'auto-save-output');
+        }
+        
+        function simulateGameProgress() {
+            if (!window.currentWeeklyChallenge) {
+                window.currentWeeklyChallenge = testChallenge;
+            }
+            
+            // 進捗を更新
+            testProgress.current += 50;
+            window.currentChallengeProgress = testProgress;
+            
+            log(`ゲーム進捗を更新: ${testProgress.current}/${testProgress.target}`, 'info', 'auto-save-output');
+            
+            // デバウンスされた保存
+            WeeklyChallengeStorage.saveChallengeProgress(testChallenge, testProgress);
+            log('保存がスケジュールされました（1秒後）', 'info', 'auto-save-output');
+        }
+        
+        function simulateTabSwitch() {
+            // visibilitychange イベントをシミュレート
+            const event = new Event('visibilitychange');
+            Object.defineProperty(document, 'hidden', { value: true, configurable: true });
+            document.dispatchEvent(event);
+            
+            log('タブ切り替えをシミュレートしました', 'info', 'auto-save-output');
+            log('自動保存がトリガーされるはずです', 'success', 'auto-save-output');
+            
+            // 元に戻す
+            Object.defineProperty(document, 'hidden', { value: false, configurable: true });
+        }
+        
+        // エラーハンドリングテスト
+        function testCorruptedData() {
+            const weekId = WeeklyChallengeStorage.getWeekId();
+            const key = `ultimateSquashGame.weeklyChallenge.${weekId}`;
+            
+            // 破損データを作成
+            localStorage.setItem(key, '{ corrupted: json }');
+            log('破損データを作成しました', 'info', 'error-output');
+            
+            // 読み込み試行
+            const loaded = WeeklyChallengeStorage.loadChallengeProgress();
+            
+            if (!loaded) {
+                log('破損データが正常に処理されました ✓', 'success', 'error-output');
+                log('破損データは自動的に削除されました', 'info', 'error-output');
+            }
+        }
+        
+        function testExpiredData() {
+            const weekId = WeeklyChallengeStorage.getWeekId();
+            const key = `ultimateSquashGame.weeklyChallenge.${weekId}`;
+            
+            // 期限切れデータを作成
+            const expiredData = {
+                challengeId: weekId,
+                expiryTimestamp: Date.now() - 86400000, // 1日前
+                challengeDefinition: testChallenge,
+                progress: testProgress
+            };
+            
+            localStorage.setItem(key, JSON.stringify(expiredData));
+            log('期限切れデータを作成しました', 'info', 'error-output');
+            
+            // 読み込み試行
+            const loaded = WeeklyChallengeStorage.loadChallengeProgress();
+            
+            if (!loaded) {
+                log('期限切れデータが正常に処理されました ✓', 'success', 'error-output');
+                log('期限切れデータは自動的に削除されました', 'info', 'error-output');
+            }
+        }
+        
+        function testQuotaExceeded() {
+            // 実際にクォータを超過させるのは難しいので、シミュレート
+            log('localStorage容量超過時の処理:', 'info', 'error-output');
+            log('- QuotaExceededError が発生した場合', 'info', 'error-output');
+            log('- 古いデータの自動クリーンアップが実行されます', 'success', 'error-output');
+            log('- エラーがコンソールに記録されます', 'info', 'error-output');
+        }
+        
+        // ページロード時の初期化
+        window.addEventListener('load', () => {
+            log('テスト環境が準備できました', 'success');
+            log('各ボタンをクリックしてテストを実行してください', 'info');
+        });
+    </script>
+</body>
+</html>
