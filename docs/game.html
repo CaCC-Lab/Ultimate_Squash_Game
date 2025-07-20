@@ -21,6 +21,9 @@
     
     <title>Ultimate Squash Game - WebAssembly版</title>
     
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    
     <!-- Google Analytics 4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
     <script>
@@ -1112,6 +1115,9 @@
     <!-- Phase 5A: ブラウザ適応タイムアウトシステム -->
     <script src="js/browser-adaptive-timeout.js"></script>
     
+    <!-- Gemini提案のベースライン測定システム -->
+    <script src="js/optimization/pyodide-performance-tracker.js" type="module"></script>
+    <script src="js/optimization/performance-dashboard.js" type="module"></script>
     <script src="js/parallel-initializer.js"></script>
     
     <!-- アナリティクスシステム -->
@@ -1184,6 +1190,27 @@
         
         // DOM読み込み完了後にスクリプト確認
         document.addEventListener('DOMContentLoaded', () => {
+            // Gemini提案のパフォーマンス測定システム初期化
+            console.log('[Game] Performance tracking system available:', !!window.pyodideTracker);
+            console.log('[Game] Performance dashboard available:', !!window.performanceDashboard);
+            
+            if (window.performanceDashboard) {
+                console.log('[Game] Performance Dashboard: Press Ctrl+Shift+P to toggle dashboard');
+                
+                // 初期化完了時にダッシュボードを一時的に表示（3秒後に自動で閉じる）
+                setTimeout(() => {
+                    if (window.pyodideTracker && window.pyodideTracker.initializationMetrics.isComplete) {
+                        console.log('[Game] Auto-showing performance dashboard for 5 seconds');
+                        window.performanceDashboard.show();
+                        
+                        setTimeout(() => {
+                            window.performanceDashboard.hide();
+                            console.log('[Game] Auto-hidden performance dashboard. Use Ctrl+Shift+P to show again');
+                        }, 5000); // 5秒間表示
+                    }
+                }, 2000); // 2秒後に確認
+            }
+            
             setTimeout(() => {
                 window.checkScriptAvailability();
                 

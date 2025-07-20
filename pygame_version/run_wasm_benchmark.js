@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 /**
- * WASM Performance Benchmark Runner
+ * WASM Performance Benchmark Runner - Enhanced Edition
  * Pyodide環境でのパフォーマンステストをNode.js環境で実行
+ * Gemini提案のベースライン測定システムに統合
  */
 
 const https = require('https');
 const vm = require('vm');
+const fs = require('fs');
 
 // Pyodide CDNから最新版を取得
 console.log('🚀 WASM Performance Benchmark - Node.js版');
@@ -189,6 +191,33 @@ async function runBenchmarks() {
     );
     
     console.log('\n📁 詳細レポートを wasm_benchmark_report.json に保存しました');
+    
+    // 既存のpyodide-performance-tracker.jsと統合可能なフォーマットでも出力
+    const compatibilityReport = {
+        timestamp: new Date().toISOString(),
+        nodeJsBenchmark: true,
+        environment: 'Node.js (WASM simulation)',
+        performanceProfile: {
+            computeScore: score,
+            mathPerformance: mathTime,
+            physicsPerformance: physicsTime,
+            memoryPerformance: memoryTime,
+            transferPerformance: transferTime
+        },
+        recommendations: recommendations,
+        integrationNotes: [
+            'これはNode.js環境でのベンチマーク結果です',
+            'ブラウザ環境でのpyodide-performance-tracker.jsとの比較に使用できます',
+            'TTI測定とFPS測定は実ブラウザ環境で実行してください'
+        ]
+    };
+    
+    require('fs').writeFileSync(
+        'node_benchmark_for_browser_comparison.json',
+        JSON.stringify(compatibilityReport, null, 2)
+    );
+    
+    console.log('📊 ブラウザ比較用レポートも生成: node_benchmark_for_browser_comparison.json');
     
     return report;
 }

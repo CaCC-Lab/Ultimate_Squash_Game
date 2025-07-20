@@ -34,8 +34,30 @@ class ParallelInitializer {
             this.adaptiveTimeout.getBrowserSpecificOptimizations() : 
             this.getDefaultOptimizations();
         
+        // Pyodideパフォーマンストラッカーの統合
+        this.performanceTracker = window.pyodideTracker || null;
+        if (this.performanceTracker) {
+            console.log('[Parallel Initializer] Performance tracker integrated');
+        } else {
+            console.warn('[Parallel Initializer] Performance tracker not found - loading...');
+            this.loadPerformanceTracker();
+        }
+        
         console.log('[Parallel Initializer] Initialized with', this.loadingStages.length, 'stages');
         console.log('[Parallel Initializer] Browser optimizations:', this.browserOptimizations);
+    }
+    
+    /**
+     * パフォーマンストラッカーの動的ロード
+     */
+    async loadPerformanceTracker() {
+        try {
+            const { pyodideTracker } = await import('./optimization/pyodide-performance-tracker.js');
+            this.performanceTracker = pyodideTracker;
+            console.log('[Parallel Initializer] Performance tracker loaded dynamically');
+        } catch (error) {
+            console.warn('[Parallel Initializer] Could not load performance tracker:', error);
+        }
     }
     
     /**
@@ -62,6 +84,12 @@ class ParallelInitializer {
         this.initializationStatus.started = true;
         this.initializationStatus.startTime = Date.now();
         
+        // パフォーマンストラッキング開始（Gemini提案のベースライン測定）
+        if (this.performanceTracker) {
+            this.performanceTracker.startInitializationTracking();
+            console.log('[Parallel Initializer] Performance tracking started');
+        }
+        
         console.log('[Parallel Initializer] Starting parallel initialization');
         
         this.emit('initializationStarted', {
@@ -84,6 +112,16 @@ class ParallelInitializer {
             
             this.initializationStatus.completed = true;
             this.initializationStatus.endTime = Date.now();
+            
+            // パフォーマンストラッキング完了（Gemini提案のTTI測定）
+            if (this.performanceTracker) {
+                this.performanceTracker.completeInitialization();
+                
+                // ランタイムトラッキング開始
+                this.performanceTracker.startRuntimeTracking();
+                
+                console.log('[Parallel Initializer] Performance tracking completed - TTI measured');
+            }
             
             console.log('[Parallel Initializer] Initialization completed:', this.getInitializationStats());
             this.emit('initializationCompleted', this.getInitializationStats());
@@ -138,6 +176,11 @@ class ParallelInitializer {
         if (preloaderStatus && preloaderStatus.completed) {
             console.log('[Parallel Initializer] Using preloaded Pyodide');
             this.emit('stageProgress', { stage: 'pyodide', progress: 50, message: 'プリロード済みPyodideを使用中...' });
+            
+            // パフォーマンストラッカーにステージ記録
+            if (this.performanceTracker) {
+                this.performanceTracker.recordStage('pyodide_preload_detected');
+            }
         }
         
         // Pyodideの初期化
@@ -145,6 +188,11 @@ class ParallelInitializer {
             // pyodide.jsを動的ロード
             await this.loadPyodideScript();
             this.emit('stageProgress', { stage: 'pyodide', progress: 25, message: 'pyodide.jsを読み込み中...' });
+            
+            // パフォーマンストラッカーにステージ記録
+            if (this.performanceTracker) {
+                this.performanceTracker.recordStage('pyodide_script_loaded');
+            }
         }
         
         // Pyodideインスタンスの作成（ブラウザ固有設定を考慮）
@@ -160,6 +208,11 @@ class ParallelInitializer {
         
         window.pyodide = await loadPyodide(pyodideConfig);
         
+        // パフォーマンストラッカーにPyodide初期化完了を記録
+        if (this.performanceTracker) {
+            this.performanceTracker.recordStage('pyodide_ready');
+        }
+        
         this.emit('stageProgress', { stage: 'pyodide', progress: 75, message: 'Pyodide初期化完了...' });
         
         // 基本的なPythonライブラリの準備（必要最小限に制限）
@@ -167,6 +220,11 @@ class ParallelInitializer {
             ['numpy', 'micropip'] : ['micropip']; // 低性能環境では最小限
         
         await window.pyodide.loadPackage(packages);
+        
+        // パフォーマンストラッカーにパッケージロード完了を記録
+        if (this.performanceTracker) {
+            this.performanceTracker.recordStage('pyodide_packages_loaded');
+        }
         
         this.initializationStatus.pyodideReady = true;
         this.initializationStatus.stages.pyodide = {
@@ -229,6 +287,11 @@ class ParallelInitializer {
             // pygame-ceをインストール
             await window.pyodide.loadPackage(['pygame-ce']);
             
+            // パフォーマンストラッカーにpygame-ceロード完了を記録
+            if (this.performanceTracker) {
+                this.performanceTracker.recordStage('pygame_package_loaded');
+            }
+            
             this.emit('stageProgress', { stage: 'pygame-ce', progress: 50, message: 'pygame-ceパッケージロード完了...' });
             
             // pygame-ceの初期化
@@ -258,6 +321,11 @@ class ParallelInitializer {
                 
                 print("pygame-ce screen initialized: 800x600")
             `);
+            
+            // パフォーマンストラッカーにpygame初期化完了を記録
+            if (this.performanceTracker) {
+                this.performanceTracker.recordStage('pygame_ready');
+            }
             
             this.initializationStatus.pygameCeReady = true;
             this.initializationStatus.stages['pygame-ce'] = {
@@ -572,6 +640,11 @@ class ParallelInitializer {
                 
                 print("Canvas integration test completed")
             `);
+            
+            // パフォーマンストラッカーに最初のフレーム描画完了を記録（TTI計算用）
+            if (this.performanceTracker) {
+                this.performanceTracker.recordStage('first_frame');
+            }
             
             this.initializationStatus.canvasReady = true;
             this.initializationStatus.stages['canvas-setup'] = {
