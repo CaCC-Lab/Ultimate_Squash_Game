@@ -346,10 +346,10 @@ class RewardDisplayUI {
         shareSection.innerHTML = `
             <p>友達と共有しよう！</p>
             <div class="share-buttons">
-                <button class="share-button twitter" onclick="rewardDisplayUI.shareOnTwitter()">
+                <button class="share-button twitter" data-action="share-twitter">
                     <span class="share-icon">🐦</span> Twitter
                 </button>
-                <button class="share-button copy" onclick="rewardDisplayUI.copyShareText()">
+                <button class="share-button copy" data-action="copy-share">
                     <span class="share-icon">📋</span> コピー
                 </button>
             </div>
@@ -364,6 +364,16 @@ class RewardDisplayUI {
         content.appendChild(shareSection);
         
         this.container.appendChild(content);
+        
+        // イベントリスナーを追加（inlineハンドラーの代替）
+        const twitterBtn = shareSection.querySelector('[data-action="share-twitter"]');
+        const copyBtn = shareSection.querySelector('[data-action="copy-share"]');
+        if (twitterBtn) {
+            twitterBtn.addEventListener('click', () => this.shareOnTwitter());
+        }
+        if (copyBtn) {
+            copyBtn.addEventListener('click', () => this.copyShareText());
+        }
         
         // 最終パーティクル
         this.burstParticles('final');
