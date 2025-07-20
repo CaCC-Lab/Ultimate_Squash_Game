@@ -67,6 +67,12 @@ class GameEngine:
         self.misses = 0
         self.game_start_time = None
         self.special_actions_performed = []
+        
+        # チュートリアルモード設定
+        self.tutorial_mode = False
+        self.tutorial_step = None
+        self.tutorial_validation = {}
+        self.pause_ball = False
 
     def setup_ui(self):
         """UI要素のセットアップ"""
@@ -151,6 +157,10 @@ class GameEngine:
 
     def update_ball_position(self, ball):
         """ボールの位置更新"""
+        # チュートリアルモードでボール停止中の場合
+        if self.tutorial_mode and self.pause_ball:
+            return
+            
         # 壁との衝突
         if ball['x'] + ball['dx'] < 0 or ball['x'] + ball['dx'] > 640:
             ball['dx'] *= -1
@@ -417,6 +427,35 @@ class GameEngine:
             print(f"Special action recorded: {action_type}")
             self.report_challenge_progress()
 
+    def set_tutorial_mode(self, enabled, step=None):
+        """チュートリアルモードの設定"""
+        self.tutorial_mode = enabled
+        self.tutorial_step = step
+        
+        if enabled:
+            # チュートリアル用の簡易設定
+            self.difficulty.set('easy')
+            self.speed = 80  # 遅めのスピード
+            
+            # ステップに応じた設定
+            if step == 'practice_racket':
+                # ボールを一時停止
+                self.pause_ball = True
+            elif step == 'practice_hit':
+                # ボールの速度を落とす
+                for ball in self.balls:
+                    ball['dx'] = ball['dx'] * 0.5
+                    ball['dy'] = ball['dy'] * 0.5
+            elif step == 'practice_combo':
+                # コンボを狙いやすくする
+                self.racket_size = 150  # ラケットを大きく
+        else:
+            # 通常設定に戻す
+            self.pause_ball = False
+            self.racket_size = self.base_racket_size
+            
+        print(f"Tutorial mode set: enabled={enabled}, step={step}")
+
     def start(self):
         """ゲーム開始"""
         self.game_loop()
@@ -478,6 +517,35 @@ class GameState:
             self.game_engine.record_special_action(action_type)
             return True
         return False
+        
+    def set_tutorial_mode(self, enabled):
+        """チュートリアルモードを有効化/無効化"""
+        if self.game_engine:
+            self.game_engine.set_tutorial_mode(enabled)
+            return True
+        return False
+        
+    def set_tutorial_step(self, step):
+        """チュートリアルステップを設定"""
+        if self.game_engine:
+            self.game_engine.set_tutorial_mode(True, step)
+            return True
+        return False
+        
+    def get_game_state(self):
+        """現在のゲーム状態を取得（チュートリアル用）"""
+        if self.game_engine:
+            return json.dumps({
+                'score': self.game_engine.point,
+                'combo': self.game_engine.combo,
+                'total_hits': self.game_engine.total_hits,
+                'consecutive_hits': self.game_engine.consecutive_hits,
+                'max_consecutive_hits': self.game_engine.max_consecutive_hits,
+                'is_gameover': self.game_engine.is_gameover,
+                'tutorial_mode': self.game_engine.tutorial_mode,
+                'tutorial_step': self.game_engine.tutorial_step
+            })
+        return None
 
 # グローバルインスタンス（JavaScriptからアクセス可能）
 game_state = GameState()
