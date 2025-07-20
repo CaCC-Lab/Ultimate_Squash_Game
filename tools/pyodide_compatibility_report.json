@@ -1,0 +1,28 @@
+{
+  "timestamp": "#午後",
+  "current_python": {
+    "version": [
+      3,
+      11,
+      0,
+      "final",
+      0
+    ],
+    "version_string": "3.11.0",
+    "executable": "/Users/ryu/.pyenv/versions/3.11.0/bin/python3",
+    "platform": "darwin"
+  },
+  "pyodide_info": {
+    "version": "0.26.4",
+    "expected_python_version": "3.12",
+    "compatibility_note": "バイトコード互換性のため完全一致が必要"
+  },
+  "compileall_compatible": true,
+  "project_info": {
+    "python_file_count": 13,
+    "bundle_exists": true,
+    "bundle_size": 155655
+  },
+  "version_compatible": false,
+  "implementation_feasible": true
+}
