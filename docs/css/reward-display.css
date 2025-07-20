@@ -303,6 +303,21 @@
     background: #e0e0e0;
 }
 
+/* キーボードフォーカス対応 */
+.reward-button:focus-visible {
+    outline: 2px solid #ff6b6b;
+    outline-offset: 2px;
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.2);
+}
+
+.share-button:focus-visible {
+    outline: 2px solid #1DA1F2;
+    outline-offset: 2px;
+    transform: translateY(-1px);
+    box-shadow: 0 0 0 4px rgba(29, 161, 242, 0.2);
+}
+
 /* シェアセクション */
 .share-section {
     margin-top: 20px;
@@ -581,5 +596,66 @@
         background: #2d2d2d;
         border-color: #444;
         color: #f0f0f0;
+    }
+}
+
+/* アクセシビリティ: アニメーション削減設定 */
+@media (prefers-reduced-motion: reduce) {
+    /* アニメーションを無効化してシンプルな表示に */
+    .reward-overlay {
+        animation: none;
+    }
+    
+    .reward-container {
+        animation: none;
+        transform: none;
+        opacity: 1;
+    }
+    
+    .reward-toast {
+        animation: none;
+    }
+    
+    .breakdown-item {
+        animation: none;
+        transform: none;
+        opacity: 1;
+    }
+    
+    .achievement-badge {
+        animation: none;
+        transform: none;
+    }
+    
+    .reward-button {
+        animation: none;
+        transform: none;
+        opacity: 1;
+        transition: none;
+    }
+    
+    .reward-button:hover {
+        transform: none;
+    }
+    
+    .share-button:hover {
+        transform: none;
+    }
+    
+    /* アニメーションクラスも無効化 */
+    .animate-fade-in,
+    .animate-slide-down,
+    .animate-slide-in,
+    .animate-slide-up,
+    .animate-scale-up,
+    .animate-bounce-in,
+    .animate-shine,
+    .animate-pulse {
+        animation: none;
+    }
+    
+    .fade-out {
+        animation: none;
+        opacity: 0;
     }
 }

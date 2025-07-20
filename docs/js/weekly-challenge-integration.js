@@ -144,9 +144,7 @@ class WeeklyChallengeIntegration {
         
         // ChallengeRewardsクラスを使用して詳細な報酬を計算
         let detailedReward = null;
-        if (window.ChallengeRewards) {
-            const rewardsCalculator = new ChallengeRewards();
-            
+        if (window.ChallengeRewards && this.challengeRewards.calculateTotalReward) {
             // 追加データ（連続クリア数、ランキングなど）
             const additionalData = {
                 streakCount: this.getStreakCount(),
@@ -154,8 +152,8 @@ class WeeklyChallengeIntegration {
                 totalPlayers: null // TODO: ランキングシステムから取得
             };
             
-            // 詳細な報酬計算
-            detailedReward = rewardsCalculator.calculateTotalReward(
+            // 詳細な報酬計算（既存のインスタンスを使用）
+            detailedReward = this.challengeRewards.calculateTotalReward(
                 this.currentChallenge,
                 gameStats,
                 additionalData
