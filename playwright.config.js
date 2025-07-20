@@ -135,19 +135,25 @@ export default defineConfig({
   // WebSocketサーバーとHTTPサーバーの連携
   webServer: [
     {
-      command: 'python main_websocket_integrated.py',
+      command: 'python src/websocket_server.py',
       port: 8765,
       timeout: 30000,
       reuseExistingServer: !process.env.CI,
       env: {
         'SDL_VIDEODRIVER': 'dummy',  // ヘッドレスPygame
-      }
+      },
+      // ポート競合時の自動リトライ
+      stdout: 'pipe',
+      stderr: 'pipe'
     },
     {
       command: 'python -m http.server 3000',
       port: 3000,
       timeout: 10000,
-      reuseExistingServer: !process.env.CI
+      reuseExistingServer: !process.env.CI,
+      cwd: '.',
+      stdout: 'pipe',
+      stderr: 'pipe'
     }
   ]
 });
