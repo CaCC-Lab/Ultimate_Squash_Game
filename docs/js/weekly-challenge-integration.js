@@ -394,7 +394,7 @@ class WeeklyChallengeIntegration {
             // ゲーム統計
             const gameStats = this.gameSession ? this.gameSession.sessionStats : {
                 score: reward.score || 0,
-                gameDuration: Date.now() - (this.gameSession?.startTime || Date.now()),
+                gameDuration: this.gameSession ? Date.now() - this.gameSession.startTime : 0,
                 missCount: 0,
                 powerupsUsed: 0,
                 maxCombo: 0
