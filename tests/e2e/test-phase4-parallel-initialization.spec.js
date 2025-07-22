@@ -31,7 +31,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     
     test('並列初期化システムの基本動作確認', async ({ page }) => {
         // ゲームページにアクセス
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -59,7 +59,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     });
     
     test('並列初期化の各ステージ動作確認', async ({ page }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -92,7 +92,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     });
     
     test('並列処理によるパフォーマンス改善確認', async ({ page }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -134,7 +134,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     });
     
     test('Pyodideとpygame-ceの統合確認', async ({ page }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -192,7 +192,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     });
     
     test('Canvas統合とイベントハンドリング確認', async ({ page }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -255,7 +255,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     });
     
     test('オーディオシステムの初期化確認', async ({ page }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -309,7 +309,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     
     test('エラーハンドリングとフォールバック動作確認', async ({ page }) => {
         // エラーを意図的に発生させるテスト
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -351,7 +351,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     });
     
     test('フォールバック機能の動作確認', async ({ page }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -369,7 +369,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
     });
     
     test('メモリ使用量とパフォーマンス指標確認', async ({ page }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // スクリプト読み込み完了まで待機
         await page.waitForFunction(() => {
@@ -425,7 +425,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
         test('Chrome/Chromiumでの動作確認', async ({ page, browserName }) => {
             test.skip(browserName !== 'chromium', 'Chrome/Chromium専用テスト');
             
-            await page.goto('http://localhost:3000/game.html');
+            await page.goto('http://localhost:3000/docs/game.html');
             
             
             
@@ -455,7 +455,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
         test('Firefoxでの動作確認', async ({ page, browserName }) => {
             test.skip(browserName !== 'firefox', 'Firefox専用テスト');
             
-            await page.goto('http://localhost:3000/game.html');
+            await page.goto('http://localhost:3000/docs/game.html');
             
             
             
@@ -482,7 +482,7 @@ test.describe('Phase 4: 並列初期化機能テスト', () => {
         test('WebKitでの動作確認', async ({ page, browserName }) => {
             test.skip(browserName !== 'webkit', 'WebKit専用テスト');
             
-            await page.goto('http://localhost:3000/game.html');
+            await page.goto('http://localhost:3000/docs/game.html');
             
             
             

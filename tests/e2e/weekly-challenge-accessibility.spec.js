@@ -12,7 +12,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Weekly Challenge Accessibility Tests', () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('#loadingOverlay', { state: 'hidden' });
   });

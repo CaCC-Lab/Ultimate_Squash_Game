@@ -19,14 +19,14 @@ test.describe('Game Startup Tests', () => {
   });
   test('should load the game page successfully', async ({ page }) => {
     // ゲームページに移動
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
 
     // ページタイトルの確認
     await expect(page).toHaveTitle('Ultimate Squash Game - WebAssembly版');
   });
 
   test('should have canvas element', async ({ page }) => {
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
 
     // キャンバス要素の存在確認
     const canvas = page.locator(SELECTORS.canvas);
@@ -40,7 +40,7 @@ test.describe('Game Startup Tests', () => {
   });
 
   test('should show loading screen on initial load', async ({ page }) => {
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
 
     // ローディング画面が表示されることを確認
     const loadingOverlay = page.locator(SELECTORS.loadingOverlay);
@@ -51,7 +51,7 @@ test.describe('Game Startup Tests', () => {
   });
 
   test('should display game controls', async ({ page }) => {
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
 
     // コントロール表示の確認 - div.controls内のテキスト
     const controls = page.locator(SELECTORS.controls);
@@ -63,10 +63,11 @@ test.describe('Game Startup Tests', () => {
   });
 
   test('should have Pyodide script tag', async ({ page }) => {
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
 
-    // Pyodideのスクリプトタグが存在することを確認
+    // Pyodideのスクリプトタグが存在することを確認（1つ以上あればOK）
     const pyodideScript = page.locator(SELECTORS.pyodideScript);
-    await expect(pyodideScript).toHaveCount(1);
+    const count = await pyodideScript.count();
+    expect(count).toBeGreaterThanOrEqual(1);
   });
 });

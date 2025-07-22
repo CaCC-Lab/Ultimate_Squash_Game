@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Performance Tests', () => {
   test.describe('FPS Measurement', () => {
     test('should maintain stable 60 FPS during gameplay', async ({ page }) => {
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // パフォーマンス計測のためのスクリプトを注入
@@ -96,7 +96,7 @@ test.describe('Performance Tests', () => {
       // タイムアウトを60秒に延長
       test.setTimeout(60000);
       
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // メモリ使用量を記録するスクリプトを注入
@@ -175,7 +175,7 @@ test.describe('Performance Tests', () => {
       // タイムアウトを延長
       test.setTimeout(120000); // 2分
 
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // エラーカウンター
@@ -254,7 +254,7 @@ test.describe('Performance Tests', () => {
       });
 
       const startTime = Date.now();
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
 
       // Pyodideの読み込みを待つ
       await page.waitForTimeout(5000);
@@ -282,7 +282,7 @@ test.describe('Performance Tests', () => {
 
   test.describe('Animation Performance', () => {
     test('should have smooth animations', async ({ page }) => {
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // アニメーションフレームの一貫性を測定

@@ -15,7 +15,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Weekly Challenge System Integration Tests', () => {
   test.beforeEach(async ({ page }) => {
     // ゲームページにアクセス
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
     
     // ゲーム初期化まで待機
     await page.waitForLoadState('networkidle');

@@ -23,7 +23,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     });
     
     test('適応的タイムアウトシステムの基本動作確認', async ({ page, browserName }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // BrowserAdaptiveTimeoutManagerの存在確認
         const adaptiveTimeoutAvailable = await page.evaluate(() => {
@@ -46,7 +46,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     });
     
     test('ブラウザ別タイムアウト倍率の適用確認', async ({ page, browserName }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // タイムアウト倍率の取得
         const timeoutMultipliers = await page.evaluate(() => {
@@ -82,7 +82,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     });
     
     test('並列初期化システムとの統合確認', async ({ page, browserName }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // 適応的タイムアウトが適用された並列初期化の開始
         const initializationResult = await page.evaluate(() => {
@@ -122,7 +122,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     test('WebKit環境での最適化確認', async ({ page, browserName }) => {
         test.skip(browserName !== 'webkit', 'WebKit専用テスト');
         
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // WebKit固有の最適化設定確認
         const webkitOptimizations = await page.evaluate(() => {
@@ -149,7 +149,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     test('Firefox環境での最適化確認', async ({ page, browserName }) => {
         test.skip(browserName !== 'firefox', 'Firefox専用テスト');
         
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // Firefox固有の最適化設定確認
         const firefoxOptimizations = await page.evaluate(() => {
@@ -176,7 +176,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     test('Chrome環境での最適化確認', async ({ page, browserName }) => {
         test.skip(browserName !== 'chromium', 'Chrome専用テスト');
         
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // Chrome固有の最適化設定確認
         const chromeOptimizations = await page.evaluate(() => {
@@ -203,7 +203,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     });
     
     test('段階的タイムアウト機能の確認', async ({ page, browserName }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // 段階的タイムアウト機能のテスト
         const progressiveTimeoutResult = await page.evaluate(() => {
@@ -248,7 +248,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     });
     
     test('パフォーマンス推奨事項の生成確認', async ({ page, browserName }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // パフォーマンスレポートの生成
         const performanceReport = await page.evaluate(() => {
@@ -272,7 +272,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     });
     
     test('メモリ制約環境での動作確認', async ({ page, browserName }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // 低メモリ環境の模擬
         const lowMemoryResult = await page.evaluate(() => {
@@ -304,7 +304,7 @@ test.describe('Phase 5A: ブラウザ互換性改善テスト', () => {
     });
     
     test('ネットワーク接続品質による最適化確認', async ({ page, browserName }) => {
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // ネットワーク接続品質の影響確認
         const networkOptimization = await page.evaluate(() => {
@@ -335,7 +335,7 @@ test.describe('ブラウザ固有の詳細テスト', () => {
     test('Safari/WebKit固有の問題対応確認', async ({ page, browserName }) => {
         test.skip(browserName !== 'webkit', 'WebKit専用テスト');
         
-        await page.goto('http://localhost:3000/game.html');
+        await page.goto('http://localhost:3000/docs/game.html');
         
         // Safari固有の問題への対応確認
         const safariHandling = await page.evaluate(() => {

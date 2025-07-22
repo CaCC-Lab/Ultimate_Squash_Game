@@ -23,7 +23,7 @@ test.describe('Real Environment Game Flow Tests', () => {
     });
 
     // 実際のページロード
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
     await page.waitForLoadState('networkidle');
     
     // 実際のPyodide初期化待機

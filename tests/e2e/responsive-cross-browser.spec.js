@@ -15,7 +15,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
 
         // ゲームページに移動
-        await page.goto('/game.html');
+        await page.goto('/docs/game.html');
         await page.waitForTimeout(3000);
 
         // キャンバスが表示されることを確認
@@ -56,7 +56,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       });
 
       const page = await context.newPage();
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // タッチイベントをシミュレート
@@ -118,7 +118,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       });
 
       const page = await context.newPage();
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // タッチターゲットのサイズを確認
@@ -140,7 +140,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
 
   test.describe('Browser-Specific Features', () => {
     test('should handle browser-specific differences gracefully', async ({ page, browserName }) => {
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // ブラウザごとの特有の機能をテスト
@@ -189,7 +189,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       });
 
       const page = await context.newPage();
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // 初期状態を確認
@@ -224,7 +224,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       });
 
       const page = await context.newPage();
-      await page.goto('/game.html');
+      await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
       // パフォーマンスメトリクスを収集

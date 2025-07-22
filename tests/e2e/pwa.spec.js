@@ -38,7 +38,7 @@ test.describe('PWA Features', () => {
       // 必須フィールドの確認
       expect(manifest.name).toBe('Ultimate Squash Game');
       expect(manifest.short_name).toBe('UltimateSquash');
-      expect(manifest.start_url).toBe('/game.html');
+      expect(manifest.start_url).toBe('/docs/game.html');
       expect(manifest.display).toBe('fullscreen');
       expect(manifest.orientation).toBe('landscape');
       expect(manifest.theme_color).toBe('#004274');

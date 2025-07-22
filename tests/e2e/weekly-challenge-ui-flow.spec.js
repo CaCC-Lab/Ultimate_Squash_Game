@@ -19,7 +19,7 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
       }
     });
     
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('#loadingOverlay', { state: 'hidden' });
   });
