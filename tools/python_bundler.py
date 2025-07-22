@@ -686,15 +686,20 @@ if 'pyodide' in sys.modules or hasattr(sys, '_getframe'):
 
 def main():
     """メイン実行"""
-    if len(sys.argv) != 3:
-        print("使用法: python_bundler.py <source_dir> <output_file>")
-        print("例: python_bundler.py pygame_version/src bundled_game.py")
-        sys.exit(1)
+    parser = argparse.ArgumentParser(description='Pyodide用Pythonコードバンドラー (AOTバイトコード最適化対応)')
+    parser.add_argument('source_dir', help='ソースディレクトリ')
+    parser.add_argument('output_file', help='出力ファイル')
+    parser.add_argument('--use-bytecode', action='store_true', help='AOTバイトコード最適化を有効にする')
+    parser.add_argument('--quiet', action='store_true', help='詳細出力を抑制')
     
-    source_dir = sys.argv[1]
-    output_file = sys.argv[2]
+    args = parser.parse_args()
     
-    bundler = PythonBundler(source_dir, output_file)
+    bundler = PythonBundler(
+        source_dir=args.source_dir, 
+        output_file=args.output_file, 
+        use_bytecode=args.use_bytecode,
+        verbose=not args.quiet
+    )
     bundle_file, report = bundler.bundle()
     
     print("\n" + "="*50)

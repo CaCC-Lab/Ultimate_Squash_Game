@@ -129,7 +129,12 @@ class GameLogicWorker {
             
             // レスポンス送信
             if (response) {
-                this.sendResponse(response);
+                // handleGameStateUpdateは特殊な形式を返すことがある
+                if (response.message && response.transferList) {
+                    this.sendResponse(response);
+                } else {
+                    this.sendResponse(response);
+                }
             }
             
         } catch (error) {
@@ -171,12 +176,18 @@ class GameLogicWorker {
             this.initialized = true;
             console.log('✅ GameLogicWorker初期化完了');
             
-            return this.createSuccessResponse(message, {
-                status: 'initialized',
-                workerId: this.workerId,
-                capabilities: ['physics', 'collision', 'state'],
-                gameConfig: this.gameConfig
-            });
+            // INIT_COMPLETEメッセージを送信
+            return new MessageBuilder()
+                .id(message.id)  // 元のメッセージIDを使用して応答関係を明確化
+                .type(MessageType.INIT_COMPLETE)
+                .priority(MessagePriority.CRITICAL)
+                .payload({
+                    status: 'initialized',
+                    workerId: this.workerId,
+                    capabilities: ['physics', 'collision', 'state'],
+                    gameConfig: this.gameConfig
+                })
+                .build();
             
         } catch (error) {
             console.error('❌ GameLogicWorker初期化失敗:', error);
@@ -586,6 +597,7 @@ class GameLogicWorker {
      */
     handlePing(message) {
         return new MessageBuilder()
+            .id(message.id)  // 元のPINGメッセージIDを使用してレスポンス相関を確立
             .type(MessageType.PONG)
             .priority(MessagePriority.NORMAL)
             .payload({

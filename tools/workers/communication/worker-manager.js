@@ -9,7 +9,7 @@
  * - パフォーマンス監視
  */
 
-import { MessageType, WorkerMessage, WorkerConfig } from './message-protocol.js';
+import { MessageType } from './message-protocol.js';
 import { AOTLoaderManager } from './aot-loader.js';
 
 export class WorkerManager {
@@ -20,6 +20,9 @@ export class WorkerManager {
         this.responseHandlers = new Map();
         this.aotLoader = new AOTLoaderManager();
         this.initialized = false;
+        
+        // イベントハンドラーマップを初期化（安全性確保）
+        this.eventHandlers = new Map();
         
         // パフォーマンス統計
         this.stats = {
@@ -69,7 +72,7 @@ export class WorkerManager {
         const standardWorkers = [
             {
                 id: 'game-logic',
-                scriptPath: './workers/game-logic/game-logic-worker.js',
+                scriptPath: '/tools/workers/game-logic/game-logic-worker.js',
                 config: {
                     type: 'module',
                     capabilities: ['physics', 'collision', 'state'],
@@ -78,7 +81,7 @@ export class WorkerManager {
             },
             {
                 id: 'ai',
-                scriptPath: './workers/ai/ai-worker.js',
+                scriptPath: '/tools/workers/ai/ai-worker.js',
                 config: {
                     type: 'module',
                     capabilities: ['strategy', 'prediction', 'difficulty'],
@@ -87,7 +90,7 @@ export class WorkerManager {
             },
             {
                 id: 'analytics',
-                scriptPath: './workers/analytics/analytics-worker.js',
+                scriptPath: '/tools/workers/analytics/analytics-worker.js',
                 config: {
                     type: 'module',
                     capabilities: ['metrics', 'performance', 'statistics'],
@@ -109,7 +112,7 @@ export class WorkerManager {
      * 新しいWorkerを作成
      * @param {string} workerId Worker識別子
      * @param {string} scriptPath Workerスクリプトパス
-     * @param {WorkerConfig} config Worker設定
+     * @param {Object} config Worker設定
      */
     async createWorker(workerId, scriptPath, config = {}) {
         if (this.workers.has(workerId)) {
@@ -147,28 +150,89 @@ export class WorkerManager {
     }
     
     /**
-     * Workerの初期化
+     * Workerの初期化（最適化版: 遅延ロード対応）
      * @param {string} workerId Worker識別子
-     * @param {WorkerConfig} config Worker設定
+     * @param {Object} config Worker設定
      */
     async initializeWorker(workerId, config) {
-        // AOTモジュールの準備
-        const aotModules = await this.aotLoader.getModulesForWorker(workerId, config.aotModules || []);
+        // AOTモジュールのメタデータのみ準備（実際のバイナリは遅延ロード）
+        const aotModuleMetadata = this.prepareAOTModuleMetadata(config.aotModules || []);
         
-        // 初期化メッセージの送信
+        // 初期化メッセージの送信（軽量化）
         const initMessage = {
             id: this.generateMessageId(),
             type: MessageType.INIT,
             payload: {
                 workerId: workerId,
                 config: config,
-                aotModules: aotModules,
+                aotModuleMetadata: aotModuleMetadata, // バイナリではなくメタデータのみ
                 timestamp: performance.now()
             },
             timestamp: performance.now()
         };
         
-        return await this.sendMessage(workerId, initMessage, 30000); // 30秒タイムアウト
+        const result = await this.sendMessage(workerId, initMessage, 60000); // 60秒タイムアウト
+        
+        // 初期化成功後、必要なAOTモジュールを遅延ロード
+        if (result && result.type === MessageType.INIT_COMPLETE) {
+            this.scheduleAOTModulePreload(workerId, config.aotModules || []);
+        }
+        
+        return result;
+    }
+    
+    /**
+     * AOTモジュールメタデータの準備（軽量）
+     * @param {Array} aotModules AOTモジュール名リスト
+     * @returns {Object} メタデータオブジェクト
+     */
+    prepareAOTModuleMetadata(aotModules) {
+        const metadata = {};
+        
+        for (const moduleName of aotModules) {
+            const actualName = this.aotLoader.moduleMapping[moduleName] || moduleName;
+            metadata[moduleName] = {
+                actualName: actualName,
+                available: this.aotLoader.moduleCache.has(moduleName),
+                loadOnDemand: true
+            };
+        }
+        
+        return metadata;
+    }
+    
+    /**
+     * AOTモジュールの遅延プリロード（バックグラウンド）
+     * @param {string} workerId Worker識別子
+     * @param {Array} aotModules AOTモジュール名リスト
+     */
+    scheduleAOTModulePreload(workerId, aotModules) {
+        // バックグラウンドでAOTモジュールをプリロード
+        setTimeout(async () => {
+            try {
+                console.log(`📦 Workerバックグラウンドプリロード開始: ${workerId}`);
+                
+                for (const moduleName of aotModules) {
+                    const moduleData = await this.aotLoader.loadModule(moduleName);
+                    
+                    // Workerにモジュールを送信（Transferable Objects使用）
+                    const moduleMessage = {
+                        type: MessageType.LOAD_AOT_MODULE,
+                        payload: {
+                            moduleName: moduleName,
+                            moduleData: moduleData
+                        }
+                    };
+                    
+                    await this.sendMessage(workerId, moduleMessage, 10000);
+                }
+                
+                console.log(`✅ Workerバックグラウンドプリロード完了: ${workerId}`);
+                
+            } catch (error) {
+                console.warn(`⚠️ Workerバックグラウンドプリロード失敗 (${workerId}):`, error);
+            }
+        }, 100); // 100ms後に開始（初期化完了後）
     }
     
     /**
@@ -195,7 +259,7 @@ export class WorkerManager {
     /**
      * Workerメッセージの処理
      * @param {string} workerId Worker識別子
-     * @param {WorkerMessage} message 受信メッセージ
+     * @param {Object} message 受信メッセージ
      */
     handleWorkerMessage(workerId, message) {
         // 統計更新
@@ -215,14 +279,14 @@ export class WorkerManager {
     }
     
     /**
-     * メッセージ統計の更新
+     * メッセージ統計の更新（最適化版）
      * @param {string} workerId Worker識別子
      * @param {WorkerMessage} message メッセージ
      */
     updateMessageStats(workerId, message) {
         this.stats.messagesProcessed++;
         
-        // レイテンシ計算
+        // レイテンシ計算（最適化）
         if (message.timestamp) {
             const latency = performance.now() - message.timestamp;
             const currentLatency = this.stats.workerLatency.get(workerId) || [];
@@ -235,25 +299,88 @@ export class WorkerManager {
             
             this.stats.workerLatency.set(workerId, currentLatency);
             
-            // 平均レスポンス時間の更新
-            const totalLatency = Array.from(this.stats.workerLatency.values())
-                .flat()
-                .reduce((sum, lat) => sum + lat, 0);
-            const totalMessages = Array.from(this.stats.workerLatency.values())
-                .flat().length;
-            
-            this.stats.averageResponseTime = totalLatency / totalMessages;
+            // 平均レスポンス時間の更新（効率化: 毎回全配列を計算しない）
+            if (this.stats.messagesProcessed % 5 === 0) { // 5メッセージごとに更新
+                const totalLatency = Array.from(this.stats.workerLatency.values())
+                    .flat()
+                    .reduce((sum, lat) => sum + lat, 0);
+                const totalMessages = Array.from(this.stats.workerLatency.values())
+                    .flat().length;
+                
+                this.stats.averageResponseTime = totalLatency / totalMessages;
+            }
         }
     }
     
     /**
-     * メッセージ送信
-     * @param {string} workerId Worker識別子
-     * @param {WorkerMessage} message 送信メッセージ
-     * @param {number} timeout タイムアウト時間（ミリ秒）
-     * @returns {Promise<WorkerMessage>} レスポンス
+     * メッセージのTransferable Objects最適化
+     * @param {Object} message 送信メッセージ
+     * @returns {Object} 最適化されたメッセージとtransferableリスト
      */
-    async sendMessage(workerId, message, timeout = 5000) {
+    optimizeMessageForTransfer(message) {
+        const transferables = [];
+        const optimizedMessage = this.deepCloneWithTransferables(message, transferables);
+        
+        return {
+            message: optimizedMessage,
+            transferables: transferables
+        };
+    }
+    
+    /**
+     * Transferable Objects検出付きディープクローン
+     * @param {*} obj クローン対象オブジェクト
+     * @param {Array} transferables Transferable Objects リスト
+     * @returns {*} クローンされたオブジェクト
+     */
+    deepCloneWithTransferables(obj, transferables) {
+        if (obj === null || typeof obj !== 'object') {
+            return obj;
+        }
+        
+        // Transferable Objectsの検出
+        if (obj instanceof ArrayBuffer || 
+            obj instanceof MessagePort ||
+            obj instanceof ImageBitmap ||
+            (typeof OffscreenCanvas !== 'undefined' && obj instanceof OffscreenCanvas)) {
+            transferables.push(obj);
+            return obj;
+        }
+        
+        // TypedArrayの検出
+        if (ArrayBuffer.isView(obj)) {
+            // TypedArrayの場合、そのバッファを転送リストに追加
+            if (obj.buffer && transferables.indexOf(obj.buffer) === -1) {
+                transferables.push(obj.buffer);
+            }
+            return obj;
+        }
+        
+        // 配列の処理
+        if (Array.isArray(obj)) {
+            return obj.map(item => this.deepCloneWithTransferables(item, transferables));
+        }
+        
+        // オブジェクトの処理
+        const cloned = {};
+        for (const key in obj) {
+            if (obj.hasOwnProperty(key)) {
+                cloned[key] = this.deepCloneWithTransferables(obj[key], transferables);
+            }
+        }
+        
+        return cloned;
+    }
+    
+    /**
+     * メッセージ送信（Transferable Objects最適化対応）
+     * @param {string} workerId Worker識別子
+     * @param {Object} message 送信メッセージ
+     * @param {number} timeout タイムアウト時間（ミリ秒）
+     * @param {Array} transferList 転送可能オブジェクト
+     * @returns {Promise<Object>} レスポンス
+     */
+    async sendMessage(workerId, message, timeout = 5000, transferList = []) {
         const worker = this.workers.get(workerId);
         if (!worker) {
             throw new Error(`Worker '${workerId}' が見つかりません`);
@@ -262,6 +389,23 @@ export class WorkerManager {
         // メッセージIDの生成
         if (!message.id) {
             message.id = this.generateMessageId();
+        }
+        
+        // 大きなデータの自動Transferable Object変換（重複回避）
+        const optimizedMessage = this.optimizeMessageForTransfer(message);
+        
+        // 重複するArrayBufferを除去
+        const existingBuffers = new Set(transferList);
+        const uniqueTransferables = optimizedMessage.transferables.filter(buffer => !existingBuffers.has(buffer));
+        const finalTransferList = [...transferList, ...uniqueTransferables];
+        
+        // デバッグログ: Transferable Objects処理状況
+        console.log(`🔍 WorkerManager sendMessage to ${workerId}:`);
+        console.log(`   入力transferList: ${transferList.length}個`);
+        console.log(`   自動検出transferables: ${optimizedMessage.transferables.length}個`);
+        console.log(`   最終transferList: ${finalTransferList.length}個`);
+        if (finalTransferList.length > 0) {
+            console.log(`   詳細:`, finalTransferList.map(buf => `ArrayBuffer(${buf.byteLength}bytes)`));
         }
         
         return new Promise((resolve, reject) => {
@@ -283,9 +427,14 @@ export class WorkerManager {
                 }
             });
             
-            // メッセージ送信
+            // メッセージ送信（Transferable Objects使用）
             try {
-                worker.postMessage(message);
+                if (finalTransferList.length > 0) {
+                    worker.postMessage(optimizedMessage.message, finalTransferList);
+                    console.log(`⚡ Zero-copy transfer: ${finalTransferList.length} objects to ${workerId}`);
+                } else {
+                    worker.postMessage(optimizedMessage.message);
+                }
             } catch (error) {
                 clearTimeout(timeoutId);
                 this.responseHandlers.delete(message.id);
@@ -295,12 +444,17 @@ export class WorkerManager {
     }
     
     /**
-     * 全Workerにブロードキャスト
-     * @param {WorkerMessage} message ブロードキャストメッセージ
+     * 全Workerにブロードキャスト（最適化版）
+     * @param {Object} message ブロードキャストメッセージ
      * @param {Array} transferList 転送可能オブジェクト
+     * @param {boolean} shareTransferables Transferable Objectsを共有するか（falseで各Workerに複製）
      */
-    async broadcast(message, transferList = []) {
+    async broadcast(message, transferList = [], shareTransferables = false) {
         const promises = [];
+        const workerCount = this.workers.size;
+        
+        // Transferable Objectsを複製が必要かどうか判定
+        const needsCloning = !shareTransferables && transferList.length > 0;
         
         for (const [workerId, worker] of this.workers) {
             // 各Workerに個別のメッセージIDを割り当て
@@ -309,15 +463,51 @@ export class WorkerManager {
                 id: this.generateMessageId()
             };
             
+            // Transferable Objectsの処理
+            let workerTransferList = transferList;
+            if (needsCloning && transferList.length > 0) {
+                // 最後のWorker以外は複製作成
+                const isLastWorker = promises.length === workerCount - 1;
+                workerTransferList = isLastWorker ? transferList : this.cloneTransferables(transferList);
+            }
+            
             promises.push(
-                this.sendMessage(workerId, workerMessage).catch(error => {
+                this.sendMessage(workerId, workerMessage, 5000, workerTransferList).catch(error => {
                     console.error(`Broadcast failed for worker ${workerId}:`, error);
                     return null; // エラーでも他のWorkerの処理を続行
                 })
             );
         }
         
-        return await Promise.allSettled(promises);
+        const results = await Promise.allSettled(promises);
+        
+        // 成功/失敗の統計
+        const successful = results.filter(r => r.status === 'fulfilled' && r.value !== null).length;
+        const failed = results.filter(r => r.status === 'rejected' || r.value === null).length;
+        
+        console.log(`📡 Broadcast完了: ${successful}成功, ${failed}失敗`);
+        
+        return results;
+    }
+    
+    /**
+     * Transferable Objectsの複製（必要に応じて）
+     * @param {Array} transferList 転送可能オブジェクトリスト
+     * @returns {Array} 複製されたtransferableリスト
+     */
+    cloneTransferables(transferList) {
+        return transferList.map(obj => {
+            if (obj instanceof ArrayBuffer) {
+                return obj.slice(); // ArrayBufferを複製
+            } else if (ArrayBuffer.isView(obj)) {
+                // TypedArrayの場合、新しいArrayBufferで複製
+                const newBuffer = obj.buffer.slice();
+                const ctor = obj.constructor;
+                return new ctor(newBuffer, obj.byteOffset, obj.length);
+            }
+            // その他のTransferable Objectsは複製不可能なのでそのまま返す
+            return obj;
+        });
     }
     
     /**
@@ -382,6 +572,12 @@ export class WorkerManager {
      * @param {Function} handler ハンドラー関数
      */
     on(event, handler) {
+        // eventHandlers Map が初期化されていない場合の安全性チェック
+        if (!this.eventHandlers) {
+            console.warn(`⚠️ eventHandlers not initialized, cannot register event '${event}'`);
+            return;
+        }
+        
         if (!this.eventHandlers.has(event)) {
             this.eventHandlers.set(event, []);
         }
@@ -394,6 +590,12 @@ export class WorkerManager {
      * @param {...any} args 引数
      */
     emit(event, ...args) {
+        // eventHandlers Map が初期化されていない場合の安全性チェック
+        if (!this.eventHandlers) {
+            console.warn(`⚠️ eventHandlers not initialized, skipping event '${event}'`);
+            return;
+        }
+        
         const handlers = this.eventHandlers.get(event) || [];
         handlers.forEach(handler => {
             try {

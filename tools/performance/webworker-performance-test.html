@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebWorker Phase 4 パフォーマンステスト</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 20px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .status {
+            background-color: #252526;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007acc;
+        }
+        .log {
+            background-color: #252526;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #28a745;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .results {
+            background-color: #333;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            border: 1px solid #555;
+        }
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px;
+            background-color: #2a2a2a;
+            border-radius: 3px;
+        }
+        .metric.success {
+            border-left: 3px solid #28a745;
+        }
+        .metric.warning {
+            border-left: 3px solid #ffc107;
+        }
+        .metric.error {
+            border-left: 3px solid #dc3545;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background-color: #333;
+            border-radius: 10px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background-color: #007acc;
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 WebWorker Phase 4 パフォーマンステスト</h1>
+        
+        <div class="status" id="status">
+            <div>🔄 初期化中...</div>
+        </div>
+        
+        <div class="progress">
+            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+        </div>
+        
+        <div class="results" id="results" style="display: none;">
+            <h2>📊 テスト結果</h2>
+            <div id="metrics"></div>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script type="module">
+        import { WebWorkerPerformanceTest } from './webworker-performance-test.js';
+        
+        let testInstance;
+        let testResults;
+        
+        function updateStatus(message, progress = 0) {
+            document.getElementById('status').innerHTML = `<div>${message}</div>`;
+            document.getElementById('progressBar').style.width = `${progress}%`;
+        }
+        
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(message);
+        }
+        
+        function displayResults(results) {
+            const resultsElement = document.getElementById('results');
+            const metricsElement = document.getElementById('metrics');
+            
+            resultsElement.style.display = 'block';
+            
+            // メトリクス表示
+            const metrics = [
+                {
+                    label: 'ベースライン メッセージ数',
+                    value: results.baseline?.messageCount || 0,
+                    target: '> 0',
+                    status: (results.baseline?.messageCount || 0) > 0 ? 'success' : 'error'
+                },
+                {
+                    label: '最適化版 メッセージ数',
+                    value: results.optimized?.messageCount || 0,
+                    target: '> 0', 
+                    status: (results.optimized?.messageCount || 0) > 0 ? 'success' : 'error'
+                },
+                {
+                    label: 'FPS効率',
+                    value: `${(results.comparison?.fpsEfficiency || 0).toFixed(1)}%`,
+                    target: '≥ 80%',
+                    status: (results.comparison?.fpsEfficiency || 0) >= 80 ? 'success' : 'warning'
+                },
+                {
+                    label: 'レスポンス時間',
+                    value: `${(results.optimized?.averageResponseTime || 0).toFixed(1)}ms`,
+                    target: '≤ 100ms',
+                    status: (results.optimized?.averageResponseTime || 0) <= 100 ? 'success' : 'warning'
+                },
+                {
+                    label: 'Transferable Objects使用率',
+                    value: `${(results.optimized?.transferableObjectsRatio || 0).toFixed(1)}%`,
+                    target: '≥ 70%',
+                    status: (results.optimized?.transferableObjectsRatio || 0) >= 70 ? 'success' : 'error'
+                }
+            ];
+            
+            metricsElement.innerHTML = metrics.map(metric => `
+                <div class="metric ${metric.status}">
+                    <span>${metric.label}:</span>
+                    <span>${metric.value} (目標: ${metric.target})</span>
+                </div>
+            `).join('');
+        }
+        
+        async function runPerformanceTest() {
+            try {
+                log('🚀 WebWorkerパフォーマンステスト開始');
+                updateStatus('🔄 テストインスタンス作成中...', 10);
+                
+                testInstance = new WebWorkerPerformanceTest();
+                
+                updateStatus('🔄 パフォーマンステスト実行中...', 20);
+                log('📊 フルパフォーマンステスト実行開始');
+                
+                testResults = await testInstance.runFullPerformanceTest();
+                
+                updateStatus('✅ テスト完了', 100);
+                log('✅ WebWorkerパフォーマンステスト完了');
+                
+                // 結果表示
+                displayResults(testResults);
+                
+                // 詳細ログ
+                log('📊 詳細結果:');
+                log(`ベースライン: ${JSON.stringify(testResults.baseline, null, 2)}`);
+                log(`最適化版: ${JSON.stringify(testResults.optimized, null, 2)}`);
+                log(`比較: ${JSON.stringify(testResults.comparison, null, 2)}`);
+                
+                // グローバル変数に保存（Playwrightから取得用）
+                window.performanceTestResults = testResults;
+                
+                // 通信状況の診断
+                const communicationWorking = (testResults.baseline?.messageCount || 0) > 0 || 
+                                            (testResults.optimized?.messageCount || 0) > 0;
+                
+                if (!communicationWorking) {
+                    log('⚠️ Worker通信が動作していません');
+                    log('🔍 WorkerManager統計確認...');
+                    
+                    if (testInstance.workerManager) {
+                        const stats = testInstance.workerManager.getStats();
+                        log(`WorkerManager統計: ${JSON.stringify(stats, null, 2)}`);
+                        
+                        const workers = ['game-logic', 'ai', 'analytics'];
+                        workers.forEach(workerId => {
+                            const status = testInstance.workerManager.getWorkerStatus(workerId);
+                            log(`${workerId} status: ${JSON.stringify(status, null, 2)}`);
+                        });
+                    }
+                } else {
+                    log('✅ Worker通信が正常に動作しています');
+                }
+                
+            } catch (error) {
+                updateStatus('❌ テスト失敗', 0);
+                log(`❌ パフォーマンステストエラー: ${error.message}`);
+                log(`スタック: ${error.stack}`);
+                
+                window.testError = error.message;
+                
+                // エラー時も統計情報を取得
+                if (testInstance && testInstance.workerManager) {
+                    try {
+                        const stats = testInstance.workerManager.getStats();
+                        log(`エラー時WorkerManager統計: ${JSON.stringify(stats, null, 2)}`);
+                    } catch (statsError) {
+                        log(`統計取得エラー: ${statsError.message}`);
+                    }
+                }
+            }
+        }
+        
+        // ページ読み込み完了後にテスト開始
+        document.addEventListener('DOMContentLoaded', () => {
+            log('📋 WebWorkerパフォーマンステストページ準備完了');
+            
+            // 少し遅延してからテスト開始（DOM完全読み込み待ち）
+            setTimeout(runPerformanceTest, 500);
+        });
+    </script>
+</body>
+</html>

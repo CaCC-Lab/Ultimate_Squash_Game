@@ -200,12 +200,18 @@ class AnalyticsWorker {
             
             console.log('✅ AnalyticsWorker初期化完了');
             
-            return this.createSuccessResponse(message, {
-                status: 'initialized',
-                workerId: this.workerId,
-                capabilities: ['metrics', 'performance', 'statistics'],
-                metricsConfig: this.metricsConfig
-            });
+            // INIT_COMPLETEメッセージを送信
+            return new MessageBuilder()
+                .id(message.id)  // 元のメッセージIDを使用して応答関係を明確化
+                .type(MessageType.INIT_COMPLETE)
+                .priority(MessagePriority.CRITICAL)
+                .payload({
+                    status: 'initialized',
+                    workerId: this.workerId,
+                    capabilities: ['metrics', 'performance', 'statistics'],
+                    metricsConfig: this.metricsConfig
+                })
+                .build();
             
         } catch (error) {
             console.error('❌ AnalyticsWorker初期化失敗:', error);
@@ -875,6 +881,7 @@ class AnalyticsWorker {
      */
     handlePing(message) {
         return new MessageBuilder()
+            .id(message.id)  // 元のPINGメッセージIDを使用してレスポンス相関を確立
             .type(MessageType.PONG)
             .priority(MessagePriority.NORMAL)
             .payload({

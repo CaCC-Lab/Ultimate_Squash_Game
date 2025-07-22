@@ -166,13 +166,19 @@ class AIWorker {
             this.initialized = true;
             console.log('✅ AIWorker初期化完了');
             
-            return this.createSuccessResponse(message, {
-                status: 'initialized',
-                workerId: this.workerId,
-                capabilities: ['strategy', 'prediction', 'difficulty'],
-                aiConfig: this.aiConfig,
-                availableStrategies: Object.keys(AIStrategy)
-            });
+            // INIT_COMPLETEメッセージを送信
+            return new MessageBuilder()
+                .id(message.id)  // 元のメッセージIDを使用して応答関係を明確化
+                .type(MessageType.INIT_COMPLETE)
+                .priority(MessagePriority.CRITICAL)
+                .payload({
+                    status: 'initialized',
+                    workerId: this.workerId,
+                    capabilities: ['strategy', 'prediction', 'difficulty'],
+                    aiConfig: this.aiConfig,
+                    availableStrategies: Object.keys(AIStrategy)
+                })
+                .build();
             
         } catch (error) {
             console.error('❌ AIWorker初期化失敗:', error);
@@ -699,6 +705,7 @@ class AIWorker {
      */
     handlePing(message) {
         return new MessageBuilder()
+            .id(message.id)  // 元のPINGメッセージIDを使用してレスポンス相関を確立
             .type(MessageType.PONG)
             .priority(MessagePriority.NORMAL)
             .payload({

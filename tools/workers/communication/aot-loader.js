@@ -19,6 +19,22 @@ export class AOTLoaderManager {
         this.moduleIndex = null;
         this.loadingPromises = new Map();
         this.initialized = false;
+        this.bundleLoaded = false;
+        this.bundleContent = null;
+        
+        // モジュール名マッピング（期待されるAOTモジュール名 → 実際のバンドルモジュール名）
+        this.moduleMapping = {
+            'game_engine': 'model.pygame_game_state',
+            'physics': 'model.pygame_game_state',
+            'ai_enhancer': 'model.pygame_game_state',
+            'collision': 'model.pygame_game_state',
+            'strategy': 'model.pygame_game_state',
+            'prediction': 'model.pygame_game_state',
+            'metrics': 'profiler.memory_profiler',
+            'performance': 'profiler.memory_profiler',
+            'web_game_view': 'view.optimized_web_game_view_enhanced',
+            'controller': 'controller.web_game_controller'
+        };
         
         // パフォーマンス統計
         this.stats = {
@@ -29,7 +45,7 @@ export class AOTLoaderManager {
             averageLoadTime: 0
         };
         
-        console.log('🔧 AOTLoaderManager初期化完了');
+        console.log('🔧 AOTLoaderManager初期化完了（バンドルベース）');
     }
     
     /**
@@ -41,11 +57,14 @@ export class AOTLoaderManager {
             return;
         }
         
-        console.log('📦 AOTバイトコードインデックス読み込み中...');
+        console.log('📦 AOTバンドルファイル読み込み中...');
         
         try {
-            // バイトコードインデックスの読み込み
-            await this.loadModuleIndex();
+            // バンドルファイルの読み込み
+            await this.loadBundleFile();
+            
+            // 利用可能なモジュールを検証
+            await this.validateAvailableModules();
             
             // 重要モジュールの事前ロード
             await this.preloadEssentialModules();
@@ -60,28 +79,50 @@ export class AOTLoaderManager {
     }
     
     /**
-     * モジュールインデックスの読み込み
+     * バンドルファイルの読み込み
      */
-    async loadModuleIndex() {
+    async loadBundleFile() {
         try {
-            // AOTバイトコードインデックスファイルの読み込み
-            const indexPath = '/dist/aot-cache/module-index.json';
-            const response = await fetch(indexPath);
+            // AOTバンドルファイルの読み込み
+            const bundlePath = '/dist/bundled_game_aot.py';
+            const response = await fetch(bundlePath);
             
             if (!response.ok) {
-                throw new Error(`インデックス読み込み失敗: ${response.status}`);
+                throw new Error(`バンドル読み込み失敗: ${response.status}`);
             }
             
-            this.moduleIndex = await response.json();
+            this.bundleContent = await response.text();
+            this.bundleLoaded = true;
             
-            console.log(`📊 AOTモジュールインデックス読み込み完了: ${Object.keys(this.moduleIndex.modules).length}モジュール`);
+            console.log(`📊 AOTバンドルファイル読み込み完了: ${this.bundleContent.length}文字`);
             
         } catch (error) {
-            console.warn('⚠️ AOTインデックス読み込み失敗、フォールバック生成:', error);
-            
-            // フォールバックインデックスの生成
-            this.moduleIndex = this.generateFallbackIndex();
+            console.warn('⚠️ AOTバンドル読み込み失敗:', error);
+            this.bundleLoaded = false;
+            throw error;
         }
+    }
+    
+    /**
+     * 利用可能なモジュールの検証
+     */
+    async validateAvailableModules() {
+        if (!this.bundleLoaded || !this.bundleContent) {
+            throw new Error('バンドルファイルが読み込まれていません');
+        }
+        
+        const availableModules = [];
+        
+        // バンドル内のモジュール名を検索
+        for (const [mappedName, actualName] of Object.entries(this.moduleMapping)) {
+            // モジュール名がバンドル内に存在するかチェック
+            if (this.bundleContent.includes(`# === ${actualName} モジュール`)) {
+                availableModules.push(mappedName);
+            }
+        }
+        
+        console.log(`📋 利用可能なモジュール: ${availableModules.join(', ')}`);
+        return availableModules;
     }
     
     /**
@@ -121,15 +162,17 @@ export class AOTLoaderManager {
      */
     async preloadEssentialModules() {
         const essentialModules = [
-            'game_engine',
-            'physics',
-            'collision'
+            'game_engine',    // pygame_game_state に対応
+            'physics',        // pygame_game_state に対応
+            'ai_enhancer',    // pygame_game_state に対応
+            'web_game_view',  // view.optimized_web_game_view_enhanced に対応
+            'metrics'         // profiler.memory_profiler に対応
         ];
         
         console.log('🚀 重要モジュールの事前ロード中...');
         
         const loadPromises = essentialModules
-            .filter(module => this.moduleIndex.modules[module])
+            .filter(module => this.moduleMapping[module])
             .map(module => this.loadModule(module));
         
         const results = await Promise.allSettled(loadPromises);
@@ -143,7 +186,7 @@ export class AOTLoaderManager {
     /**
      * モジュールの読み込み
      * @param {string} moduleName モジュール名
-     * @returns {Promise<ArrayBuffer>} モジュールデータ
+     * @returns {Promise<Object>} モジュールデータオブジェクト
      */
     async loadModule(moduleName) {
         const startTime = performance.now();
@@ -169,8 +212,11 @@ export class AOTLoaderManager {
         try {
             const moduleData = await loadPromise;
             
-            // キャッシュに保存
+            // キャッシュに保存（両方の名前で保存）
             this.moduleCache.set(moduleName, moduleData);
+            if (this.moduleMapping[moduleName]) {
+                this.moduleCache.set(this.moduleMapping[moduleName], moduleData);
+            }
             
             // 統計更新
             const loadTime = performance.now() - startTime;
@@ -186,51 +232,188 @@ export class AOTLoaderManager {
     }
     
     /**
-     * 実際のモジュール読み込み処理
+     * 実際のモジュール読み込み処理（バンドルベース）
      * @param {string} moduleName モジュール名
      * @returns {Promise<ArrayBuffer>} モジュールデータ
      */
     async performModuleLoad(moduleName) {
-        const moduleInfo = this.moduleIndex.modules[moduleName];
-        
-        if (!moduleInfo) {
-            throw new Error(`モジュール '${moduleName}' がインデックスに見つかりません`);
+        if (!this.bundleLoaded || !this.bundleContent) {
+            throw new Error('バンドルファイルが読み込まれていません');
         }
         
+        // モジュール名マッピングを使用して実際のモジュール名を取得
+        const actualModuleName = this.moduleMapping[moduleName] || moduleName;
+        
         try {
-            // AOTバイトコードファイルの読み込み
-            const modulePath = `/dist/aot-cache/${moduleInfo.file}`;
-            const response = await fetch(modulePath);
+            // バンドル内でモジュールセクションを検索（複数パターンを試行）
+            let moduleMarker;
+            let startIndex = -1;
             
-            if (!response.ok) {
-                throw new Error(`モジュール読み込み失敗: ${response.status}`);
+            // パターン1: 完全なモジュール名（model.pygame_game_state等）
+            moduleMarker = `# === ${actualModuleName} モジュール`;
+            startIndex = this.bundleContent.indexOf(moduleMarker);
+            
+            // パターン2: AOTバイトコード最適化済みマーカー
+            if (startIndex === -1) {
+                moduleMarker = `# === ${actualModuleName} モジュール（AOTバイトコード最適化済み） ===`;
+                startIndex = this.bundleContent.indexOf(moduleMarker);
             }
             
-            let moduleData;
+            // パターン3: より寛容な検索（部分一致）
+            if (startIndex === -1) {
+                const searchPattern = actualModuleName.split('.').pop(); // 最後の部分のみ
+                moduleMarker = `# === ${searchPattern} モジュール`;
+                startIndex = this.bundleContent.indexOf(moduleMarker);
+            }
             
-            if (moduleInfo.compressed) {
-                // 圧縮されている場合は解凍
-                moduleData = await this.decompressModule(await response.arrayBuffer());
+            if (startIndex === -1) {
+                throw new Error(`モジュール '${actualModuleName}' がバンドル内に見つかりません（検索パターン: ${moduleMarker}）`);
+            }
+            
+            // 次のモジュールまたはファイル終端を検索
+            const nextModuleIndex = this.bundleContent.indexOf('# === ', startIndex + moduleMarker.length);
+            const endIndex = nextModuleIndex !== -1 ? nextModuleIndex : this.bundleContent.length;
+            
+            // モジュールセクションを抽出
+            const moduleSection = this.bundleContent.substring(startIndex, endIndex);
+            
+            // Base64エンコードされたバイトコードデータを検索
+            const bytecodeMatch = moduleSection.match(/_bytecode_data = """([^"]+)"""/s);
+            
+            if (bytecodeMatch) {
+                // Base64バイトコードが見つかった場合
+                const base64Data = bytecodeMatch[1];
+                const moduleContent = this.createBytecodeModule(moduleName, actualModuleName, base64Data);
+                return new TextEncoder().encode(moduleContent);
             } else {
-                // 非圧縮の場合はそのまま取得
-                if (moduleInfo.file.endsWith('.js')) {
-                    // JavaScriptファイルの場合はテキストとして読み込み
-                    const text = await response.text();
-                    moduleData = new TextEncoder().encode(text);
-                } else {
-                    // バイナリファイルの場合
-                    moduleData = await response.arrayBuffer();
-                }
+                // 通常のPythonコードの場合、モジュールセクション全体を返す
+                console.log(`📦 通常モジュールとして読み込み: ${moduleName} -> ${actualModuleName}`);
+                return new TextEncoder().encode(moduleSection);
             }
-            
-            return moduleData;
             
         } catch (error) {
-            console.error(`❌ モジュール読み込みエラー (${moduleName}):`, error);
+            console.error(`❌ バンドルからのモジュール読み込みエラー (${moduleName}):`, error);
             
             // フォールバック: 基本的なJavaScriptファイルとして読み込み
             return await this.loadFallbackModule(moduleName);
         }
+    }
+    
+    /**
+     * バイトコードモジュールの作成
+     * @param {string} mappedName マッピングされたモジュール名
+     * @param {string} actualName 実際のモジュール名
+     * @param {string} base64Data Base64エンコードされたバイトコードデータ
+     * @returns {string} 実行可能なモジュールコンテンツ
+     */
+    createBytecodeModule(mappedName, actualName, base64Data) {
+        return `
+// AOTバイトコード最適化モジュール: ${mappedName} -> ${actualName}
+// WebWorker並列処理フェーズ4 バンドル統合済み
+
+// Base64エンコードされたバイトコードデータ
+const _bytecode_data = "${base64Data}";
+
+// モジュール情報
+const moduleInfo = {
+    name: "${mappedName}",
+    actualName: "${actualName}", 
+    type: "aot_bytecode",
+    loaded: false,
+    exports: {}
+};
+
+// バイトコードからモジュールを初期化
+function initializeModule() {
+    try {
+        // Base64デコード
+        const binaryString = atob(_bytecode_data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // モジュールデータとして保存
+        moduleInfo.bytecode = bytes;
+        moduleInfo.loaded = true;
+        
+        console.log(\`🚀 AOTバイトコードモジュール初期化完了: \${moduleInfo.name}\`);
+        
+        // WebWorker環境でのPyodide統合ポイント
+        if (typeof self !== 'undefined' && self.pyodide) {
+            // Pyodide環境でバイトコードを実行
+            return self.pyodide.runPython(\`
+# AOTバイトコードモジュール: \${actualName}
+import base64
+import marshal
+import types
+import sys
+
+# バイトコード実行の準備
+bytecode_data = base64.b64decode('\${base64Data}')
+
+try:
+    # .pycファイルのヘッダーをスキップしてマーシャルデータを取得
+    code_obj = marshal.loads(bytecode_data[16:])  # Python 3.7+ format
+    
+    # モジュールオブジェクトを作成
+    module = types.ModuleType('\${actualName}')
+    module.__file__ = '<aot_bytecode>'
+    
+    # バイトコードを実行
+    exec(code_obj, module.__dict__)
+    
+    # モジュールをsys.modulesに登録
+    sys.modules['\${actualName}'] = module
+    
+    # マップされた名前でも登録
+    if '\${mappedName}' != '\${actualName}':
+        sys.modules['\${mappedName}'] = module
+    
+    print(f"✅ AOTバイトコード実行成功: \${actualName}")
+    
+except Exception as e:
+    print(f"❌ AOTバイトコード実行エラー: {e}")
+    import traceback
+    traceback.print_exc()
+\`);
+        } else {
+            console.warn('⚠️ Pyodide環境が利用できません。バイトコードはロードのみ実行');
+        }
+        
+        return moduleInfo;
+        
+    } catch (error) {
+        console.error(\`❌ バイトコードモジュール初期化エラー (\${mappedName}): \`, error);
+        moduleInfo.error = error.message;
+        return moduleInfo;
+    }
+}
+
+// モジュール初期化を実行
+const initializedModule = initializeModule();
+
+// WorkerAOTLoader用のエクスポート
+export default {
+    moduleInfo: initializedModule,
+    name: "${mappedName}",
+    actualName: "${actualName}",
+    type: "aot_bytecode",
+    
+    // 互換性のための基本的なメソッド
+    initialize() {
+        return Promise.resolve(initializedModule);
+    },
+    
+    getBytecode() {
+        return initializedModule.bytecode;
+    },
+    
+    isLoaded() {
+        return initializedModule.loaded;
+    }
+};
+`;
     }
     
     /**
@@ -314,25 +497,26 @@ export default {
     }
     
     /**
-     * 依存関係の解決
+     * 依存関係の解決（バンドルベース）
      * @param {Array<string>} modules モジュール一覧
      * @returns {Promise<Array<string>>} 依存関係を含むモジュール一覧
      */
     async resolveDependencies(modules) {
         const resolved = new Set(modules);
-        const toProcess = [...modules];
         
-        while (toProcess.length > 0) {
-            const currentModule = toProcess.pop();
-            const moduleInfo = this.moduleIndex.modules[currentModule];
+        // バンドルベースではモジュール内の依存関係は既に解決済み
+        // 基本的な依存関係のみ追加
+        for (const module of modules) {
+            resolved.add(module);
             
-            if (moduleInfo && moduleInfo.dependencies) {
-                for (const dependency of moduleInfo.dependencies) {
-                    if (!resolved.has(dependency)) {
-                        resolved.add(dependency);
-                        toProcess.push(dependency);
-                    }
-                }
+            // 基本的な依存関係マッピング
+            if (module.includes('game_engine') || module.includes('physics') || module.includes('ai_enhancer')) {
+                resolved.add('web_game_view');
+                resolved.add('metrics');
+            }
+            if (module.includes('controller')) {
+                resolved.add('game_engine');
+                resolved.add('web_game_view');
             }
         }
         
@@ -400,9 +584,10 @@ export default {
     debugInfo() {
         console.group('🔍 AOTLoaderManager デバッグ情報');
         console.log('初期化状態:', this.initialized);
+        console.log('バンドル読み込み状態:', this.bundleLoaded);
         console.log('キャッシュサイズ:', this.moduleCache.size);
         console.log('統計情報:', this.getStats());
-        console.log('モジュールインデックス:', this.moduleIndex);
+        console.log('モジュールマッピング:', this.moduleMapping);
         console.log('キャッシュ済みモジュール:', Array.from(this.moduleCache.keys()));
         console.groupEnd();
     }
