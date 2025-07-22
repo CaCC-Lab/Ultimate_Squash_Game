@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test';
 test.describe('Sound System Tests', () => {
   test.beforeEach(async ({ page }) => {
     // 各テストの前にゲームページに移動
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
 
     // ゲームの読み込みを待機（より長く、段階的に）
     await page.waitForLoadState('networkidle');

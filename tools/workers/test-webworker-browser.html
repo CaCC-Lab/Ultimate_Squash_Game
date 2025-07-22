@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebWorker Phase 4 統合テスト - Ultimate Squash Game</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #1a1a1a;
+            color: #00ff00;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.4;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #00ff00;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+            background: #0f0f0f;
+        }
+        
+        .test-controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .btn {
+            background: #003300;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 14px;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            background: #00ff00;
+            color: #000;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .log-container {
+            height: 400px;
+            overflow-y: auto;
+            background: #000;
+            border: 1px solid #333;
+            padding: 10px;
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #111;
+            border: 1px solid #333;
+            margin-bottom: 20px;
+        }
+        
+        .status-indicator {
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        
+        .status-ready { background: #003300; color: #00ff00; }
+        .status-running { background: #333300; color: #ffff00; }
+        .status-success { background: #003300; color: #00ff00; }
+        .status-error { background: #330000; color: #ff0000; }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .metric-card {
+            background: #111;
+            border: 1px solid #333;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        
+        .metric-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00ff00;
+        }
+        
+        .metric-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 5px;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #003300, #00ff00);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .warning { color: #ffaa00; }
+        .error { color: #ff4444; }
+        .success { color: #00ff00; }
+        .info { color: #4488ff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- ヘッダー -->
+        <div class="header">
+            <h1>🎮 WebWorker Phase 4 統合テスト</h1>
+            <p>Ultimate Squash Game - WebWorker並列処理システム検証</p>
+        </div>
+        
+        <!-- ステータスバー -->
+        <div class="status-bar">
+            <div>
+                <span class="status-indicator" id="status-indicator">準備中</span>
+                <span id="test-progress">0/5 テスト完了</span>
+            </div>
+            <div>
+                <span id="elapsed-time">00:00</span>
+                <span id="current-test">待機中</span>
+            </div>
+        </div>
+        
+        <!-- プログレスバー -->
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        
+        <!-- テスト制御 -->
+        <div class="test-controls">
+            <button class="btn" id="start-test" onclick="startIntegrationTest()">
+                🚀 統合テスト開始
+            </button>
+            <button class="btn" id="stop-test" onclick="stopTest()" disabled>
+                🛑 テスト停止
+            </button>
+            <button class="btn" onclick="clearLog()">
+                🗑️ ログクリア
+            </button>
+            <button class="btn" onclick="exportResults()">
+                💾 結果エクスポート
+            </button>
+        </div>
+        
+        <!-- メトリクス表示 -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <div class="metric-value" id="fps-metric">--</div>
+                <div class="metric-label">実際FPS</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="latency-metric">--</div>
+                <div class="metric-label">平均レスポンス (ms)</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="frames-metric">--</div>
+                <div class="metric-label">処理フレーム数</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-value" id="workers-metric">--</div>
+                <div class="metric-label">アクティブWorker数</div>
+            </div>
+        </div>
+        
+        <!-- ログ表示 -->
+        <div class="test-section">
+            <h3>📋 テスト実行ログ</h3>
+            <div class="log-container" id="log-container"></div>
+        </div>
+        
+        <!-- テスト結果詳細 -->
+        <div class="test-section" id="results-section" style="display: none;">
+            <h3>📊 テスト結果詳細</h3>
+            <div id="results-content"></div>
+        </div>
+    </div>
+
+    <!-- JavaScriptロジック -->
+    <script type="module">
+        import { WebWorkerIntegrationTest } from './test-webworker-integration.js';
+        
+        // グローバル変数
+        let testInstance = null;
+        let testRunning = false;
+        let startTime = 0;
+        let timerInterval = null;
+        
+        // DOM要素
+        const statusIndicator = document.getElementById('status-indicator');
+        const testProgress = document.getElementById('test-progress');
+        const elapsedTime = document.getElementById('elapsed-time');
+        const currentTest = document.getElementById('current-test');
+        const progressFill = document.getElementById('progress-fill');
+        const logContainer = document.getElementById('log-container');
+        const startBtn = document.getElementById('start-test');
+        const stopBtn = document.getElementById('stop-test');
+        const resultsSection = document.getElementById('results-section');
+        const resultsContent = document.getElementById('results-content');
+        
+        // メトリクス要素
+        const fpsMetric = document.getElementById('fps-metric');
+        const latencyMetric = document.getElementById('latency-metric');
+        const framesMetric = document.getElementById('frames-metric');
+        const workersMetric = document.getElementById('workers-metric');
+        
+        // ログ出力のオーバーライド
+        const originalConsoleLog = console.log;
+        const originalConsoleError = console.error;
+        const originalConsoleWarn = console.warn;
+        
+        console.log = (...args) => {
+            originalConsoleLog(...args);
+            appendLog('info', args.join(' '));
+        };
+        
+        console.error = (...args) => {
+            originalConsoleError(...args);
+            appendLog('error', args.join(' '));
+        };
+        
+        console.warn = (...args) => {
+            originalConsoleWarn(...args);
+            appendLog('warning', args.join(' '));
+        };
+        
+        // ログ追加関数
+        function appendLog(type, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logLine = `[${timestamp}] ${message}\n`;
+            
+            const logDiv = document.createElement('div');
+            logDiv.className = type;
+            logDiv.textContent = logLine;
+            
+            logContainer.appendChild(logDiv);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // ステータス更新
+        function updateStatus(status, message = '') {
+            statusIndicator.textContent = message || status;
+            statusIndicator.className = `status-indicator status-${status}`;
+        }
+        
+        // プログレス更新
+        function updateProgress(current, total) {
+            const percentage = (current / total) * 100;
+            progressFill.style.width = `${percentage}%`;
+            testProgress.textContent = `${current}/${total} テスト完了`;
+        }
+        
+        // タイマー更新
+        function updateTimer() {
+            if (testRunning) {
+                const elapsed = (Date.now() - startTime) / 1000;
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = Math.floor(elapsed % 60);
+                elapsedTime.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            }
+        }
+        
+        // メトリクス更新
+        function updateMetrics(data) {
+            if (data.performanceMetrics) {
+                fpsMetric.textContent = data.performanceMetrics.actualFPS ? data.performanceMetrics.actualFPS.toFixed(1) : '--';
+                latencyMetric.textContent = data.performanceMetrics.averageLatency ? data.performanceMetrics.averageLatency.toFixed(1) : '--';
+                framesMetric.textContent = data.performanceMetrics.totalFrames || '--';
+            }
+            
+            // Worker数は固定（game-logic, ai, analytics）
+            workersMetric.textContent = '3';
+        }
+        
+        // メイン統合テスト関数
+        window.startIntegrationTest = async function() {
+            if (testRunning) {
+                console.warn('テスト既に実行中です');
+                return;
+            }
+            
+            console.log('🚀 WebWorker Phase 4 統合テスト開始');
+            
+            testRunning = true;
+            startTime = Date.now();
+            
+            // UI更新
+            startBtn.disabled = true;
+            stopBtn.disabled = false;
+            updateStatus('running', '実行中');
+            updateProgress(0, 5);
+            resultsSection.style.display = 'none';
+            
+            // タイマー開始
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            try {
+                // テストインスタンス作成
+                testInstance = new WebWorkerIntegrationTest();
+                
+                // テスト実行前の準備
+                currentTest.textContent = '初期化中...';
+                updateProgress(0, 5);
+                
+                // カスタムテスト実行（段階的に進捗更新）
+                await runCustomTestSuite();
+                
+                // 成功
+                updateStatus('success', 'テスト完了');
+                updateProgress(5, 5);
+                console.log('✅ 統合テスト完全成功！');
+                
+            } catch (error) {
+                updateStatus('error', 'テスト失敗');
+                console.error('❌ 統合テスト失敗:', error);
+            } finally {
+                testRunning = false;
+                startBtn.disabled = false;
+                stopBtn.disabled = true;
+                currentTest.textContent = '完了';
+                
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                    timerInterval = null;
+                }
+                
+                // 結果表示
+                displayResults();
+            }
+        };
+        
+        // カスタムテストスイート（進捗表示付き）
+        async function runCustomTestSuite() {
+            // ステップ1: 初期化
+            currentTest.textContent = 'システム初期化中...';
+            await testInstance.testInitialization();
+            updateProgress(1, 5);
+            
+            // ステップ2: 基本通信
+            currentTest.textContent = 'Worker通信テスト中...';
+            await testInstance.testBasicCommunication();
+            updateProgress(2, 5);
+            
+            // ステップ3: ゲームループ
+            currentTest.textContent = 'ゲームループテスト中...';
+            await testInstance.testGameLoop();
+            updateProgress(3, 5);
+            updateMetrics(testInstance.testResults);
+            
+            // ステップ4: パフォーマンス
+            currentTest.textContent = 'パフォーマンステスト中...';
+            await testInstance.testPerformance();
+            updateProgress(4, 5);
+            updateMetrics(testInstance.testResults);
+            
+            // ステップ5: エラーハンドリング
+            currentTest.textContent = 'エラーハンドリングテスト中...';
+            await testInstance.testErrorHandling();
+            updateProgress(5, 5);
+            
+            // 最終レポート
+            await testInstance.generateFinalTestReport();
+        }
+        
+        // テスト停止
+        window.stopTest = async function() {
+            if (!testRunning) return;
+            
+            console.log('🛑 テスト停止要求');
+            testRunning = false;
+            
+            if (testInstance) {
+                await testInstance.cleanup();
+            }
+            
+            updateStatus('ready', '停止済み');
+            startBtn.disabled = false;
+            stopBtn.disabled = true;
+            currentTest.textContent = '停止';
+        };
+        
+        // ログクリア
+        window.clearLog = function() {
+            logContainer.innerHTML = '';
+        };
+        
+        // 結果表示
+        function displayResults() {
+            if (!testInstance || !testInstance.testResults.finalReport) {
+                return;
+            }
+            
+            const results = testInstance.testResults;
+            const report = results.finalReport;
+            
+            let html = `
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value ${report.testSuiteSuccess ? 'success' : 'error'}">
+                            ${report.testSuiteSuccess ? '✅' : '❌'}
+                        </div>
+                        <div class="metric-label">総合判定</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${report.successRate.toFixed(1)}%</div>
+                        <div class="metric-label">成功率</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${(report.totalDuration/1000).toFixed(1)}s</div>
+                        <div class="metric-label">実行時間</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value">${report.passedTests}/${report.totalTests}</div>
+                        <div class="metric-label">テスト結果</div>
+                    </div>
+                </div>
+                
+                <h4>📋 詳細結果</h4>
+                <ul>
+                    <li>初期化: ${formatTestResult(results.initialization)}</li>
+                    <li>基本通信: ${formatTestResult(results.pingTests)}</li>
+                    <li>ゲームループ: ${formatTestResult(results.gameLoopTest)}</li>
+                    <li>パフォーマンス: ${formatTestResult(results.performanceMetrics)}</li>
+                    <li>エラーハンドリング: ${formatTestResult(results.errorHandling)}</li>
+                </ul>
+            `;
+            
+            if (results.performanceMetrics && results.performanceMetrics.success) {
+                const perf = results.performanceMetrics;
+                html += `
+                    <h4>⚡ パフォーマンス詳細</h4>
+                    <ul>
+                        <li>FPS効率: ${perf.fpsEfficiency.toFixed(1)}% (${perf.actualFPS.toFixed(1)}/${perf.targetFPS})</li>
+                        <li>平均レスポンス: ${perf.averageLatency.toFixed(1)}ms</li>
+                        <li>処理フレーム数: ${perf.totalFrames}</li>
+                        <li>エラー数: ${perf.errorCount}</li>
+                    </ul>
+                `;
+            }
+            
+            resultsContent.innerHTML = html;
+            resultsSection.style.display = 'block';
+        }
+        
+        // テスト結果フォーマット
+        function formatTestResult(result) {
+            if (!result) return '未実行';
+            const icon = result.success ? '✅' : '❌';
+            const duration = result.duration ? ` (${result.duration.toFixed(1)}ms)` : '';
+            return `${icon} ${result.success ? '成功' : '失敗'}${duration}`;
+        }
+        
+        // 結果エクスポート
+        window.exportResults = function() {
+            if (!testInstance) {
+                console.warn('エクスポートするテスト結果がありません');
+                return;
+            }
+            
+            const results = {
+                timestamp: new Date().toISOString(),
+                testResults: testInstance.testResults,
+                userAgent: navigator.userAgent,
+                platform: navigator.platform
+            };
+            
+            const blob = new Blob([JSON.stringify(results, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `webworker-test-results-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            console.log('📁 テスト結果をエクスポートしました');
+        };
+        
+        // 初期化
+        updateStatus('ready', '準備完了');
+        console.log('🎮 WebWorker Phase 4 統合テストページ読み込み完了');
+        console.log('「統合テスト開始」ボタンをクリックしてテストを開始してください');
+    </script>
+</body>
+</html>

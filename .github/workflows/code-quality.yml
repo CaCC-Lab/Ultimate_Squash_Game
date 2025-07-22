@@ -27,12 +27,16 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
+    - name: Install license-checker
+      run: npm install --save-dev license-checker
+
     - name: Run npm audit
       run: |
         echo "## Dependency Security Audit" >> $GITHUB_STEP_SUMMARY
         echo "```" >> $GITHUB_STEP_SUMMARY
         npm audit --audit-level=moderate || echo "Vulnerabilities found"
         echo "```" >> $GITHUB_STEP_SUMMARY
+      continue-on-error: true
 
     - name: Check outdated packages
       run: |
@@ -40,14 +44,17 @@ jobs:
         echo "```" >> $GITHUB_STEP_SUMMARY
         npm outdated || echo "Some packages are outdated"
         echo "```" >> $GITHUB_STEP_SUMMARY
+      continue-on-error: true
 
     - name: Generate dependency report
       run: |
         # package.jsonの依存関係を分析
         echo "## Dependency Analysis" >> dependency-report.md
         echo "**Direct Dependencies:**" >> dependency-report.md
-        jq -r '.dependencies // {} | keys[]' package.json | wc -l | xargs -I {} echo "- Production: {}" >> dependency-report.md
-        jq -r '.devDependencies // {} | keys[]' package.json | wc -l | xargs -I {} echo "- Development: {}" >> dependency-report.md
+        
+        # jqの代わりにnodeを使用
+        node -p "Object.keys(require('./package.json').dependencies || {}).length" | xargs -I {} echo "- Production: {} packages" >> dependency-report.md
+        node -p "Object.keys(require('./package.json').devDependencies || {}).length" | xargs -I {} echo "- Development: {} packages" >> dependency-report.md
         
         # ライセンス情報の確認
         echo "**License Compliance:**" >> dependency-report.md
@@ -81,9 +88,9 @@ jobs:
       run: |
         echo "## Bundle Size Analysis" >> $GITHUB_STEP_SUMMARY
         
-        # メインHTMLファイルのサイズ分析
+        # メインHTMLファイルのサイズ分析（ポータブルな方法）
         if [ -f "docs/game.html" ]; then
-          html_size=$(stat -f%z "docs/game.html" 2>/dev/null || stat -c%s "docs/game.html")
+          html_size=$(wc -c < "docs/game.html")
           echo "- **game.html**: ${html_size} bytes" >> $GITHUB_STEP_SUMMARY
           
           # 1MB以上の場合警告
@@ -93,9 +100,9 @@ jobs:
         fi
         
         # JSファイルのサイズ分析
-        find docs -name "*.js" -type f | while read file; do
+        find docs -name "*.js" -type f 2>/dev/null | while read file; do
           if [ -f "$file" ]; then
-            size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
+            size=$(wc -c < "$file")
             echo "- **$(basename "$file")**: ${size} bytes" >> $GITHUB_STEP_SUMMARY
           fi
         done
@@ -105,10 +112,10 @@ jobs:
         echo "## Large Files Detection" >> $GITHUB_STEP_SUMMARY
         
         # 500KB以上のファイルを検出
-        find . -type f -size +500k ! -path "./node_modules/*" ! -path "./.git/*" | while read file; do
-          size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file")
+        find . -type f -size +500k ! -path "./node_modules/*" ! -path "./.git/*" 2>/dev/null | while read file; do
+          size=$(wc -c < "$file")
           echo "⚠️ Large file detected: $file (${size} bytes)" >> $GITHUB_STEP_SUMMARY
-        done
+        done || echo "No large files found" >> $GITHUB_STEP_SUMMARY
 
   # コード品質メトリクス
   code-metrics:
@@ -125,7 +132,7 @@ jobs:
 
     - name: Install Python analysis tools
       run: |
-        pip install radon complexity-metrics
+        pip install radon
 
     - name: Analyze Python code complexity
       run: |
@@ -135,15 +142,15 @@ jobs:
         if find . -name "*.py" -type f | head -1 | grep -q .; then
           echo "**Python Code Complexity:**" >> $GITHUB_STEP_SUMMARY
           echo "```" >> $GITHUB_STEP_SUMMARY
-          find . -name "*.py" -type f ! -path "./venv/*" ! -path "./.env/*" | xargs radon cc -s || echo "No Python files found"
+          find . -name "*.py" -type f ! -path "./venv/*" ! -path "./.env/*" -exec radon cc -s {} \; 2>/dev/null || echo "No Python files found"
           echo "```" >> $GITHUB_STEP_SUMMARY
         fi
 
     - name: Analyze JavaScript code
       run: |
         # JSファイルの行数とファイル数
-        js_files=$(find docs -name "*.js" -type f | wc -l)
-        js_lines=$(find docs -name "*.js" -type f | xargs wc -l | tail -1 | awk '{print $1}' || echo "0")
+        js_files=$(find docs -name "*.js" -type f 2>/dev/null | wc -l || echo "0")
+        js_lines=$(find docs -name "*.js" -type f -exec wc -l {} + 2>/dev/null | tail -1 | awk '{print $1}' || echo "0")
         
         echo "**JavaScript Metrics:**" >> $GITHUB_STEP_SUMMARY
         echo "- Files: $js_files" >> $GITHUB_STEP_SUMMARY
@@ -152,9 +159,9 @@ jobs:
     - name: Check HTML/CSS metrics
       run: |
         # HTMLファイルの分析
-        html_files=$(find docs -name "*.html" -type f | wc -l)
-        css_inline=$(grep -r "<style>" docs/ | wc -l || echo "0")
-        js_inline=$(grep -r "<script>" docs/ | wc -l || echo "0")
+        html_files=$(find docs -name "*.html" -type f 2>/dev/null | wc -l || echo "0")
+        css_inline=$(grep -r "<style>" docs/ 2>/dev/null | wc -l || echo "0")
+        js_inline=$(grep -r "<script>" docs/ 2>/dev/null | wc -l || echo "0")
         
         echo "**Frontend Metrics:**" >> $GITHUB_STEP_SUMMARY
         echo "- HTML files: $html_files" >> $GITHUB_STEP_SUMMARY
@@ -186,8 +193,8 @@ jobs:
         echo "## Test Coverage Analysis" >> $GITHUB_STEP_SUMMARY
         
         # E2Eテスト数の確認
-        test_files=$(find tests -name "*.spec.js" -type f | wc -l)
-        total_tests=$(grep -r "test\|it(" tests/ | wc -l || echo "0")
+        test_files=$(find tests -name "*.spec.js" -type f 2>/dev/null | wc -l || echo "0")
+        total_tests=$(grep -r -E "(test|it)\s*\(" tests/ 2>/dev/null | wc -l || echo "0")
         
         echo "**E2E Test Coverage:**" >> $GITHUB_STEP_SUMMARY
         echo "- Test files: $test_files" >> $GITHUB_STEP_SUMMARY
@@ -196,7 +203,7 @@ jobs:
         # 実装済み機能に対するテストカバレッジの概算
         if [ -f "docs/game.html" ]; then
           # HTMLから機能数を推定（onclick, onkeyなどのイベントハンドラー数）
-          event_handlers=$(grep -o "on[a-z]*=" docs/game.html | wc -l || echo "0")
+          event_handlers=$(grep -o "on[a-z]*=" docs/game.html 2>/dev/null | wc -l || echo "0")
           echo "- Estimated interactive features: $event_handlers" >> $GITHUB_STEP_SUMMARY
           
           if [ $total_tests -gt 0 ] && [ $event_handlers -gt 0 ]; then
@@ -209,21 +216,24 @@ jobs:
       run: |
         # テスト実行時間の測定
         start_time=$(date +%s)
-        npx playwright test --reporter=json > test-results.json || echo "Tests completed with issues"
+        npx playwright test --reporter=json > test-results.json 2>&1 || echo "Tests completed with issues"
         end_time=$(date +%s)
         execution_time=$((end_time - start_time))
         
         echo "**Test Performance:**" >> $GITHUB_STEP_SUMMARY
         echo "- Execution time: ${execution_time} seconds" >> $GITHUB_STEP_SUMMARY
         
-        # 平均テスト時間
+        # 平均テスト時間（total_testsは前のステップで定義済み）
+        total_tests=$(grep -r -E "(test|it)\s*\(" tests/ 2>/dev/null | wc -l || echo "0")
         if [ -f test-results.json ] && [ $total_tests -gt 0 ]; then
           avg_time=$((execution_time * 1000 / total_tests))
           echo "- Average per test: ${avg_time}ms" >> $GITHUB_STEP_SUMMARY
         fi
+      continue-on-error: true
 
     - name: Upload test metrics
       uses: actions/upload-artifact@v4
+      if: always()
       with:
         name: test-metrics
         path: |

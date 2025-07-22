@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebWorker通信デバッグ</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 20px;
+            background-color: #1e1e1e;
+            color: #d4d4d4;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .log {
+            background-color: #252526;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            border-left: 4px solid #007acc;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .buttons {
+            margin: 20px 0;
+        }
+        button {
+            background-color: #0e639c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        button:hover {
+            background-color: #1177bb;
+        }
+        button:disabled {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .status {
+            background-color: #333;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            color: #4ec9b0;
+        }
+        .error {
+            color: #f44747;
+        }
+        .warning {
+            color: #ffcc02;
+        }
+        .info {
+            color: #569cd6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 WebWorker Phase 4 通信デバッグツール</h1>
+        
+        <div class="status" id="status">
+            <div>🔄 初期化中...</div>
+        </div>
+        
+        <div class="buttons">
+            <button id="initButton" onclick="initializeWorkers()">Worker初期化</button>
+            <button id="pingButton" onclick="testPing()" disabled>PING送信</button>
+            <button id="messageButton" onclick="testMessage()" disabled>メッセージ送信</button>
+            <button id="transferableButton" onclick="testTransferable()" disabled>Transferable Objects</button>
+            <button id="clearButton" onclick="clearLog()">ログクリア</button>
+        </div>
+        
+        <div class="log" id="log"></div>
+    </div>
+
+    <script type="module">
+        import WorkerManager from '/tools/workers/communication/worker-manager.js';
+        import { MessageType, GameStateUpdate, MessageBuilder } from '/tools/workers/communication/message-protocol.js';
+
+        let workerManager;
+        let testResults = {
+            initialization: false,
+            ping: false,
+            message: false,
+            transferable: false
+        };
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = {
+                'success': 'success',
+                'error': 'error', 
+                'warning': 'warning',
+                'info': 'info'
+            }[type] || 'info';
+            
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.innerHTML += `<span class="${className}">${logEntry}</span>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusElement = document.getElementById('status');
+            const icon = {
+                'success': '✅',
+                'error': '❌', 
+                'warning': '⚠️',
+                'info': '🔄'
+            }[type] || '🔄';
+            
+            statusElement.innerHTML = `<div class="${type}">${icon} ${message}</div>`;
+        }
+
+        function updateButtons() {
+            const initButton = document.getElementById('initButton');
+            const pingButton = document.getElementById('pingButton');
+            const messageButton = document.getElementById('messageButton');
+            const transferableButton = document.getElementById('transferableButton');
+            
+            if (testResults.initialization) {
+                initButton.textContent = 'Worker再初期化';
+                pingButton.disabled = false;
+                messageButton.disabled = false;
+                transferableButton.disabled = false;
+            } else {
+                initButton.textContent = 'Worker初期化';
+                pingButton.disabled = true;
+                messageButton.disabled = true;
+                transferableButton.disabled = true;
+            }
+        }
+
+        // グローバル関数として公開
+        window.initializeWorkers = async function() {
+            try {
+                log('🚀 WorkerManager初期化開始', 'info');
+                updateStatus('WorkerManager初期化中...', 'info');
+                
+                workerManager = new WorkerManager();
+                await workerManager.initialize();
+                
+                testResults.initialization = true;
+                log('✅ WorkerManager初期化完了', 'success');
+                updateStatus('Worker初期化完了 - テスト可能', 'success');
+                updateButtons();
+                
+            } catch (error) {
+                testResults.initialization = false;
+                log(`❌ WorkerManager初期化失敗: ${error.message}`, 'error');
+                log(`スタック: ${error.stack}`, 'error');
+                updateStatus('Worker初期化失敗', 'error');
+                updateButtons();
+            }
+        };
+
+        window.testPing = async function() {
+            if (!workerManager) {
+                log('❌ WorkerManagerが初期化されていません', 'error');
+                return;
+            }
+
+            try {
+                log('📤 PING送信テスト開始', 'info');
+                updateStatus('PING送信中...', 'info');
+                
+                const pingMessage = new MessageBuilder()
+                    .type(MessageType.PING)
+                    .payload({ timestamp: performance.now() })
+                    .build();
+                
+                const workers = ['game-logic', 'ai', 'analytics'];
+                const results = [];
+                
+                for (const workerId of workers) {
+                    try {
+                        log(`📤 ${workerId} Worker にPING送信...`, 'info');
+                        const startTime = performance.now();
+                        
+                        const response = await workerManager.sendMessage(workerId, pingMessage, 10000);
+                        const responseTime = performance.now() - startTime;
+                        
+                        log(`✅ ${workerId} PONG受信 (${responseTime.toFixed(1)}ms)`, 'success');
+                        log(`   レスポンス: ${JSON.stringify(response, null, 2)}`, 'info');
+                        results.push({ workerId, success: true, responseTime });
+                        
+                    } catch (error) {
+                        log(`❌ ${workerId} PING失敗: ${error.message}`, 'error');
+                        results.push({ workerId, success: false, error: error.message });
+                    }
+                }
+                
+                const successCount = results.filter(r => r.success).length;
+                testResults.ping = successCount > 0;
+                
+                log(`📊 PING結果: ${successCount}/${workers.length} 成功`, successCount > 0 ? 'success' : 'error');
+                updateStatus(`PING結果: ${successCount}/${workers.length} 成功`, successCount > 0 ? 'success' : 'error');
+                
+            } catch (error) {
+                testResults.ping = false;
+                log(`❌ PINGテスト失敗: ${error.message}`, 'error');
+                updateStatus('PINGテスト失敗', 'error');
+            }
+        };
+
+        window.testMessage = async function() {
+            if (!workerManager) {
+                log('❌ WorkerManagerが初期化されていません', 'error');
+                return;
+            }
+
+            try {
+                log('📤 通常メッセージ送信テスト開始', 'info');
+                updateStatus('メッセージ送信中...', 'info');
+                
+                const gameStateMessage = {
+                    type: MessageType.UPDATE_GAME_STATE,
+                    payload: {
+                        ballPosition: { x: Math.random() * 800, y: Math.random() * 600 },
+                        ballVelocity: { x: Math.random() * 10 - 5, y: Math.random() * 10 - 5 },
+                        frameNumber: 1
+                    },
+                    timestamp: performance.now()
+                };
+                
+                const startTime = performance.now();
+                log(`📤 game-logic Worker にメッセージ送信...`, 'info');
+                log(`   メッセージ: ${JSON.stringify(gameStateMessage, null, 2)}`, 'info');
+                
+                const response = await workerManager.sendMessage('game-logic', gameStateMessage, 10000, []);
+                const responseTime = performance.now() - startTime;
+                
+                testResults.message = true;
+                log(`✅ メッセージ送信成功 (${responseTime.toFixed(1)}ms)`, 'success');
+                log(`   レスポンス: ${JSON.stringify(response, null, 2)}`, 'info');
+                updateStatus(`メッセージ送信成功`, 'success');
+                
+            } catch (error) {
+                testResults.message = false;
+                log(`❌ メッセージ送信失敗: ${error.message}`, 'error');
+                log(`スタック: ${error.stack}`, 'error');
+                updateStatus('メッセージ送信失敗', 'error');
+            }
+        };
+
+        window.testTransferable = async function() {
+            if (!workerManager) {
+                log('❌ WorkerManagerが初期化されていません', 'error');
+                return;
+            }
+
+            try {
+                log('🔄 Transferable Objects送信テスト開始', 'info');
+                updateStatus('Transferable Objects送信中...', 'info');
+                
+                // GameStateUpdateを使用したTransferable Objects
+                const gameStateUpdate = new GameStateUpdate();
+                gameStateUpdate.ballPosition[0] = Math.random() * 800;
+                gameStateUpdate.ballPosition[1] = Math.random() * 600;
+                gameStateUpdate.ballVelocity[0] = Math.random() * 10 - 5;
+                gameStateUpdate.ballVelocity[1] = Math.random() * 10 - 5;
+                gameStateUpdate.frameNumber[0] = 1;
+                
+                const timestamp = performance.now();
+                gameStateUpdate.timestamp[0] = Math.floor(timestamp / 0x100000000);
+                gameStateUpdate.timestamp[1] = timestamp % 0x100000000;
+                
+                const message = new MessageBuilder()
+                    .type(MessageType.UPDATE_GAME_STATE)
+                    .payload(gameStateUpdate)
+                    .build();
+                
+                const transferList = gameStateUpdate.getTransferList();
+                log(`📤 Transferable Objects送信 (${transferList.length}個のバッファ)`, 'info');
+                log(`   TransferList: ${transferList.map(b => `ArrayBuffer(${b.byteLength})`).join(', ')}`, 'info');
+                
+                const startTime = performance.now();
+                const response = await workerManager.sendMessage('game-logic', message, 10000, transferList);
+                const responseTime = performance.now() - startTime;
+                
+                testResults.transferable = true;
+                log(`✅ Transferable Objects送信成功 (${responseTime.toFixed(1)}ms)`, 'success');
+                log(`   Zero-copy転送が実行されました`, 'success');
+                log(`   レスポンス: ${JSON.stringify(response, null, 2)}`, 'info');
+                updateStatus(`Transferable Objects送信成功`, 'success');
+                
+            } catch (error) {
+                testResults.transferable = false;
+                log(`❌ Transferable Objects送信失敗: ${error.message}`, 'error');
+                log(`スタック: ${error.stack}`, 'error');
+                updateStatus('Transferable Objects送信失敗', 'error');
+            }
+        };
+
+        window.clearLog = function() {
+            document.getElementById('log').innerHTML = '';
+            log('🗑️ ログクリア', 'info');
+        };
+
+        // 初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🔧 WebWorker通信デバッグツール準備完了', 'info');
+            updateButtons();
+        });
+    </script>
+</body>
+</html>

@@ -98,7 +98,7 @@ test.describe('WebSocket通信包括テスト', () => {
     console.log('🔌 実環境WebSocket接続ライフサイクルテストを開始...');
     
     // 実際のローカルサーバーに接続（モックなし）
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
     
     // 実際のPyodide初期化を段階的に待機
     console.log('⏳ 実際のPyodide初期化を待機中...');

@@ -1,0 +1,685 @@
+{
+  "testInfo": {
+    "testName": "WebWorker Phase 4 統合テスト",
+    "framework": "Playwright + Chromium",
+    "timestamp": "2025-07-21T00:06:09.345Z",
+    "duration": 63404,
+    "success": true
+  },
+  "results": {
+    "startTime": 1753056305717,
+    "endTime": 1753056369121,
+    "duration": 63404,
+    "success": true,
+    "screenshots": [
+      {
+        "type": "full_page",
+        "path": "test-results-full.png",
+        "timestamp": 1753056369056
+      },
+      {
+        "type": "metrics",
+        "path": "test-results-metrics.png",
+        "timestamp": 1753056369121
+      }
+    ],
+    "logs": [
+      {
+        "type": "log",
+        "text": "🎮 WebWorker Phase 4 統合テストページ読み込み完了",
+        "timestamp": 1753056307542
+      },
+      {
+        "type": "log",
+        "text": "「統合テスト開始」ボタンをクリックしてテストを開始してください",
+        "timestamp": 1753056307565
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+        "timestamp": 1753056307576
+      },
+      {
+        "type": "log",
+        "text": "🚀 WebWorker Phase 4 統合テスト開始",
+        "timestamp": 1753056308252
+      },
+      {
+        "type": "log",
+        "text": "🔧 AOTLoaderManager初期化完了",
+        "timestamp": 1753056308253
+      },
+      {
+        "type": "log",
+        "text": "🚀 WorkerManager初期化完了",
+        "timestamp": 1753056308254
+      },
+      {
+        "type": "log",
+        "text": "🎮 WorkerIntegrationController初期化完了",
+        "timestamp": 1753056308254
+      },
+      {
+        "type": "log",
+        "text": "🧪 WebWorker統合テスト開始準備完了",
+        "timestamp": 1753056308254
+      },
+      {
+        "type": "log",
+        "text": "🔧 WebWorker統合システム初期化中...",
+        "timestamp": 1753056308255
+      },
+      {
+        "type": "log",
+        "text": "📊 WorkerManager初期化中...",
+        "timestamp": 1753056308256
+      },
+      {
+        "type": "log",
+        "text": "📦 AOTバイトコードインデックス読み込み中...",
+        "timestamp": 1753056308256
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+        "timestamp": 1753056308378
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ AOTインデックス読み込み失敗、フォールバック生成: Error: インデックス読み込み失敗: 404\n    at AOTLoaderManager.loadModuleIndex (http://localhost:8080/tools/workers/communication/aot-loader.js:72:23)\n    at async AOTLoaderManager.initialize (http://localhost:8080/tools/workers/communication/aot-loader.js:48:13)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:51:13)\n    at async WorkerIntegrationController.initialize (http://localhost:8080/tools/workers/worker-integration-controller.js:70:13)\n    at async WebWorkerIntegrationTest.testInitialization (http://localhost:8080/tools/workers/test-webworker-integration.js:87:13)\n    at async runCustomTestSuite (http://localhost:8080/tools/workers/test-webworker-browser.html:375:13)\n    at async window.startIntegrationTest (http://localhost:8080/tools/workers/test-webworker-browser.html:345:17)",
+        "timestamp": 1753056308378
+      },
+      {
+        "type": "log",
+        "text": "🚀 重要モジュールの事前ロード中...",
+        "timestamp": 1753056308378
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+        "timestamp": 1753056308402
+      },
+      {
+        "type": "error",
+        "text": "❌ モジュール読み込みエラー (game_engine): Error: モジュール読み込み失敗: 404\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:206:23)\n    at async AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:170:32)\n    at async Promise.allSettled (index 0)\n    at async AOTLoaderManager.preloadEssentialModules (http://localhost:8080/tools/workers/communication/aot-loader.js:135:25)\n    at async AOTLoaderManager.initialize (http://localhost:8080/tools/workers/communication/aot-loader.js:51:13)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:51:13)\n    at async WorkerIntegrationController.initialize (http://localhost:8080/tools/workers/worker-integration-controller.js:70:13)\n    at async WebWorkerIntegrationTest.testInitialization (http://localhost:8080/tools/workers/test-webworker-integration.js:87:13)\n    at async runCustomTestSuite (http://localhost:8080/tools/workers/test-webworker-browser.html:375:13)\n    at async window.startIntegrationTest (http://localhost:8080/tools/workers/test-webworker-browser.html:345:17)",
+        "timestamp": 1753056308402
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ フォールバックモジュール読み込み: game_engine",
+        "timestamp": 1753056308403
+      },
+      {
+        "type": "log",
+        "text": "✅ モジュール読み込み完了: game_engine (15.5ms)",
+        "timestamp": 1753056308403
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+        "timestamp": 1753056308408
+      },
+      {
+        "type": "error",
+        "text": "❌ モジュール読み込みエラー (physics): Error: モジュール読み込み失敗: 404\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:206:23)\n    at async AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:170:32)\n    at async Promise.allSettled (index 1)\n    at async AOTLoaderManager.preloadEssentialModules (http://localhost:8080/tools/workers/communication/aot-loader.js:135:25)\n    at async AOTLoaderManager.initialize (http://localhost:8080/tools/workers/communication/aot-loader.js:51:13)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:51:13)\n    at async WorkerIntegrationController.initialize (http://localhost:8080/tools/workers/worker-integration-controller.js:70:13)\n    at async WebWorkerIntegrationTest.testInitialization (http://localhost:8080/tools/workers/test-webworker-integration.js:87:13)\n    at async runCustomTestSuite (http://localhost:8080/tools/workers/test-webworker-browser.html:375:13)\n    at async window.startIntegrationTest (http://localhost:8080/tools/workers/test-webworker-browser.html:345:17)",
+        "timestamp": 1753056308415
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ フォールバックモジュール読み込み: physics",
+        "timestamp": 1753056308415
+      },
+      {
+        "type": "log",
+        "text": "✅ モジュール読み込み完了: physics (24.0ms)",
+        "timestamp": 1753056308423
+      },
+      {
+        "type": "log",
+        "text": "📈 事前ロード完了: 2成功, 0失敗",
+        "timestamp": 1753056308425
+      },
+      {
+        "type": "log",
+        "text": "✅ AOTLoaderManager初期化完了",
+        "timestamp": 1753056308425
+      },
+      {
+        "type": "log",
+        "text": "🔧 Worker作成中: game-logic",
+        "timestamp": 1753056308428
+      },
+      {
+        "type": "log",
+        "text": "📦 Worker 'game-logic' 用モジュール準備中: 3モジュール",
+        "timestamp": 1753056308428
+      },
+      {
+        "type": "log",
+        "text": "🔧 Worker作成中: ai",
+        "timestamp": 1753056308428
+      },
+      {
+        "type": "log",
+        "text": "📦 Worker 'ai' 用モジュール準備中: 3モジュール",
+        "timestamp": 1753056308428
+      },
+      {
+        "type": "log",
+        "text": "🔧 Worker作成中: analytics",
+        "timestamp": 1753056308437
+      },
+      {
+        "type": "log",
+        "text": "📦 Worker 'analytics' 用モジュール準備中: 2モジュール",
+        "timestamp": 1753056308437
+      },
+      {
+        "type": "log",
+        "text": "⚡ キャッシュヒット: game_engine",
+        "timestamp": 1753056308437
+      },
+      {
+        "type": "log",
+        "text": "⚡ キャッシュヒット: physics",
+        "timestamp": 1753056308438
+      },
+      {
+        "type": "error",
+        "text": "Worker 'game-logic' モジュール読み込み失敗 (collision): Error: モジュール 'collision' がインデックスに見つかりません\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:197:19)\n    at AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:166:34)\n    at http://localhost:8080/tools/workers/communication/aot-loader.js:302:47\n    at Array.map (<anonymous>)\n    at AOTLoaderManager.getModulesForWorker (http://localhost:8080/tools/workers/communication/aot-loader.js:300:41)\n    at async WorkerManager.initializeWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:159:28)\n    at async WorkerManager.createWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:139:13)\n    at async Promise.all (index 0)\n    at async WorkerManager.setupStandardWorkerPool (http://localhost:8080/tools/workers/communication/worker-manager.js:107:9)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:54:13)",
+        "timestamp": 1753056308439
+      },
+      {
+        "type": "error",
+        "text": "Worker 'ai' モジュール読み込み失敗 (strategy): Error: モジュール 'strategy' がインデックスに見つかりません\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:197:19)\n    at AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:166:34)\n    at http://localhost:8080/tools/workers/communication/aot-loader.js:302:47\n    at Array.map (<anonymous>)\n    at AOTLoaderManager.getModulesForWorker (http://localhost:8080/tools/workers/communication/aot-loader.js:300:41)\n    at async WorkerManager.initializeWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:159:28)\n    at async WorkerManager.createWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:139:13)\n    at async Promise.all (index 1)\n    at async WorkerManager.setupStandardWorkerPool (http://localhost:8080/tools/workers/communication/worker-manager.js:107:9)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:54:13)",
+        "timestamp": 1753056308443
+      },
+      {
+        "type": "error",
+        "text": "Worker 'ai' モジュール読み込み失敗 (prediction): Error: モジュール 'prediction' がインデックスに見つかりません\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:197:19)\n    at AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:166:34)\n    at http://localhost:8080/tools/workers/communication/aot-loader.js:302:47\n    at Array.map (<anonymous>)\n    at AOTLoaderManager.getModulesForWorker (http://localhost:8080/tools/workers/communication/aot-loader.js:300:41)\n    at async WorkerManager.initializeWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:159:28)\n    at async WorkerManager.createWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:139:13)\n    at async Promise.all (index 1)\n    at async WorkerManager.setupStandardWorkerPool (http://localhost:8080/tools/workers/communication/worker-manager.js:107:9)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:54:13)",
+        "timestamp": 1753056308444
+      },
+      {
+        "type": "error",
+        "text": "Worker 'analytics' モジュール読み込み失敗 (metrics): Error: モジュール 'metrics' がインデックスに見つかりません\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:197:19)\n    at AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:166:34)\n    at http://localhost:8080/tools/workers/communication/aot-loader.js:302:47\n    at Array.map (<anonymous>)\n    at AOTLoaderManager.getModulesForWorker (http://localhost:8080/tools/workers/communication/aot-loader.js:300:41)\n    at async WorkerManager.initializeWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:159:28)\n    at async WorkerManager.createWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:139:13)\n    at async Promise.all (index 2)\n    at async WorkerManager.setupStandardWorkerPool (http://localhost:8080/tools/workers/communication/worker-manager.js:107:9)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:54:13)",
+        "timestamp": 1753056308454
+      },
+      {
+        "type": "error",
+        "text": "Worker 'analytics' モジュール読み込み失敗 (performance): Error: モジュール 'performance' がインデックスに見つかりません\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:197:19)\n    at AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:166:34)\n    at http://localhost:8080/tools/workers/communication/aot-loader.js:302:47\n    at Array.map (<anonymous>)\n    at AOTLoaderManager.getModulesForWorker (http://localhost:8080/tools/workers/communication/aot-loader.js:300:41)\n    at async WorkerManager.initializeWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:159:28)\n    at async WorkerManager.createWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:139:13)\n    at async Promise.all (index 2)\n    at async WorkerManager.setupStandardWorkerPool (http://localhost:8080/tools/workers/communication/worker-manager.js:107:9)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:54:13)",
+        "timestamp": 1753056308455
+      },
+      {
+        "type": "log",
+        "text": "✅ Worker 'game-logic' モジュール準備完了: 2/3モジュール",
+        "timestamp": 1753056308455
+      },
+      {
+        "type": "log",
+        "text": "✅ Worker 'analytics' モジュール準備完了: 0/2モジュール",
+        "timestamp": 1753056308455
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (File not found)",
+        "timestamp": 1753056308468
+      },
+      {
+        "type": "error",
+        "text": "❌ モジュール読み込みエラー (ai_enhancer): Error: モジュール読み込み失敗: 404\n    at AOTLoaderManager.performModuleLoad (http://localhost:8080/tools/workers/communication/aot-loader.js:206:23)\n    at async AOTLoaderManager.loadModule (http://localhost:8080/tools/workers/communication/aot-loader.js:170:32)\n    at async http://localhost:8080/tools/workers/communication/aot-loader.js:302:36\n    at async Promise.allSettled (index 0)\n    at async AOTLoaderManager.getModulesForWorker (http://localhost:8080/tools/workers/communication/aot-loader.js:309:9)\n    at async WorkerManager.initializeWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:159:28)\n    at async WorkerManager.createWorker (http://localhost:8080/tools/workers/communication/worker-manager.js:139:13)\n    at async Promise.all (index 1)\n    at async WorkerManager.setupStandardWorkerPool (http://localhost:8080/tools/workers/communication/worker-manager.js:107:9)\n    at async WorkerManager.initialize (http://localhost:8080/tools/workers/communication/worker-manager.js:54:13)",
+        "timestamp": 1753056308469
+      },
+      {
+        "type": "warning",
+        "text": "⚠️ フォールバックモジュール読み込み: ai_enhancer",
+        "timestamp": 1753056308472
+      },
+      {
+        "type": "log",
+        "text": "✅ モジュール読み込み完了: ai_enhancer (47.7ms)",
+        "timestamp": 1753056308472
+      },
+      {
+        "type": "log",
+        "text": "✅ Worker 'ai' モジュール準備完了: 1/3モジュール",
+        "timestamp": 1753056308472
+      },
+      {
+        "type": "log",
+        "text": "🎮 GameLogicWorker初期化完了",
+        "timestamp": 1753056308475
+      },
+      {
+        "type": "log",
+        "text": "🎮 GameLogicWorker ready for messages",
+        "timestamp": 1753056308475
+      },
+      {
+        "type": "log",
+        "text": "🔧 GameLogicWorker初期化中...",
+        "timestamp": 1753056308476
+      },
+      {
+        "type": "log",
+        "text": "🔧 WorkerAOTLoader初期化中 (game-logic): 2モジュール",
+        "timestamp": 1753056308477
+      },
+      {
+        "type": "log",
+        "text": "📦 JavaScriptモジュール実行完了: game_engine",
+        "timestamp": 1753056308477
+      },
+      {
+        "type": "log",
+        "text": "📦 JavaScriptモジュール実行完了: physics",
+        "timestamp": 1753056308478
+      },
+      {
+        "type": "log",
+        "text": "✅ WorkerAOTLoader初期化完了 (game-logic)",
+        "timestamp": 1753056308478
+      },
+      {
+        "type": "log",
+        "text": "📦 AOTモジュール読み込み完了",
+        "timestamp": 1753056308478
+      },
+      {
+        "type": "log",
+        "text": "✅ GameLogicWorker初期化完了",
+        "timestamp": 1753056308478
+      },
+      {
+        "type": "log",
+        "text": "✅ Worker作成完了: game-logic",
+        "timestamp": 1753056308478
+      },
+      {
+        "type": "log",
+        "text": "🤖 AIWorker初期化完了",
+        "timestamp": 1753056308479
+      },
+      {
+        "type": "log",
+        "text": "🤖 AIWorker ready for messages",
+        "timestamp": 1753056308479
+      },
+      {
+        "type": "log",
+        "text": "🔧 AIWorker初期化中...",
+        "timestamp": 1753056308480
+      },
+      {
+        "type": "log",
+        "text": "🔧 WorkerAOTLoader初期化中 (ai): 1モジュール",
+        "timestamp": 1753056308480
+      },
+      {
+        "type": "log",
+        "text": "📦 JavaScriptモジュール実行完了: ai_enhancer",
+        "timestamp": 1753056308480
+      },
+      {
+        "type": "log",
+        "text": "✅ WorkerAOTLoader初期化完了 (ai)",
+        "timestamp": 1753056308480
+      },
+      {
+        "type": "log",
+        "text": "📦 AI AOTモジュール読み込み完了",
+        "timestamp": 1753056308480
+      },
+      {
+        "type": "log",
+        "text": "✅ AIWorker初期化完了",
+        "timestamp": 1753056308481
+      },
+      {
+        "type": "log",
+        "text": "📊 メトリクス収集開始",
+        "timestamp": 1753056308481
+      },
+      {
+        "type": "log",
+        "text": "📊 AnalyticsWorker初期化完了",
+        "timestamp": 1753056308481
+      },
+      {
+        "type": "log",
+        "text": "📊 AnalyticsWorker ready for messages",
+        "timestamp": 1753056308481
+      },
+      {
+        "type": "log",
+        "text": "✅ Worker作成完了: ai",
+        "timestamp": 1753056308481
+      },
+      {
+        "type": "log",
+        "text": "🔧 AnalyticsWorker初期化中...",
+        "timestamp": 1753056308482
+      },
+      {
+        "type": "log",
+        "text": "✅ AnalyticsWorker初期化完了",
+        "timestamp": 1753056308484
+      },
+      {
+        "type": "log",
+        "text": "✅ Worker作成完了: analytics",
+        "timestamp": 1753056308484
+      },
+      {
+        "type": "log",
+        "text": "📈 標準Workerプール構築完了: 3個のWorker",
+        "timestamp": 1753056308484
+      },
+      {
+        "type": "log",
+        "text": "✅ WorkerManager初期化完了",
+        "timestamp": 1753056308484
+      },
+      {
+        "type": "log",
+        "text": "📡 Workerイベントハンドラー設定完了",
+        "timestamp": 1753056308484
+      },
+      {
+        "type": "log",
+        "text": "🧪 初期テスト実行中...",
+        "timestamp": 1753056308484
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 0.998003992015968}",
+        "timestamp": 1753056313478
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 5040.5, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056313478
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 0.9983028850775172}",
+        "timestamp": 1753056319479
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 11040.59999999404, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056319480
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 0.9998200323929775}",
+        "timestamp": 1753056319480
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 11041.09999999404, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056319481
+      },
+      {
+        "type": "log",
+        "text": "📊 Ping結果: {game-logic: Object, ai: Object, analytics: Object}",
+        "timestamp": 1753056323478
+      },
+      {
+        "type": "log",
+        "text": "🔍 AOTローダーテスト中...",
+        "timestamp": 1753056323479
+      },
+      {
+        "type": "log",
+        "text": "📊 AOT統計: {modulesLoaded: 3, cacheHits: 2, cacheMisses: 8, totalLoadTime: 87.19999998807907, averageLoadTime: 29.066666662693024}",
+        "timestamp": 1753056323479
+      },
+      {
+        "type": "log",
+        "text": "💾 AOTメモリ使用量: 0.00MB",
+        "timestamp": 1753056323480
+      },
+      {
+        "type": "log",
+        "text": "📡 メッセージプロトコルテスト中...",
+        "timestamp": 1753056323480
+      },
+      {
+        "type": "log",
+        "text": "📦 転送可能オブジェクト数: 8",
+        "timestamp": 1753056323480
+      },
+      {
+        "type": "log",
+        "text": "✅ メッセージプロトコルテスト完了",
+        "timestamp": 1753056323481
+      },
+      {
+        "type": "log",
+        "text": "✅ 初期テスト完了",
+        "timestamp": 1753056323481
+      },
+      {
+        "type": "log",
+        "text": "✅ WebWorker統合システム初期化完了",
+        "timestamp": 1753056323481
+      },
+      {
+        "type": "log",
+        "text": "✅ 初期化テスト成功 (15226.6ms)",
+        "timestamp": 1753056323481
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 1.0003000900389363}",
+        "timestamp": 1753056325475
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 17038.09999999404, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056325476
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 1.0001400196033405}",
+        "timestamp": 1753056325476
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 17038.30000001192, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056325477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 1.0057326762727385}",
+        "timestamp": 1753056331469
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 23031.59999999404, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056331470
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 1.0009208471811966}",
+        "timestamp": 1753056331470
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 23031.90000000596, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056331470
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 0.9999000100049594}",
+        "timestamp": 1753056336475
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 1.0000200004017963}",
+        "timestamp": 1753056336475
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 28037.19999998808, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056336475
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 28037.5, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056336476
+      },
+      {
+        "type": "log",
+        "text": "🔍 Ping結果詳細:",
+        "timestamp": 1753056338487
+      },
+      {
+        "type": "log",
+        "text": "  game-logic: {success: false, latency: undefined, error: Worker 'game-logic' メッセージタイムアウト (5000ms), responsePayload: undefined}",
+        "timestamp": 1753056338487
+      },
+      {
+        "type": "log",
+        "text": "  ai: {success: false, latency: undefined, error: Worker 'ai' メッセージタイムアウト (5000ms), responsePayload: undefined}",
+        "timestamp": 1753056338488
+      },
+      {
+        "type": "log",
+        "text": "  analytics: {success: false, latency: undefined, error: Worker 'analytics' メッセージタイムアウト (5000ms), responsePayload: undefined}",
+        "timestamp": 1753056338488
+      },
+      {
+        "type": "error",
+        "text": "❌ 統合テスト失敗: Error: 基本通信テスト失敗: 一部のWorkerが応答していません: game-logic: Worker 'game-logic' メッセージタイムアウト (5000ms), ai: Worker 'ai' メッセージタイムアウト (5000ms), analytics: Worker 'analytics' メッセージタイムアウト (5000ms)\n    at WebWorkerIntegrationTest.testBasicCommunication (http://localhost:8080/tools/workers/test-webworker-integration.js:164:19)\n    at async runCustomTestSuite (http://localhost:8080/tools/workers/test-webworker-browser.html:380:13)\n    at async window.startIntegrationTest (http://localhost:8080/tools/workers/test-webworker-browser.html:345:17)",
+        "timestamp": 1753056338488
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 0.9950248756218906}",
+        "timestamp": 1753056341477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 0.9992206079246276}",
+        "timestamp": 1753056341478
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 33039.40000000596, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056341478
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 33039.59999999404, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056341478
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 1.0057326762425935}",
+        "timestamp": 1753056347470
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 1.0001200144005358}",
+        "timestamp": 1753056347470
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 39031.5, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056347470
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 39031.69999998808, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056347471
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 1.0012014417181265}",
+        "timestamp": 1753056352476
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 0.9999300048978692}",
+        "timestamp": 1753056352477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 44038, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056352477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 44038.09999999404, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056352477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 0.9995002498750625}",
+        "timestamp": 1753056358476
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 0.9993903718707762}",
+        "timestamp": 1753056358476
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 50037.40000000596, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056358476
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 50037.59999999404, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056358477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_critical {severity: high, message: FPS critically low: 1.0, threshold: 30, current: 0.9997000899610943}",
+        "timestamp": 1753056363477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 Alert generated: fps_sustained_low {severity: high, message: Sustained low FPS: 1.0, threshold: 30, current: 0.9999300048978692}",
+        "timestamp": 1753056363477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_critical, timestamp: 55037.80000001192, severity: high, message: FPS critically low: 1.0, threshold: 30}",
+        "timestamp": 1753056363477
+      },
+      {
+        "type": "warning",
+        "text": "🚨 パフォーマンスアラート: {id: fps_sustained_low, timestamp: 55037.90000000596, severity: high, message: Sustained low FPS: 1.0, threshold: 30}",
+        "timestamp": 1753056363477
+      }
+    ],
+    "metrics": {
+      "fps": "--",
+      "latency": "--",
+      "frames": "--",
+      "workers": "--",
+      "timestamp": 1753056338874
+    },
+    "errors": [],
+    "finalData": {
+      "status": "テスト失敗",
+      "progress": "1/5 テスト完了",
+      "elapsedTime": "00:30",
+      "metrics": {
+        "fps": "--",
+        "latency": "--",
+        "frames": "--",
+        "workers": "--"
+      },
+      "details": ""
+    }
+  },
+  "summary": {
+    "totalLogs": 126,
+    "totalErrors": 0,
+    "screenshotCount": 2,
+    "testUrl": "http://localhost:8080/tools/workers/test-webworker-browser.html"
+  }
+}

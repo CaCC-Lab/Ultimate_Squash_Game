@@ -43,6 +43,7 @@
   "homepage": "https://github.com/CaCC-Lab/Ultimate_Squash_Game#readme",
   "devDependencies": {
     "@playwright/test": "^1.54.1",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "license-checker": "^25.0.1"
   }
 }

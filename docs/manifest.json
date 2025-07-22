@@ -2,7 +2,7 @@
   "name": "Ultimate Squash Game",
   "short_name": "UltimateSquash",
   "description": "ブラウザで動作する軽量スカッシュゲーム。AI Dynamic Adjustment機能搭載。",
-  "start_url": "/game.html",
+  "start_url": "/docs/game.html",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#0c0c0c",
@@ -35,7 +35,7 @@
       "name": "新しいゲーム",
       "short_name": "New Game",
       "description": "新しいゲームを開始",
-      "url": "/game.html#new",
+      "url": "/docs/game.html#new",
       "icons": [
         {
           "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMDA0Mjc0Ii8+CjxwYXRoIGQ9Ik00OCAyNFY3MiIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjgiLz4KPHBhdGggZD0iTTI0IDQ4SDcyIiBzdHJva2U9IiNmZmZmZmYiIHN0cm9rZS13aWR0aD0iOCIvPgo8L3N2Zz4K",
@@ -48,7 +48,7 @@
       "name": "ランキング",
       "short_name": "Ranking",
       "description": "ランキングを表示",
-      "url": "/game.html#ranking",
+      "url": "/docs/game.html#ranking",
       "icons": [
         {
           "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTYiIGhlaWdodD0iOTYiIHZpZXdCb3g9IjAgMCA5NiA5NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9Ijk2IiBoZWlnaHQ9Ijk2IiBmaWxsPSIjMDA0Mjc0Ii8+CjxyZWN0IHg9IjI0IiB5PSI0OCIgd2lkdGg9IjE2IiBoZWlnaHQ9IjM2IiBmaWxsPSIjZmZmZmZmIi8+CjxyZWN0IHg9IjQwIiB5PSIzNiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjQ4IiBmaWxsPSIjZmZmZmZmIi8+CjxyZWN0IHg9IjU2IiB5PSI1NiIgd2lkdGg9IjE2IiBoZWlnaHQ9IjI4IiBmaWxsPSIjZmZmZmZmIi8+Cjwvc3ZnPgo=",

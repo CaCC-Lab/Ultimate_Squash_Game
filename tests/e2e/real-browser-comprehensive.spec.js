@@ -19,7 +19,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
     testStartTime = Date.now();
     
     // 実際のローカルサーバーに接続（モックサーバーなし）
-    await page.goto('/game.html');
+    await page.goto('/docs/game.html');
     
     // 段階的な初期化待機（実際の読み込み時間を考慮）
     await page.waitForLoadState('networkidle');
