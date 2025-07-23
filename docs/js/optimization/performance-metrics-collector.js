@@ -409,6 +409,31 @@ export class PerformanceMetricsCollector {
             summary: this.getSummary()
         };
     }
+    
+    // 互換性のためのエイリアスメソッド
+    startCollection() {
+        return this.start();
+    }
+    
+    stopCollection() {
+        return this.stop();
+    }
+    
+    getStats() {
+        return this.getSummary();
+    }
+    
+    showOverlay() {
+        if (!this.overlay && this.isCollecting) {
+            this.createOverlay();
+        }
+    }
+    
+    hideOverlay() {
+        if (this.overlay) {
+            this.overlay.style.display = 'none';
+        }
+    }
 }
 
 // シングルトンインスタンス

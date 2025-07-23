@@ -1119,7 +1119,7 @@
     <script src="js/optimization/pyodide-performance-tracker.js" type="module"></script>
     <script src="js/optimization/performance-dashboard.js" type="module"></script>
     <script src="js/optimization/python-bundle-loader.js" type="module"></script>
-    <script src="js/optimization/performance-metrics-collector.js" type="module"></script>
+    <!-- Performance metrics collector is loaded dynamically below -->
     <script src="js/parallel-initializer.js"></script>
     
     <!-- アナリティクスシステム -->
@@ -4223,20 +4223,10 @@ def restart_game():
             });
         }
         
-        // パフォーマンスメトリクスコレクターの初期化
-        // モジュールとして読み込まれた後にグローバル変数として設定
-        import('./js/optimization/performance-metrics-collector.js').then(module => {
-            window.metricsCollector = module.metricsCollector;
-            console.log('📊 Performance metrics collector initialized');
-            
-            // デバッグモードの場合は自動的に開始
-            if (window.location.hash === '#debug' || window.DEBUG_MODE) {
-                console.log('🚀 Auto-starting metrics collection in debug mode');
-                // startGameLoopが呼ばれた時に自動開始される
-            }
-        }).catch(error => {
-            console.error('Failed to load performance metrics collector:', error);
-        });
+        // Performance metrics will be loaded via the loader module at the end of the body
     </script>
+    
+    <!-- Performance Metrics Loader - loads after all other scripts -->
+    <script type="module" src="./js/optimization/performance-metrics-loader.js"></script>
 </body>
 </html>

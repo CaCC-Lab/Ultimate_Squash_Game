@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Metrics Test</title>
+</head>
+<body>
+    <h1>Performance Metrics Test</h1>
+    <div id="status">Loading...</div>
+    <button id="startBtn">Start Collection</button>
+    <button id="stopBtn">Stop Collection</button>
+    <button id="showOverlayBtn">Show Overlay</button>
+    <button id="hideOverlayBtn">Hide Overlay</button>
+    <pre id="output"></pre>
+
+    <script type="module">
+        // パフォーマンスメトリクスコレクターのテスト
+        const statusEl = document.getElementById('status');
+        const outputEl = document.getElementById('output');
+        
+        try {
+            const module = await import('./js/optimization/performance-metrics-collector.js');
+            console.log('Module loaded:', module);
+            
+            window.metricsCollector = module.metricsCollector;
+            console.log('Metrics collector:', window.metricsCollector);
+            
+            statusEl.textContent = 'Loaded successfully!';
+            outputEl.textContent = JSON.stringify({
+                hasCollector: !!window.metricsCollector,
+                isCollecting: window.metricsCollector?.isCollecting,
+                methods: Object.getOwnPropertyNames(Object.getPrototypeOf(window.metricsCollector || {}))
+            }, null, 2);
+            
+            // ボタンイベント
+            document.getElementById('startBtn').onclick = () => {
+                window.metricsCollector.startCollection();
+                console.log('Started collection');
+                updateStatus();
+            };
+            
+            document.getElementById('stopBtn').onclick = () => {
+                window.metricsCollector.stopCollection();
+                console.log('Stopped collection');
+                updateStatus();
+            };
+            
+            document.getElementById('showOverlayBtn').onclick = () => {
+                window.metricsCollector.showOverlay();
+                console.log('Showing overlay');
+                updateStatus();
+            };
+            
+            document.getElementById('hideOverlayBtn').onclick = () => {
+                window.metricsCollector.hideOverlay();
+                console.log('Hiding overlay');
+                updateStatus();
+            };
+            
+            function updateStatus() {
+                const stats = window.metricsCollector.getStats();
+                outputEl.textContent = JSON.stringify({
+                    isCollecting: window.metricsCollector.isCollecting,
+                    stats: stats
+                }, null, 2);
+            }
+            
+            // テストフレームループ
+            function testLoop() {
+                if (window.metricsCollector?.isCollecting) {
+                    window.metricsCollector.collectFrame();
+                    
+                    // 擬似的なゲームロジックとレンダリング
+                    window.metricsCollector.startGameLogicTiming();
+                    // 何か処理
+                    for (let i = 0; i < 10000; i++) {
+                        Math.sqrt(i);
+                    }
+                    window.metricsCollector.endGameLogicTiming();
+                    
+                    window.metricsCollector.startRenderTiming();
+                    // 何か処理
+                    for (let i = 0; i < 5000; i++) {
+                        Math.sqrt(i);
+                    }
+                    window.metricsCollector.endRenderTiming();
+                }
+                
+                requestAnimationFrame(testLoop);
+            }
+            
+            testLoop();
+            
+        } catch (error) {
+            console.error('Error loading metrics collector:', error);
+            statusEl.textContent = 'Error: ' + error.message;
+            outputEl.textContent = error.stack;
+        }
+    </script>
+</body>
+</html>

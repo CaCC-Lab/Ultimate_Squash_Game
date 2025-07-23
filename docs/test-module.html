@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Module Test</title>
+</head>
+<body>
+    <h1>ES6 Module Test</h1>
+    <script type="module">
+        console.log('Script started');
+        import('./test-module.js').then(module => {
+            console.log('Module loaded:', module);
+            console.log('Test value:', module.testValue);
+        }).catch(error => {
+            console.error('Module load error:', error);
+        });
+        console.log('Script continues');
+    </script>
+</body>
+</html>
