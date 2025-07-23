@@ -1119,6 +1119,7 @@
     <script src="js/optimization/pyodide-performance-tracker.js" type="module"></script>
     <script src="js/optimization/performance-dashboard.js" type="module"></script>
     <script src="js/optimization/python-bundle-loader.js" type="module"></script>
+    <script src="js/optimization/performance-metrics-collector.js" type="module"></script>
     <script src="js/parallel-initializer.js"></script>
     
     <!-- アナリティクスシステム -->
@@ -3259,9 +3260,36 @@ def restart_game():
         
         // ゲームループ
         function gameLoop() {
+            // 高精度メトリクス収集: フレーム開始
+            if (window.metricsCollector && window.metricsCollector.isCollecting) {
+                window.metricsCollector.collectFrame();
+            }
+            
             try {
+                // ゲームロジック計測開始
+                if (window.metricsCollector) {
+                    window.metricsCollector.startGameLogicTiming();
+                }
+                
                 const frameData = pyodide.runPython('update_game()');
+                
+                // ゲームロジック計測終了
+                if (window.metricsCollector) {
+                    window.metricsCollector.endGameLogicTiming();
+                }
+                
+                // レンダリング計測開始
+                if (window.metricsCollector) {
+                    window.metricsCollector.startRenderTiming();
+                }
+                
                 drawFrame(frameData);
+                
+                // レンダリング計測終了
+                if (window.metricsCollector) {
+                    window.metricsCollector.endRenderTiming();
+                }
+                
                 performanceMonitor.update();
                 
                 // サウンドイベント処理
@@ -3315,6 +3343,13 @@ def restart_game():
             if (gameLoopId) {
                 cancelAnimationFrame(gameLoopId);
             }
+            
+            // パフォーマンスメトリクス収集を開始（グローバル変数としてアクセス可能）
+            if (window.metricsCollector && !window.metricsCollector.isCollecting) {
+                console.log('🎯 Starting performance metrics collection...');
+                window.metricsCollector.start();
+            }
+            
             gameLoopId = requestAnimationFrame(gameLoop);
         }
         
@@ -4187,6 +4222,21 @@ def restart_game():
                 // Google Analytics等でトラッキング（オプション）
             });
         }
+        
+        // パフォーマンスメトリクスコレクターの初期化
+        // モジュールとして読み込まれた後にグローバル変数として設定
+        import('./js/optimization/performance-metrics-collector.js').then(module => {
+            window.metricsCollector = module.metricsCollector;
+            console.log('📊 Performance metrics collector initialized');
+            
+            // デバッグモードの場合は自動的に開始
+            if (window.location.hash === '#debug' || window.DEBUG_MODE) {
+                console.log('🚀 Auto-starting metrics collection in debug mode');
+                // startGameLoopが呼ばれた時に自動開始される
+            }
+        }).catch(error => {
+            console.error('Failed to load performance metrics collector:', error);
+        });
     </script>
 </body>
 </html>
