@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Performance Metrics with IndexedDB Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+        }
+        
+        .controls {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            margin: 5px;
+            border: none;
+            border-radius: 4px;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        button:hover {
+            background: #0056b3;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e9ecef;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        
+        .metrics-display {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .log {
+            margin: 20px 0;
+            padding: 15px;
+            background: #263238;
+            color: #aed581;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .animation-box {
+            width: 100px;
+            height: 100px;
+            background: #ff5722;
+            margin: 20px auto;
+            border-radius: 8px;
+            animation: rotate 2s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .query-results {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3e0;
+            border-radius: 4px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Performance Metrics + IndexedDB Demo</h1>
+        
+        <div class="controls">
+            <h3>メトリクス収集コントロール</h3>
+            <button id="startBtn" onclick="startCollection()">収集開始</button>
+            <button id="stopBtn" onclick="stopCollection()" disabled>収集停止</button>
+            <button id="togglePersistence" onclick="togglePersistence()">永続化: ON</button>
+            <button id="changePersistInterval" onclick="changePersistInterval()">保存間隔変更</button>
+            <button id="clearMetrics" onclick="clearMetrics()">メトリクスクリア</button>
+        </div>
+        
+        <div class="status">
+            <h3>セッション情報</h3>
+            <pre id="sessionInfo">セッション未開始</pre>
+        </div>
+        
+        <div class="controls">
+            <h3>データクエリ</h3>
+            <button onclick="queryRecentMetrics()">直近のメトリクス取得</button>
+            <button onclick="queryFPSMetrics()">FPSデータのみ取得</button>
+            <button onclick="getAggregates()">集計データ取得</button>
+            <button onclick="exportData()">データエクスポート</button>
+        </div>
+        
+        <div class="query-results">
+            <h3>クエリ結果</h3>
+            <pre id="queryResults">クエリを実行してください</pre>
+        </div>
+        
+        <!-- アニメーション要素（負荷生成用） -->
+        <div class="animation-box" id="animBox"></div>
+        
+        <div class="log">
+            <h3>ログ</h3>
+            <div id="logContent"></div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { metricsCollector } from './performance-metrics-collector.js';
+        
+        // グローバルに公開
+        window.metricsCollector = metricsCollector;
+        
+        // ログ出力
+        function log(message) {
+            const logContent = document.getElementById('logContent');
+            const timestamp = new Date().toLocaleTimeString();
+            logContent.innerHTML += `[${timestamp}] ${message}\n`;
+            logContent.scrollTop = logContent.scrollHeight;
+        }
+        
+        // 収集開始
+        window.startCollection = async function() {
+            try {
+                await metricsCollector.start();
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                log('メトリクス収集を開始しました');
+                
+                // セッション情報の定期更新
+                updateSessionInfo();
+                window.sessionInfoInterval = setInterval(updateSessionInfo, 1000);
+                
+                // 負荷生成のシミュレーション
+                startLoadSimulation();
+            } catch (error) {
+                log(`エラー: ${error.message}`);
+            }
+        };
+        
+        // 収集停止
+        window.stopCollection = async function() {
+            try {
+                await metricsCollector.stop();
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                log('メトリクス収集を停止しました');
+                
+                if (window.sessionInfoInterval) {
+                    clearInterval(window.sessionInfoInterval);
+                }
+                
+                stopLoadSimulation();
+            } catch (error) {
+                log(`エラー: ${error.message}`);
+            }
+        };
+        
+        // 永続化切り替え
+        window.togglePersistence = function() {
+            const enabled = !metricsCollector.config.enablePersistence;
+            metricsCollector.setPersistenceEnabled(enabled);
+            document.getElementById('togglePersistence').textContent = `永続化: ${enabled ? 'ON' : 'OFF'}`;
+            log(`永続化を${enabled ? '有効' : '無効'}にしました`);
+        };
+        
+        // 保存間隔変更
+        window.changePersistInterval = function() {
+            const interval = prompt('保存間隔を入力してください（ミリ秒）:', metricsCollector.config.persistInterval);
+            if (interval && !isNaN(interval)) {
+                metricsCollector.setPersistInterval(parseInt(interval));
+                log(`保存間隔を${interval}msに変更しました`);
+            }
+        };
+        
+        // メトリクスクリア
+        window.clearMetrics = function() {
+            metricsCollector.reset();
+            log('メトリクスをクリアしました');
+        };
+        
+        // セッション情報更新
+        function updateSessionInfo() {
+            const info = metricsCollector.getSessionInfo();
+            const summary = metricsCollector.getSummary();
+            
+            document.getElementById('sessionInfo').textContent = JSON.stringify({
+                ...info,
+                currentFPS: summary.fps?.current?.toFixed(1),
+                avgFrameTime: summary.frameTimes?.avg?.toFixed(2),
+                memoryUsage: summary.memoryUsage?.current?.toFixed(1)
+            }, null, 2);
+        }
+        
+        // 直近のメトリクス取得
+        window.queryRecentMetrics = async function() {
+            try {
+                const results = await metricsCollector.queryStoredMetrics({
+                    startTime: Date.now() - 60000, // 過去1分
+                    limit: 100
+                });
+                document.getElementById('queryResults').textContent = JSON.stringify(results, null, 2);
+                log(`${results.length}件のメトリクスを取得しました`);
+            } catch (error) {
+                log(`クエリエラー: ${error.message}`);
+            }
+        };
+        
+        // FPSメトリクスのみ取得
+        window.queryFPSMetrics = async function() {
+            try {
+                const results = await metricsCollector.queryStoredMetrics({
+                    type: 'fps',
+                    limit: 50
+                });
+                document.getElementById('queryResults').textContent = JSON.stringify(results, null, 2);
+                log(`${results.length}件のFPSメトリクスを取得しました`);
+            } catch (error) {
+                log(`クエリエラー: ${error.message}`);
+            }
+        };
+        
+        // 集計データ取得
+        window.getAggregates = async function() {
+            try {
+                const endTime = Date.now();
+                const startTime = endTime - 300000; // 過去5分
+                const aggregates = await metricsCollector.getStoredAggregates(startTime, endTime);
+                document.getElementById('queryResults').textContent = JSON.stringify(aggregates, null, 2);
+                log(`${aggregates.length}件の集計データを取得しました`);
+            } catch (error) {
+                log(`集計データ取得エラー: ${error.message}`);
+            }
+        };
+        
+        // データエクスポート
+        window.exportData = function() {
+            const data = metricsCollector.exportMetrics();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `metrics_${new Date().toISOString()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            log('データをエクスポートしました');
+        };
+        
+        // 負荷生成シミュレーション
+        let loadSimulationRunning = false;
+        let loadAnimationFrame = null;
+        
+        function startLoadSimulation() {
+            loadSimulationRunning = true;
+            
+            function simulate() {
+                if (!loadSimulationRunning) return;
+                
+                // ゲームロジックのシミュレーション
+                metricsCollector.startGameLogicTiming();
+                
+                // 重い処理のシミュレーション
+                let sum = 0;
+                for (let i = 0; i < Math.random() * 100000; i++) {
+                    sum += Math.sqrt(i);
+                }
+                
+                metricsCollector.endGameLogicTiming();
+                
+                // レンダリングのシミュレーション
+                metricsCollector.startRenderTiming();
+                
+                const box = document.getElementById('animBox');
+                const hue = (Date.now() / 10) % 360;
+                box.style.background = `hsl(${hue}, 70%, 50%)`;
+                
+                metricsCollector.endRenderTiming();
+                
+                // WebWorker遅延のシミュレーション（ランダム）
+                if (Math.random() > 0.9) {
+                    metricsCollector.recordWebWorkerLatency(Math.random() * 50);
+                }
+                
+                loadAnimationFrame = requestAnimationFrame(simulate);
+            }
+            
+            simulate();
+        }
+        
+        function stopLoadSimulation() {
+            loadSimulationRunning = false;
+            if (loadAnimationFrame) {
+                cancelAnimationFrame(loadAnimationFrame);
+            }
+        }
+        
+        // 初期化完了ログ
+        log('デモページが読み込まれました');
+        log('IndexedDB永続化機能が利用可能です');
+        
+        // ページ離脱時のクリーンアップ
+        window.addEventListener('beforeunload', async () => {
+            if (metricsCollector.isCollecting) {
+                await metricsCollector.stop();
+            }
+            await metricsCollector.cleanup();
+        });
+    </script>
+</body>
+</html>
