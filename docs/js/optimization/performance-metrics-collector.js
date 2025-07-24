@@ -1,6 +1,7 @@
 /**
  * 高精度パフォーマンスメトリクス収集システム
  * Geminiのベストプラクティスに基づいた実装
+ * IndexedDB永続化機能統合版
  */
 
 export class PerformanceMetricsCollector {
@@ -21,7 +22,9 @@ export class PerformanceMetricsCollector {
         this.config = {
             maxSamples: 1000,      // 保持する最大サンプル数
             sampleInterval: 100,   // サンプリング間隔（ms）
-            percentiles: [50, 95, 99] // 計算するパーセンタイル
+            percentiles: [50, 95, 99], // 計算するパーセンタイル
+            persistInterval: 5000,  // IndexedDB保存間隔（5秒）
+            enablePersistence: true // 永続化の有効/無効
         };
         
         // 状態管理
@@ -38,22 +41,156 @@ export class PerformanceMetricsCollector {
             inputStart: 0
         };
         
+        // オーバーラップ検出用
+        this.timingOverlaps = {
+            enabled: true,
+            activeTimings: new Map(),
+            overlapEvents: []
+        };
+        
+        // イベントリスナー管理
+        this.eventListeners = new Map();
+        
         // オーバーレイ表示
         this.overlay = null;
         this.overlayUpdateInterval = null;
+        
+        // IndexedDB Worker
+        this.metricsWorker = null;
+        this.sessionId = null;
+        this.pendingMetrics = [];
+        this.lastPersistTime = 0;
+        
+        // Worker通信用のPromiseリゾルバー
+        this.workerPromises = new Map();
+        this.promiseId = 0;
+        
+        // 初期化
+        this.initializeWorker();
+    }
+    
+    /**
+     * Web Workerの初期化
+     */
+    async initializeWorker() {
+        if (!this.config.enablePersistence) return;
+        
+        try {
+            // Workerの作成
+            this.metricsWorker = new Worker('./metrics-worker.js', { type: 'module' });
+            
+            // メッセージハンドラーの設定
+            this.metricsWorker.addEventListener('message', (event) => {
+                this.handleWorkerMessage(event.data);
+            });
+            
+            // Workerの初期化
+            await this.sendWorkerMessage('init', {});
+            console.log('Metrics worker initialized');
+        } catch (error) {
+            console.error('Failed to initialize metrics worker:', error);
+            this.config.enablePersistence = false;
+        }
+    }
+    
+    /**
+     * Workerにメッセージを送信（Promise対応）
+     */
+    sendWorkerMessage(type, data) {
+        return new Promise((resolve, reject) => {
+            const id = this.promiseId++;
+            this.workerPromises.set(id, { resolve, reject });
+            
+            this.metricsWorker.postMessage({
+                id,
+                type,
+                data
+            });
+            
+            // タイムアウト設定
+            setTimeout(() => {
+                if (this.workerPromises.has(id)) {
+                    this.workerPromises.delete(id);
+                    reject(new Error(`Worker message timeout: ${type}`));
+                }
+            }, 10000);
+        });
+    }
+    
+    /**
+     * Workerからのメッセージを処理
+     */
+    handleWorkerMessage(message) {
+        const { id, type, data, error } = message;
+        
+        // Promise応答の処理
+        if (id !== undefined && this.workerPromises.has(id)) {
+            const promise = this.workerPromises.get(id);
+            this.workerPromises.delete(id);
+            
+            if (error) {
+                promise.reject(new Error(error.message));
+            } else {
+                promise.resolve(data);
+            }
+            return;
+        }
+        
+        // イベント処理
+        switch (type) {
+            case 'batchSaved':
+                console.log(`Batch saved: ${message.count} metrics, ${message.remaining} remaining`);
+                break;
+                
+            case 'error':
+                console.error('Worker error:', message.error);
+                break;
+        }
     }
     
     /**
      * メトリクス収集を開始
      */
-    start() {
+    async start() {
         if (this.isCollecting) return;
         
         this.isCollecting = true;
         this.lastFrameTime = performance.now();
         
+        // セッションの作成（永続化が有効な場合）
+        if (this.config.enablePersistence && this.metricsWorker) {
+            try {
+                console.log('[METRICS] Creating session...');
+                const response = await this.sendWorkerMessage('createSession', {
+                    gameMode: window.gameMode || 'default',
+                    url: window.location.href,
+                    timestamp: Date.now()
+                });
+                console.log('[METRICS] Session creation response:', response);
+                // レスポンスからsessionIdを設定
+                if (response && response.sessionId) {
+                    this.sessionId = response.sessionId;
+                    this.sessionStartTime = performance.now();
+                    console.log('[METRICS] Session created with ID:', this.sessionId);
+                } else {
+                    console.warn('[METRICS] No sessionId received from worker, response:', response);
+                }
+            } catch (error) {
+                console.error('[METRICS] Failed to create session:', error);
+            }
+        } else {
+            console.log('[METRICS] Session creation skipped:', {
+                enablePersistence: this.config.enablePersistence,
+                metricsWorker: !!this.metricsWorker
+            });
+        }
+        
         // オーバーレイを作成
         this.createOverlay();
+        
+        // セッション作成が完了してからメトリクス収集を開始
+        // これによりsessionIdが設定された状態でメトリクスが記録される
+        this.lastFrameTime = performance.now(); // 再設定（セッション作成分の時間を除外）
         
         // メインループを開始
         this.collectFrame();
@@ -70,7 +207,14 @@ export class PerformanceMetricsCollector {
             this.updateOverlay();
         }, 250); // 250msごとに更新
         
-        console.log('Performance metrics collection started');
+        // 永続化の定期実行
+        if (this.config.enablePersistence) {
+            this.persistInterval = setInterval(() => {
+                this.persistMetrics();
+            }, this.config.persistInterval);
+        }
+        
+        console.log('Performance metrics collection started with sessionId:', this.sessionId);
     }
     
     /**
@@ -100,6 +244,7 @@ export class PerformanceMetricsCollector {
      * ゲームロジックの計測開始
      */
     startGameLogicTiming() {
+        this._startTiming('gameLogic');
         this.timings.gameLogicStart = performance.now();
     }
     
@@ -111,6 +256,7 @@ export class PerformanceMetricsCollector {
             const duration = performance.now() - this.timings.gameLogicStart;
             this.recordMetric('gameLogicTime', duration);
             this.timings.gameLogicStart = 0;
+            this._endTiming('gameLogic');
         }
     }
     
@@ -118,6 +264,7 @@ export class PerformanceMetricsCollector {
      * レンダリングの計測開始
      */
     startRenderTiming() {
+        this._startTiming('rendering');
         this.timings.renderStart = performance.now();
     }
     
@@ -129,6 +276,7 @@ export class PerformanceMetricsCollector {
             const duration = performance.now() - this.timings.renderStart;
             this.recordMetric('renderingTime', duration);
             this.timings.renderStart = 0;
+            this._endTiming('rendering');
         }
     }
     
@@ -136,6 +284,7 @@ export class PerformanceMetricsCollector {
      * 入力処理の計測開始
      */
     startInputTiming() {
+        this._startTiming('input');
         this.timings.inputStart = performance.now();
     }
     
@@ -147,6 +296,7 @@ export class PerformanceMetricsCollector {
             const duration = performance.now() - this.timings.inputStart;
             this.recordMetric('inputProcessingTime', duration);
             this.timings.inputStart = 0;
+            this._endTiming('input');
         }
     }
     
@@ -168,6 +318,66 @@ export class PerformanceMetricsCollector {
         // 最大サンプル数を超えたら古いデータを削除
         if (this.metrics[metricName].length > this.config.maxSamples) {
             this.metrics[metricName].shift();
+        }
+        
+        // 永続化用のペンディングメトリクスに追加
+        if (this.config.enablePersistence && this.sessionId) {
+            this.pendingMetrics.push({
+                sessionId: this.sessionId,
+                type: metricName,
+                value: value,
+                timestamp: Date.now()
+            });
+        } else if (this.config.enablePersistence && !this.sessionId) {
+            // デバッグ：sessionIdがない場合のログ
+            console.warn(`[METRICS] No sessionId when recording ${metricName}:`, {
+                enablePersistence: this.config.enablePersistence,
+                sessionId: this.sessionId,
+                isCollecting: this.isCollecting,
+                pendingMetricsCount: this.pendingMetrics.length
+            });
+        }
+    }
+    
+    /**
+     * メトリクスをIndexedDBに永続化
+     */
+    async persistMetrics() {
+        if (!this.config.enablePersistence || !this.metricsWorker || !this.sessionId) {
+            console.log('[METRICS] Persist skipped:', {
+                enablePersistence: this.config.enablePersistence,
+                metricsWorker: !!this.metricsWorker,
+                sessionId: this.sessionId,
+                pendingCount: this.pendingMetrics.length
+            });
+            return;
+        }
+        
+        if (this.pendingMetrics.length === 0) {
+            return;
+        }
+        
+        // ペンディングメトリクスをコピーして送信
+        const metricsToSave = [...this.pendingMetrics];
+        this.pendingMetrics = [];
+        
+        console.log('[METRICS] Persisting metrics:', {
+            sessionId: this.sessionId,
+            count: metricsToSave.length,
+            samples: metricsToSave.slice(0, 3).map(m => ({
+                type: m.type,
+                sessionId: m.sessionId,
+                hasSessionId: !!m.sessionId
+            }))
+        });
+        
+        try {
+            await this.sendWorkerMessage('addMetrics', metricsToSave);
+            this.lastPersistTime = Date.now();
+        } catch (error) {
+            console.error('Failed to persist metrics:', error);
+            // 失敗した場合はペンディングに戻す
+            this.pendingMetrics.unshift(...metricsToSave);
         }
     }
     
@@ -359,7 +569,7 @@ export class PerformanceMetricsCollector {
     /**
      * メトリクス収集を停止
      */
-    stop() {
+    async stop() {
         this.isCollecting = false;
         
         if (this.animationFrameId) {
@@ -377,9 +587,24 @@ export class PerformanceMetricsCollector {
             this.overlayUpdateInterval = null;
         }
         
+        if (this.persistInterval) {
+            clearInterval(this.persistInterval);
+            this.persistInterval = null;
+        }
+        
         if (this.overlay) {
             this.overlay.remove();
             this.overlay = null;
+        }
+        
+        // 残りのメトリクスを保存
+        if (this.config.enablePersistence && this.metricsWorker) {
+            try {
+                await this.persistMetrics();
+                await this.sendWorkerMessage('flush', {});
+            } catch (error) {
+                console.error('Failed to flush metrics:', error);
+            }
         }
         
         console.log('Performance metrics collection stopped');
@@ -432,6 +657,247 @@ export class PerformanceMetricsCollector {
     hideOverlay() {
         if (this.overlay) {
             this.overlay.style.display = 'none';
+        }
+    }
+    
+    /**
+     * 保存されたメトリクスをクエリ
+     */
+    async queryStoredMetrics(options = {}) {
+        if (!this.config.enablePersistence || !this.metricsWorker || !this.sessionId) {
+            throw new Error('Persistence not enabled or session not active');
+        }
+        
+        try {
+            const results = await this.sendWorkerMessage('query', {
+                sessionId: this.sessionId,
+                ...options
+            });
+            return results;
+        } catch (error) {
+            console.error('Failed to query metrics:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * 集計データを取得
+     */
+    async getStoredAggregates(startTime, endTime) {
+        if (!this.config.enablePersistence || !this.metricsWorker || !this.sessionId) {
+            throw new Error('Persistence not enabled or session not active');
+        }
+        
+        try {
+            const aggregates = await this.sendWorkerMessage('getAggregates', {
+                sessionId: this.sessionId,
+                startTime,
+                endTime
+            });
+            return aggregates;
+        } catch (error) {
+            console.error('Failed to get aggregates:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * 永続化設定を変更
+     */
+    setPersistenceEnabled(enabled) {
+        this.config.enablePersistence = enabled;
+        
+        if (enabled && !this.metricsWorker) {
+            this.initializeWorker();
+        } else if (!enabled && this.persistInterval) {
+            clearInterval(this.persistInterval);
+            this.persistInterval = null;
+        }
+    }
+    
+    /**
+     * 永続化間隔を変更
+     */
+    setPersistInterval(intervalMs) {
+        this.config.persistInterval = intervalMs;
+        
+        if (this.persistInterval) {
+            clearInterval(this.persistInterval);
+            this.persistInterval = setInterval(() => {
+                this.persistMetrics();
+            }, this.config.persistInterval);
+        }
+    }
+    
+    /**
+     * セッション情報を取得
+     */
+    getSessionInfo() {
+        return {
+            sessionId: this.sessionId,
+            startTime: this.sessionStartTime,
+            duration: this.sessionId ? performance.now() - this.sessionStartTime : 0,
+            frameCount: this.frameCount,
+            persistenceEnabled: this.config.enablePersistence,
+            pendingMetrics: this.pendingMetrics.length
+        };
+    }
+    
+    /**
+     * タイミング計測の開始（オーバーラップ検出付き）
+     */
+    _startTiming(timingType) {
+        if (!this.timingOverlaps.enabled) return;
+        
+        const now = performance.now();
+        
+        // 既に同じタイプのタイミングが進行中かチェック
+        if (this.timingOverlaps.activeTimings.has(timingType)) {
+            const existingStart = this.timingOverlaps.activeTimings.get(timingType);
+            const overlapEvent = {
+                type: 'timing_overlap',
+                timingType: timingType,
+                timestamp: now,
+                previousStart: existingStart,
+                overlapDuration: now - existingStart
+            };
+            
+            this.timingOverlaps.overlapEvents.push(overlapEvent);
+            
+            console.warn(`⚠️ Timing overlap detected for ${timingType}:`, {
+                previousStart: existingStart,
+                newStart: now,
+                overlapDuration: now - existingStart
+            });
+            
+            // メトリクスとして記録
+            this.recordMetric('timingOverlaps', {
+                timingType,
+                overlapDuration: now - existingStart,
+                timestamp: now
+            });
+        }
+        
+        this.timingOverlaps.activeTimings.set(timingType, now);
+    }
+    
+    /**
+     * タイミング計測の終了（オーバーラップ検出付き）
+     */
+    _endTiming(timingType) {
+        if (!this.timingOverlaps.enabled) return;
+        
+        this.timingOverlaps.activeTimings.delete(timingType);
+    }
+    
+    /**
+     * オーバーラップイベントの取得
+     */
+    getTimingOverlaps() {
+        return {
+            events: [...this.timingOverlaps.overlapEvents],
+            activeTimings: Array.from(this.timingOverlaps.activeTimings.entries()),
+            totalOverlaps: this.timingOverlaps.overlapEvents.length
+        };
+    }
+    
+    /**
+     * オーバーラップ検出の有効/無効切り替え
+     */
+    setOverlapDetectionEnabled(enabled) {
+        this.timingOverlaps.enabled = enabled;
+        if (!enabled) {
+            this.timingOverlaps.activeTimings.clear();
+            this.timingOverlaps.overlapEvents.length = 0;
+        }
+    }
+    
+    /**
+     * イベントリスナーを追加（自動管理）
+     */
+    addEventListener(target, event, handler, options = {}) {
+        const key = `${target.constructor.name}_${event}_${Date.now()}`;
+        
+        // イベントリスナーを追加
+        target.addEventListener(event, handler, options);
+        
+        // 管理用に記録
+        this.eventListeners.set(key, {
+            target,
+            event,
+            handler,
+            options,
+            addedAt: performance.now()
+        });
+        
+        return key; // 削除用のキーを返す
+    }
+    
+    /**
+     * 特定のイベントリスナーを削除
+     */
+    removeEventListener(key) {
+        const listener = this.eventListeners.get(key);
+        if (listener) {
+            listener.target.removeEventListener(listener.event, listener.handler, listener.options);
+            this.eventListeners.delete(key);
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * すべてのイベントリスナーをクリーンアップ
+     */
+    cleanupEventListeners() {
+        for (const [key, listener] of this.eventListeners.entries()) {
+            try {
+                listener.target.removeEventListener(listener.event, listener.handler, listener.options);
+            } catch (error) {
+                console.warn(`Failed to remove event listener ${key}:`, error);
+            }
+        }
+        
+        const count = this.eventListeners.size;
+        this.eventListeners.clear();
+        
+        console.log(`Cleaned up ${count} event listeners`);
+        return count;
+    }
+    
+    /**
+     * アクティブなイベントリスナー一覧を取得
+     */
+    getActiveEventListeners() {
+        return Array.from(this.eventListeners.entries()).map(([key, listener]) => ({
+            key,
+            target: listener.target.constructor.name,
+            event: listener.event,
+            addedAt: listener.addedAt,
+            duration: performance.now() - listener.addedAt
+        }));
+    }
+    
+    /**
+     * Worker を手動でクリーンアップ
+     */
+    async cleanup() {
+        // イベントリスナーをクリーンアップ
+        this.cleanupEventListeners();
+        
+        // オーバーラップ検出データをクリア
+        this.timingOverlaps.activeTimings.clear();
+        this.timingOverlaps.overlapEvents.length = 0;
+        
+        // Workerクリーンアップ
+        if (this.metricsWorker) {
+            try {
+                await this.sendWorkerMessage('close', {});
+                this.metricsWorker.terminate();
+                this.metricsWorker = null;
+            } catch (error) {
+                console.error('Failed to cleanup worker:', error);
+            }
         }
     }
 }

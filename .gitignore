@@ -1,6 +1,6 @@
 # Node.js
 node_modules/
-package-lock.json
+# package-lock.json  # 依存関係の再現性のためコミット対象とする
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

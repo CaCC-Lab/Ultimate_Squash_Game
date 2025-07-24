@@ -3262,32 +3262,52 @@ def restart_game():
         function gameLoop() {
             // 高精度メトリクス収集: フレーム開始
             if (window.metricsCollector && window.metricsCollector.isCollecting) {
-                window.metricsCollector.collectFrame();
+                try {
+                    window.metricsCollector.collectFrame();
+                } catch (error) {
+                    console.warn('⚠️ Failed to collect frame metrics:', error);
+                }
             }
             
             try {
                 // ゲームロジック計測開始
                 if (window.metricsCollector) {
-                    window.metricsCollector.startGameLogicTiming();
+                    try {
+                        window.metricsCollector.startGameLogicTiming();
+                    } catch (error) {
+                        console.warn('⚠️ Failed to start game logic timing:', error);
+                    }
                 }
                 
                 const frameData = pyodide.runPython('update_game()');
                 
                 // ゲームロジック計測終了
                 if (window.metricsCollector) {
-                    window.metricsCollector.endGameLogicTiming();
+                    try {
+                        window.metricsCollector.endGameLogicTiming();
+                    } catch (error) {
+                        console.warn('⚠️ Failed to end game logic timing:', error);
+                    }
                 }
                 
                 // レンダリング計測開始
                 if (window.metricsCollector) {
-                    window.metricsCollector.startRenderTiming();
+                    try {
+                        window.metricsCollector.startRenderTiming();
+                    } catch (error) {
+                        console.warn('⚠️ Failed to start render timing:', error);
+                    }
                 }
                 
                 drawFrame(frameData);
                 
                 // レンダリング計測終了
                 if (window.metricsCollector) {
-                    window.metricsCollector.endRenderTiming();
+                    try {
+                        window.metricsCollector.endRenderTiming();
+                    } catch (error) {
+                        console.warn('⚠️ Failed to end render timing:', error);
+                    }
                 }
                 
                 performanceMonitor.update();
@@ -3346,8 +3366,13 @@ def restart_game():
             
             // パフォーマンスメトリクス収集を開始（グローバル変数としてアクセス可能）
             if (window.metricsCollector && !window.metricsCollector.isCollecting) {
-                console.log('🎯 Starting performance metrics collection...');
-                window.metricsCollector.start();
+                try {
+                    console.log('🎯 Starting performance metrics collection...');
+                    window.metricsCollector.start();
+                } catch (error) {
+                    console.warn('⚠️ Failed to start performance metrics collection:', error);
+                    // メトリクス収集の失敗はゲーム進行に影響させない
+                }
             }
             
             gameLoopId = requestAnimationFrame(gameLoop);
