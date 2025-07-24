@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Performance Dashboard</title>
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-green: #10b981;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-blue: #3b82f6;
+            --accent-purple: #8b5cf6;
+            --border-color: #475569;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--bg-secondary);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.active {
+            background-color: var(--accent-green);
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            padding: 1.5rem;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Cards */
+        .card {
+            background-color: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.25rem;
+        }
+
+        /* Metrics Display */
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+
+        .metric-unit {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-left: 0.25rem;
+        }
+
+        .metric-change {
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .metric-change.positive {
+            color: var(--accent-green);
+        }
+
+        .metric-change.negative {
+            color: var(--accent-red);
+        }
+
+        /* Charts */
+        .chart-container {
+            width: 100%;
+            height: 200px;
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .chart-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Progress Bars */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background-color: var(--bg-card);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent-blue);
+            transition: width 0.3s ease;
+        }
+
+        /* Distribution Chart */
+        .distribution-bars {
+            display: flex;
+            align-items: flex-end;
+            height: 120px;
+            gap: 2px;
+            margin-top: 1rem;
+        }
+
+        .distribution-bar {
+            flex: 1;
+            background-color: var(--accent-blue);
+            border-radius: 2px 2px 0 0;
+            transition: height 0.3s ease;
+            position: relative;
+        }
+
+        .distribution-bar:hover::after {
+            content: attr(data-value);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--bg-card);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .control-button {
+            padding: 0.75rem 1.5rem;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .control-button:hover {
+            background-color: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .control-button.active {
+            background-color: var(--accent-green);
+            border-color: var(--accent-green);
+        }
+
+        .control-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Time Range Selector */
+        .time-range-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .time-range-button {
+            padding: 0.5rem 1rem;
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.75rem;
+        }
+
+        .time-range-button.active {
+            background-color: var(--accent-blue);
+            color: var(--text-primary);
+            border-color: var(--accent-blue);
+        }
+
+        /* Alert Banner */
+        .alert-banner {
+            grid-column: 1 / -1;
+            padding: 1rem 1.5rem;
+            background-color: var(--accent-yellow);
+            color: var(--bg-primary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 500;
+        }
+
+        .alert-banner.error {
+            background-color: var(--accent-red);
+            color: white;
+        }
+
+        .alert-banner.success {
+            background-color: var(--accent-green);
+            color: white;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+
+            .header {
+                padding: 1rem;
+            }
+
+            .header h1 {
+                font-size: 1.25rem;
+            }
+
+            .control-panel {
+                flex-direction: column;
+            }
+
+            .time-range-selector {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Tooltip */
+        .tooltip {
+            position: absolute;
+            background-color: var(--bg-card);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .tooltip.visible {
+            opacity: 1;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <h1>
+            <span class="status-indicator" id="statusIndicator"></span>
+            Real-time Performance Dashboard
+        </h1>
+        <div class="time-range-selector">
+            <button class="time-range-button active" data-range="60">1分</button>
+            <button class="time-range-button" data-range="300">5分</button>
+            <button class="time-range-button" data-range="900">15分</button>
+            <button class="time-range-button" data-range="3600">1時間</button>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <!-- Control Panel -->
+        <div class="card control-panel">
+            <button class="control-button" id="startBtn">
+                <span>📊</span> 収集開始
+            </button>
+            <button class="control-button" id="stopBtn" disabled>
+                <span>⏹️</span> 収集停止
+            </button>
+            <button class="control-button" id="pauseBtn" disabled>
+                <span>⏸️</span> 一時停止
+            </button>
+            <button class="control-button" id="exportBtn">
+                <span>💾</span> エクスポート
+            </button>
+            <button class="control-button" id="settingsBtn">
+                <span>⚙️</span> 設定
+            </button>
+        </div>
+
+        <!-- Alert Banner (hidden by default) -->
+        <div class="alert-banner" id="alertBanner" style="display: none;">
+            <span>⚠️</span>
+            <span id="alertMessage"></span>
+        </div>
+
+        <!-- FPS Metric Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">FPS (Frames Per Second)</h3>
+                    <p class="card-subtitle">リアルタイムフレームレート</p>
+                </div>
+                <span class="loading-spinner" id="fpsSpinner" style="display: none;"></span>
+            </div>
+            <div class="metric-value" id="currentFPS">
+                0<span class="metric-unit">fps</span>
+            </div>
+            <div class="metric-change" id="fpsChange">
+                <span>平均: </span><span id="avgFPS">0</span>
+            </div>
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="fpsChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Frame Time Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">Frame Time</h3>
+                    <p class="card-subtitle">フレーム処理時間</p>
+                </div>
+            </div>
+            <div class="metric-value" id="currentFrameTime">
+                0<span class="metric-unit">ms</span>
+            </div>
+            <div class="metric-change">
+                <span>95%ile: </span><span id="frameTimeP95">0</span><span class="metric-unit">ms</span>
+            </div>
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="frameTimeChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Memory Usage Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">Memory Usage</h3>
+                    <p class="card-subtitle">メモリ使用量</p>
+                </div>
+            </div>
+            <div class="metric-value" id="currentMemory">
+                0<span class="metric-unit">MB</span>
+            </div>
+            <div class="metric-change" id="memoryChange">
+                <span>ピーク: </span><span id="peakMemory">0</span><span class="metric-unit">MB</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="memoryProgress" style="width: 0%;"></div>
+            </div>
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="memoryChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Performance Breakdown Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">Performance Breakdown</h3>
+                    <p class="card-subtitle">処理時間の内訳</p>
+                </div>
+            </div>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--accent-blue);"></div>
+                    <span>Game Logic</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--accent-green);"></div>
+                    <span>Rendering</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--accent-yellow);"></div>
+                    <span>Input</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background-color: var(--accent-purple);"></div>
+                    <span>Other</span>
+                </div>
+            </div>
+            <div class="distribution-bars" id="breakdownBars">
+                <!-- Bars will be dynamically generated -->
+            </div>
+        </div>
+
+        <!-- GC Events Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">Garbage Collection</h3>
+                    <p class="card-subtitle">GCイベント</p>
+                </div>
+            </div>
+            <div class="metric-value" id="gcCount">
+                0<span class="metric-unit">回</span>
+            </div>
+            <div class="metric-change">
+                <span>最終GC: </span><span id="lastGC">-</span>
+            </div>
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="gcChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Worker Latency Card -->
+        <div class="card">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">Worker Latency</h3>
+                    <p class="card-subtitle">WebWorker通信遅延</p>
+                </div>
+            </div>
+            <div class="metric-value" id="currentLatency">
+                0<span class="metric-unit">ms</span>
+            </div>
+            <div class="metric-change">
+                <span>平均: </span><span id="avgLatency">0</span><span class="metric-unit">ms</span>
+            </div>
+            <div class="chart-container">
+                <canvas class="chart-canvas" id="latencyChart"></canvas>
+            </div>
+        </div>
+
+        <!-- SharedMemory Metrics Card -->
+        <div class="card" id="sharedMemoryCard" style="display: none;">
+            <div class="card-header">
+                <div>
+                    <h3 class="card-title">SharedMemory Performance</h3>
+                    <p class="card-subtitle">SharedArrayBuffer + Atomics 統計</p>
+                </div>
+                <span class="loading-spinner" id="sharedMemorySpinner" style="display: none;"></span>
+            </div>
+            
+            <!-- SharedMemory Statistics Grid -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <div class="metric-value" style="font-size: 1.5rem;" id="sharedMemoryWrites">
+                        0<span class="metric-unit">ops</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Write Operations</div>
+                </div>
+                <div>
+                    <div class="metric-value" style="font-size: 1.5rem;" id="sharedMemoryAvgWriteTime">
+                        0<span class="metric-unit">ms</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Avg Write Time</div>
+                </div>
+                <div>
+                    <div class="metric-value" style="font-size: 1.5rem;" id="sharedMemoryAtomicFailures">
+                        0<span class="metric-unit">fails</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Atomic Failures</div>
+                </div>
+                <div>
+                    <div class="metric-value" style="font-size: 1.5rem;" id="sharedMemoryBufferOverflows">
+                        0<span class="metric-unit">ovf</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Buffer Overflows</div>
+                </div>
+            </div>
+            
+            <!-- Buffer Utilization -->
+            <div style="margin-bottom: 0.5rem;">
+                <span style="font-size: 0.875rem; color: var(--text-secondary);">Buffer Utilization: </span>
+                <span id="sharedMemoryBufferUtilization" style="font-weight: 600;">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="sharedMemoryBufferProgress" style="width: 0%; background-color: var(--accent-green);"></div>
+            </div>
+            
+            <!-- Performance Comparison -->
+            <div style="margin-top: 1rem; padding: 0.75rem; background-color: var(--bg-card); border-radius: 6px;">
+                <div style="font-size: 0.875rem; font-weight: 500; margin-bottom: 0.25rem;">vs Message Passing</div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                    <span>Throughput: </span><span id="sharedMemoryThroughputGain" style="color: var(--accent-green);">+0%</span>
+                    <span style="margin-left: 1rem;">Latency: </span><span id="sharedMemoryLatencyReduction" style="color: var(--accent-green);">-0%</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Tooltip -->
+    <div class="tooltip" id="tooltip"></div>
+
+    <script type="module">
+        import { DashboardController } from './dashboard-controller.js';
+        
+        // Initialize dashboard
+        const dashboard = new DashboardController();
+        dashboard.init();
+        
+        // Export for global access
+        window.dashboard = dashboard;
+    </script>
+</body>
+</html>

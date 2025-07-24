@@ -1,0 +1,189 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>統合テストカバレッジレポート</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; text-align: center; }
+        .header h1 { font-size: 2.5em; margin-bottom: 10px; }
+        .header .timestamp { opacity: 0.9; font-size: 1.1em; }
+        
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .summary-card { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center; }
+        .summary-card h3 { color: #333; margin-bottom: 15px; font-size: 1.2em; }
+        .summary-card .value { font-size: 2.5em; font-weight: bold; margin-bottom: 10px; }
+        .summary-card .label { color: #666; font-size: 0.9em; }
+        
+        .coverage-section { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); margin-bottom: 30px; }
+        .coverage-section h2 { color: #333; margin-bottom: 25px; font-size: 1.8em; border-bottom: 3px solid #667eea; padding-bottom: 10px; }
+        
+        .coverage-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .coverage-item { text-align: center; padding: 20px; }
+        .coverage-item h4 { color: #555; margin-bottom: 15px; }
+        .progress-circle { position: relative; width: 120px; height: 120px; margin: 0 auto 15px; }
+        .progress-ring { transform: rotate(-90deg); }
+        .progress-ring-circle { fill: transparent; stroke: #e6e6e6; stroke-width: 8; }
+        .progress-ring-progress { fill: transparent; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.5s; }
+        .progress-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 1.4em; font-weight: bold; }
+        
+        .test-types { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+        .test-type { background: #f8f9fa; padding: 20px; border-radius: 10px; border-left: 5px solid #667eea; }
+        .test-type h4 { color: #333; margin-bottom: 15px; }
+        .test-type .status { font-weight: bold; margin-bottom: 10px; }
+        .test-type .success { color: #28a745; }
+        .test-type .failure { color: #dc3545; }
+        .test-type .duration { color: #666; font-size: 0.9em; }
+        
+        .footer { text-align: center; padding: 30px; color: #666; }
+        
+        .targets-met { color: #28a745; }
+        .targets-not-met { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎯 統合テストカバレッジレポート</h1>
+            <div class="timestamp">生成日時: 2025/7/24 17:21:07</div>
+        </div>
+        
+        <div class="summary-grid">
+            <div class="summary-card">
+                <h3>総テスト数</h3>
+                <div class="value" style="color: #667eea;">0</div>
+                <div class="label">実行されたテスト</div>
+            </div>
+            <div class="summary-card">
+                <h3>成功率</h3>
+                <div class="value" style="color: #666;">
+                    0%
+                </div>
+                <div class="label">0/0 成功</div>
+            </div>
+            <div class="summary-card">
+                <h3>実行時間</h3>
+                <div class="value" style="color: #764ba2;">0.0s</div>
+                <div class="label">総実行時間</div>
+            </div>
+            <div class="summary-card">
+                <h3>カバレッジ目標</h3>
+                <div class="value targets-not-met">
+                    ❌
+                </div>
+                <div class="label">未達成</div>
+            </div>
+        </div>
+        
+        <div class="coverage-section">
+            <h2>📊 統合カバレッジメトリクス</h2>
+            <div class="coverage-grid">
+                
+                    <div class="coverage-item">
+                        <h4>ステートメント</h4>
+                        <div class="progress-circle">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" cx="60" cy="60" r="54"></circle>
+                                <circle class="progress-ring-progress" cx="60" cy="60" r="54" 
+                                        stroke="#dc3545" 
+                                        stroke-dasharray="339.29200658769764" 
+                                        stroke-dashoffset="339.29200658769764"></circle>
+                            </svg>
+                            <div class="progress-text" style="color: #dc3545;">0.0%</div>
+                        </div>
+                        <div class="label">0/0</div>
+                    </div>
+                    <div class="coverage-item">
+                        <h4>ブランチ</h4>
+                        <div class="progress-circle">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" cx="60" cy="60" r="54"></circle>
+                                <circle class="progress-ring-progress" cx="60" cy="60" r="54" 
+                                        stroke="#dc3545" 
+                                        stroke-dasharray="339.29200658769764" 
+                                        stroke-dashoffset="339.29200658769764"></circle>
+                            </svg>
+                            <div class="progress-text" style="color: #dc3545;">0.0%</div>
+                        </div>
+                        <div class="label">0/0</div>
+                    </div>
+                    <div class="coverage-item">
+                        <h4>関数</h4>
+                        <div class="progress-circle">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" cx="60" cy="60" r="54"></circle>
+                                <circle class="progress-ring-progress" cx="60" cy="60" r="54" 
+                                        stroke="#dc3545" 
+                                        stroke-dasharray="339.29200658769764" 
+                                        stroke-dashoffset="339.29200658769764"></circle>
+                            </svg>
+                            <div class="progress-text" style="color: #dc3545;">0.0%</div>
+                        </div>
+                        <div class="label">0/0</div>
+                    </div>
+                    <div class="coverage-item">
+                        <h4>ライン</h4>
+                        <div class="progress-circle">
+                            <svg class="progress-ring" width="120" height="120">
+                                <circle class="progress-ring-circle" cx="60" cy="60" r="54"></circle>
+                                <circle class="progress-ring-progress" cx="60" cy="60" r="54" 
+                                        stroke="#dc3545" 
+                                        stroke-dasharray="339.29200658769764" 
+                                        stroke-dashoffset="339.29200658769764"></circle>
+                            </svg>
+                            <div class="progress-text" style="color: #dc3545;">0.0%</div>
+                        </div>
+                        <div class="label">0/0</div>
+                    </div>
+            </div>
+        </div>
+        
+        <div class="coverage-section">
+            <h2>🧪 テストタイプ別結果</h2>
+            <div class="test-types">
+                
+                    <div class="test-type">
+                        <h4>Unit Tests</h4>
+                        <div class="status failure">
+                            ❌ 失敗
+                        </div>
+                        <div class="duration">実行時間: 1.30秒</div>
+                        <div style="color: #dc3545; font-size: 0.8em; margin-top: 10px;">エラー: Command failed: npx jest --coverage --coverageDirectory=temp-coverage/unit
+node:internal/modules/cjs/loader:500
+      throw err;
+      ^
+
+Error: Cannot find module '/Users/ryu/dev/ultimate_squash_game/node_modules/jest-cli/build/index.js'. Please verify that the package.json has a valid "main" entry
+    at tryPackage (node:internal/modules/cjs/loader:492:19)
+    at Function._findPath (node:internal/modules/cjs/loader:790:18)
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1230:27)
+    at Function._load (node:internal/modules/cjs/loader:1070:27)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:217:24)
+    at Module.require (node:internal/modules/cjs/loader:1335:12)
+    at require (node:internal/modules/helpers:136:16)
+    at Object.<anonymous> (/Users/ryu/dev/ultimate_squash_game/node_modules/jest-cli/bin/jest.js:16:3)
+    at Module._compile (node:internal/modules/cjs/loader:1562:14) {
+  code: 'MODULE_NOT_FOUND',
+  path: '/Users/ryu/dev/ultimate_squash_game/node_modules/jest-cli/package.json',
+  requestPath: '..'
+}
+
+Node.js v22.13.0
+</div>
+                    </div>
+                
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>🚀 Ultimate Squash Game - 統合テストカバレッジシステム</p>
+            <p>生成日時: 2025-07-24T08:21:07.330Z</p>
+        </div>
+    </div>
+</body>
+</html>

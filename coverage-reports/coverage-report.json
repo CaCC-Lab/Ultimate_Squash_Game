@@ -1,0 +1,69 @@
+{
+  "timestamp": "2025-07-24T08:21:07.301Z",
+  "summary": {
+    "startTime": 1753345266002,
+    "endTime": null,
+    "duration": 0,
+    "totalTests": 0,
+    "passedTests": 0,
+    "failedTests": 0,
+    "coverageTargetsMet": false
+  },
+  "coverage": {
+    "statements": {
+      "total": 0,
+      "covered": 0,
+      "pct": 0
+    },
+    "branches": {
+      "total": 0,
+      "covered": 0,
+      "pct": 0
+    },
+    "functions": {
+      "total": 0,
+      "covered": 0,
+      "pct": 0
+    },
+    "lines": {
+      "total": 0,
+      "covered": 0,
+      "pct": 0
+    },
+    "byType": {}
+  },
+  "testResults": {
+    "unit": {
+      "success": false,
+      "duration": 1298,
+      "output": "",
+      "error": "Command failed: npx jest --coverage --coverageDirectory=temp-coverage/unit\nnode:internal/modules/cjs/loader:500\n      throw err;\n      ^\n\nError: Cannot find module '/Users/ryu/dev/ultimate_squash_game/node_modules/jest-cli/build/index.js'. Please verify that the package.json has a valid \"main\" entry\n    at tryPackage (node:internal/modules/cjs/loader:492:19)\n    at Function._findPath (node:internal/modules/cjs/loader:790:18)\n    at Function._resolveFilename (node:internal/modules/cjs/loader:1230:27)\n    at Function._load (node:internal/modules/cjs/loader:1070:27)\n    at TracingChannel.traceSync (node:diagnostics_channel:322:14)\n    at wrapModuleLoad (node:internal/modules/cjs/loader:217:24)\n    at Module.require (node:internal/modules/cjs/loader:1335:12)\n    at require (node:internal/modules/helpers:136:16)\n    at Object.<anonymous> (/Users/ryu/dev/ultimate_squash_game/node_modules/jest-cli/bin/jest.js:16:3)\n    at Module._compile (node:internal/modules/cjs/loader:1562:14) {\n  code: 'MODULE_NOT_FOUND',\n  path: '/Users/ryu/dev/ultimate_squash_game/node_modules/jest-cli/package.json',\n  requestPath: '..'\n}\n\nNode.js v22.13.0\n"
+    }
+  },
+  "config": {
+    "targets": {
+      "statements": 80,
+      "branches": 75,
+      "functions": 80,
+      "lines": 80
+    },
+    "testTypes": {
+      "unit": {
+        "name": "Unit Tests",
+        "enabled": true
+      },
+      "integration": {
+        "name": "Integration Tests",
+        "enabled": true
+      },
+      "e2e": {
+        "name": "E2E Tests",
+        "enabled": true
+      },
+      "performance": {
+        "name": "Performance Tests",
+        "enabled": true
+      }
+    }
+  }
+}
