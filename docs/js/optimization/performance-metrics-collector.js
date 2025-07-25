@@ -76,17 +76,21 @@ export class PerformanceMetricsCollector {
         if (!this.config.enablePersistence) return;
         
         try {
-            // Workerの作成
-            this.metricsWorker = new Worker('./metrics-worker.js', { type: 'module' });
+            // Workerの作成 - 一時的にコメントアウト（404エラー解消のため）
+            // this.metricsWorker = new Worker('./metrics-worker.js', { type: 'module' });
             
-            // メッセージハンドラーの設定
-            this.metricsWorker.addEventListener('message', (event) => {
-                this.handleWorkerMessage(event.data);
-            });
+            // メッセージハンドラーの設定 - 一時的にコメントアウト
+            // this.metricsWorker.addEventListener('message', (event) => {
+            //     this.handleWorkerMessage(event.data);
+            // });
             
-            // Workerの初期化
-            await this.sendWorkerMessage('init', {});
-            console.log('Metrics worker initialized');
+            // Workerの初期化 - 一時的にコメントアウト
+            // await this.sendWorkerMessage('init', {});
+            // console.log('Metrics worker initialized');
+            
+            // 一時的にWorkerなしで動作するように設定
+            console.log('Metrics worker disabled (metrics-worker.js not found)');
+            this.config.enablePersistence = false;
         } catch (error) {
             console.error('Failed to initialize metrics worker:', error);
             this.config.enablePersistence = false;
