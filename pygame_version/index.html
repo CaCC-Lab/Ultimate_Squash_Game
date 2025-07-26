@@ -1,0 +1,46 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Squash Game - Pygame-CE</title>
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+</head>
+<body>
+    <h1>Ultimate Squash Game</h1>
+    <div id="game-container"></div>
+    <script type="text/javascript">
+        async function main() {
+            let pyodide = await loadPyodide();
+            await pyodide.loadPackage("pygame-ce");
+            await pyodide.runPythonAsync(`
+                import asyncio
+                import pygame
+
+                # Pygameの初期化
+                pygame.init()
+                screen = pygame.display.set_mode((800, 600))
+                pygame.display.set_caption("Ultimate Squash Game")
+
+                async def game_loop():
+                    running = True
+                    while running:
+                        for event in pygame.event.get():
+                            if event.type == pygame.QUIT:
+                                running = False
+                            if event.type == pygame.KEYDOWN:
+                                if event.key == pygame.K_ESCAPE:
+                                    running = False
+
+                        screen.fill((0, 0, 0))  # 黒で塗りつぶし
+                        pygame.display.flip()
+                        await asyncio.sleep(0)
+
+                asyncio.run(game_loop())
+            `);
+        }
+        main();
+    </script>
+</body>
+</html>
