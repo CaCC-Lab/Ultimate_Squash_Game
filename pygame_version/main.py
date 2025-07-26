@@ -1,6 +1,6 @@
 
 import pygame
-import sys
+import asyncio
 
 # 定数
 SCREEN_WIDTH = 800
@@ -8,7 +8,7 @@ SCREEN_HEIGHT = 600
 BACKGROUND_COLOR = (0, 0, 0) # 黒
 WINDOW_TITLE = "Ultimate Squash Game"
 
-def main():
+async def main():
     """
     メインのゲーム関数
     """
@@ -18,9 +18,7 @@ def main():
     screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
     pygame.display.set_caption(WINDOW_TITLE)
 
-    clock = pygame.time.Clock()
     running = True
-
     while running:
         # イベント処理
         for event in pygame.event.get():
@@ -35,12 +33,10 @@ def main():
 
         # ディスプレイの更新
         pygame.display.flip()
-
-        # フレームレートの制御
-        clock.tick(60)
+        
+        await asyncio.sleep(0)
 
     pygame.quit()
-    sys.exit()
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

@@ -14,31 +14,9 @@
         async function main() {
             let pyodide = await loadPyodide();
             await pyodide.loadPackage("pygame-ce");
-            await pyodide.runPythonAsync(`
-                import asyncio
-                import pygame
-
-                # Pygameの初期化
-                pygame.init()
-                screen = pygame.display.set_mode((800, 600))
-                pygame.display.set_caption("Ultimate Squash Game")
-
-                async def game_loop():
-                    running = True
-                    while running:
-                        for event in pygame.event.get():
-                            if event.type == pygame.QUIT:
-                                running = False
-                            if event.type == pygame.KEYDOWN:
-                                if event.key == pygame.K_ESCAPE:
-                                    running = False
-
-                        screen.fill((0, 0, 0))  # 黒で塗りつぶし
-                        pygame.display.flip()
-                        await asyncio.sleep(0)
-
-                asyncio.run(game_loop())
-            `);
+            const response = await fetch("main.py");
+            const pythonCode = await response.text();
+            await pyodide.runPythonAsync(pythonCode);
         }
         main();
     </script>
