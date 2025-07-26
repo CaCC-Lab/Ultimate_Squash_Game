@@ -15,8 +15,8 @@ Pygame-CE対応ゲームコントローラー（Controller層）
 import pygame
 import time
 from typing import Optional
-from model.pygame_game_state import PygameGameState
-from view.pygame_game_view import PygameGameView, PygameSoundView
+from src.model.pygame_game_state import PygameGameState
+from src.view.pygame_game_view import PygameGameView, PygameSoundView
 
 
 class PygameControllerError(Exception):

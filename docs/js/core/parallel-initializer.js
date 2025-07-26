@@ -69,7 +69,7 @@ class ParallelInitializer {
      */
     async loadPythonBundleLoader() {
         try {
-            const { PythonBundleLoader } = await import('./optimization/python-bundle-loader.js');
+            const { PythonBundleLoader } = await import('../optimization/python-bundle-loader.js');
             this.pythonBundleLoader = new PythonBundleLoader();
             console.log('[Parallel Initializer] Python Bundle Loader integrated');
         } catch (error) {

@@ -3800,7 +3800,11 @@ def restart_game():
                         font-size: 12px;
                     `;
                     touchHelp.textContent = 'タッチ: ラケット移動 | ダブルタップ: 一時停止';
-                    canvas.parentElement.appendChild(touchHelp);
+                    if (canvas && canvas.parentElement) {
+                        canvas.parentElement.appendChild(touchHelp);
+                    } else {
+                        console.warn('Canvas or canvas.parentElement is not available for touchHelp');
+                    }
                 }
             }
         }
@@ -3823,7 +3827,7 @@ def restart_game():
         
         // ウィークリーチャレンジシステム統合
         let weeklyChallenge = null;
-        let challengeManager = null;
+        // challengeManager は既に上で宣言済み
         let currentChallengeMode = false;
         let challengeProgress = {
             target: 0,
@@ -3844,8 +3848,15 @@ def restart_game():
                     
                     // ベータテスターの場合は自動的にチャレンジボタンを表示
                     if (window.betaTester && window.betaTester.betaEnabled) {
-                        document.getElementById('challengeButton').style.display = 'block';
+                        const challengeButton = document.getElementById('challengeButton');
+                        if (challengeButton) {
+                            challengeButton.style.display = 'block';
+                        }
                     }
+                } else {
+                    console.warn('ChallengeGenerator is not available yet');
+                    // 1秒後に再試行
+                    setTimeout(initializeChallengeSystem, 1000);
                 }
             } catch (error) {
                 console.error('Failed to initialize challenge system:', error);

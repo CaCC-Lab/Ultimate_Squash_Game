@@ -1,24 +1,128 @@
 
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Squash Game - Pygame-CE</title>
+    <title>Ultimate Squash Game - Pygame-CE/WASM版</title>
     <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        #game-container {
+            border: 2px solid #333;
+            display: inline-block;
+            position: relative;
+        }
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            color: #ffff00;
+        }
+        #error-message {
+            color: #ff6666;
+            margin-top: 20px;
+            display: none;
+        }
+        #controls {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .control-item {
+            margin: 5px 0;
+            color: #ccc;
+        }
+    </style>
 </head>
 <body>
-    <h1>Ultimate Squash Game</h1>
-    <div id="game-container"></div>
+    <h1>Ultimate Squash Game - Pygame-CE/WASM版</h1>
+    <div id="game-container">
+        <div id="loading">ゲームを読み込み中...</div>
+        <canvas id="game-canvas" style="display: none;"></canvas>
+    </div>
+    <div id="error-message"></div>
+    <div id="controls">
+        <div class="control-item">マウス: パドルを移動</div>
+        <div class="control-item">スペース: ポーズ/再開</div>
+        <div class="control-item">R: ゲームリセット</div>
+        <div class="control-item">ESC: 終了</div>
+    </div>
+    
     <script type="text/javascript">
         async function main() {
-            let pyodide = await loadPyodide();
-            await pyodide.loadPackage("pygame-ce");
-            const response = await fetch("main.py");
-            const pythonCode = await response.text();
-            await pyodide.runPythonAsync(pythonCode);
+            const loadingDiv = document.getElementById('loading');
+            const errorDiv = document.getElementById('error-message');
+            const canvas = document.getElementById('game-canvas');
+            
+            try {
+                // Pyodideの初期化
+                loadingDiv.textContent = 'Pyodideを初期化中...';
+                let pyodide = await loadPyodide({
+                    indexURL: "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/"
+                });
+                
+                // 必要なパッケージのインストール
+                loadingDiv.textContent = 'pygame-ceをインストール中...';
+                await pyodide.loadPackage(['micropip']);
+                await pyodide.runPythonAsync(`
+                    import micropip
+                    await micropip.install('pygame-ce')
+                `);
+                
+                // Pygameの初期化設定
+                await pyodide.runPythonAsync(`
+                    import pygame
+                    import sys
+                    import os
+                    
+                    # SDL環境変数の設定
+                    os.environ['SDL_VIDEODRIVER'] = 'emscripten'
+                    
+                    # Pyodide環境でのcanvas設定
+                    import js
+                    canvas = js.document.getElementById('game-canvas')
+                    pygame.display.set_mode((800, 600), pygame.RESIZABLE)
+                `);
+                
+                // ゲームコードの読み込みと実行
+                loadingDiv.textContent = 'ゲームを起動中...';
+                const response = await fetch('main.py');
+                if (!response.ok) {
+                    throw new Error(`Failed to load main.py: ${response.statusText}`);
+                }
+                const pythonCode = await response.text();
+                
+                // ローディング表示を隠してキャンバスを表示
+                loadingDiv.style.display = 'none';
+                canvas.style.display = 'block';
+                
+                // ゲームの実行
+                await pyodide.runPythonAsync(pythonCode);
+                
+            } catch (error) {
+                console.error('エラーが発生しました:', error);
+                loadingDiv.style.display = 'none';
+                errorDiv.style.display = 'block';
+                errorDiv.textContent = `エラー: ${error.message}`;
+            }
         }
-        main();
+        
+        // ページ読み込み完了後に実行
+        window.addEventListener('load', main);
     </script>
 </body>
 </html>
