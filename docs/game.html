@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#004274">
     
     <!-- Content Security Policy (Report-Only Mode) -->
-    <meta http-equiv="Content-Security-Policy-Report-Only" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com https://pyodide-cdn2.iodide.io; worker-src 'self' blob:; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /csp-report">
+    <meta http-equiv="Content-Security-Policy-Report-Only" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com https://pyodide-cdn2.iodide.io; worker-src 'self' blob:; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /csp-report">
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
@@ -1231,8 +1231,43 @@
             setTimeout(() => {
                 window.checkScriptAvailability();
                 
-                // ウィークリーチャレンジシステムを初期化
-                initializeChallengeSystem();
+                // ウィークリーチャレンジシステムを初期化（リトライ制限付き）
+                if (window.RetryHandler) {
+                    RetryHandler.execute(
+                        () => {
+                            if (typeof initializeChallengeSystem === 'function') {
+                                return initializeChallengeSystem();
+                            } else {
+                                throw new Error('initializeChallengeSystem function not available');
+                            }
+                        },
+                        {
+                            maxRetries: 3,
+                            initialDelay: 1000,
+                            maxDelay: 5000,
+                            onRetry: (error, attempt, delay) => {
+                                console.warn(`[Game] Challenge system init retry ${attempt}/3, waiting ${delay}ms...`, error.message);
+                            },
+                            shouldRetry: (error) => {
+                                // 関数が存在しない場合はリトライしない
+                                if (error.message.includes('not available')) {
+                                    console.log('[Game] Challenge system not available, skipping initialization');
+                                    return false;
+                                }
+                                return RetryHandler.isTransientError(error);
+                            }
+                        }
+                    ).catch(error => {
+                        console.warn('[Game] Challenge system initialization failed after all retries:', error.message);
+                    });
+                } else {
+                    // フォールバック: RetryHandlerが利用できない場合
+                    try {
+                        initializeChallengeSystem();
+                    } catch (error) {
+                        console.warn('[Game] Challenge system initialization failed:', error.message);
+                    }
+                }
                 
                 // 保存された進捗を復元
                 loadChallengeProgress();

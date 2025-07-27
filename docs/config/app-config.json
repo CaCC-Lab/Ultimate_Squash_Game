@@ -110,7 +110,7 @@
       "reportUri": "/csp-report",
       "directives": {
         "defaultSrc": ["'self'"],
-        "scriptSrc": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://www.googletagmanager.com", "https://www.google-analytics.com"],
+        "scriptSrc": ["'self'", "'unsafe-inline'", "'wasm-unsafe-eval'", "https://cdn.jsdelivr.net", "https://www.googletagmanager.com", "https://www.google-analytics.com"],
         "styleSrc": ["'self'", "'unsafe-inline'"],
         "imgSrc": ["'self'", "data:", "blob:"],
         "connectSrc": ["'self'", "http://localhost:*", "http://127.0.0.1:*", "ws://localhost:*"],
