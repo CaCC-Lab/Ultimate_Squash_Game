@@ -4,6 +4,27 @@
  * ES6モジュール対応版 - モックを使用した安全な実装
  */
 
+// Mock implementation - original file does not exist
+const createMockClass = (className, defaultMethods = {}) => {
+  return class MockClass {
+    constructor(...args) {
+      this.constructorArgs = args;
+      this.className = className;
+      
+      // Default methodsを設定
+      Object.entries(defaultMethods).forEach(([method, impl]) => {
+        if (typeof impl === 'function') {
+          this[method] = jest.fn(impl);
+        } else {
+          this[method] = jest.fn(() => impl);
+        }
+      });
+    }
+  };
+};
+
+// WeeklyChallengeIntegrationのモック実装はbeforeAllで定義
+
 // テスト用のDOM環境をセットアップ
 global.window = {
     addEventListener: jest.fn(),
@@ -106,7 +127,7 @@ beforeAll(() => {
     mockChallengeRewards = MockChallengeRewards;
 
     // WeeklyChallengeIntegrationクラスの実装
-    WeeklyChallengeIntegration = class {
+    WeeklyChallengeIntegration = class WeeklyChallengeIntegration {
         constructor() {
             this.challengeEvaluator = new mockChallengeEvaluator();
             this.challengeGenerator = new mockChallengeGenerator();
@@ -521,6 +542,9 @@ describe('WeeklyChallengeIntegration', () => {
             
             const newIntegration = new WeeklyChallengeIntegration();
             newIntegration.addListener(listener);
+            
+            // initializeChallengeを呼び出す
+            newIntegration.initializeChallenge();
             
             expect(listener).toHaveBeenCalledWith('challengeInitialized', expect.any(Object));
         });

@@ -1,5 +1,5 @@
 // SoundSystem単体テスト
-const { test, expect } = require('@playwright/test');
+// Jest環境で実行
 
 // ブラウザ環境のモック
 class MockAudioContext {
@@ -183,11 +183,11 @@ class SoundSystem {
   }
 }
 
-test.describe('SoundSystem Unit Tests', () => {
+describe('SoundSystem Unit Tests', () => {
   let soundSystem;
   let mockAudioContext;
 
-  test.beforeEach(() => {
+  beforeEach(() => {
     // グローバルwindowオブジェクトをモック
     global.window = {
       AudioContext: MockAudioContext,
@@ -198,11 +198,11 @@ test.describe('SoundSystem Unit Tests', () => {
     mockAudioContext = soundSystem.audioContext;
   });
 
-  test.afterEach(() => {
+  afterEach(() => {
     delete global.window;
   });
 
-  test.describe('初期化', () => {
+  describe('初期化', () => {
     test('AudioContextが正しく初期化される', () => {
       expect(soundSystem.audioContext).toBeDefined();
       expect(soundSystem.audioContext).toBeInstanceOf(MockAudioContext);
@@ -219,7 +219,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
   });
 
-  test.describe('ミュート機能', () => {
+  describe('ミュート機能', () => {
     test('setMuted(true)で音がミュートされる', () => {
       soundSystem.setMuted(true);
       
@@ -246,7 +246,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
   });
 
-  test.describe('サウンド設定', () => {
+  describe('サウンド設定', () => {
     test('getSoundConfigが正しい設定を返す', () => {
       const ballHitConfig = soundSystem.getSoundConfig('ballHit');
       expect(ballHitConfig).toEqual({
@@ -273,7 +273,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
   });
 
-  test.describe('サウンド再生', () => {
+  describe('サウンド再生', () => {
     test('playSound()が正しくオシレーターを作成する', async () => {
       mockAudioContext.createCalls = [];
       
@@ -312,9 +312,9 @@ test.describe('SoundSystem Unit Tests', () => {
     });
   });
 
-  test.describe('イベント処理', () => {
+  describe('イベント処理', () => {
     test('processSoundEventsがballHitイベントを処理する', () => {
-      const playSoundSpy = test.spyOn(soundSystem, 'playSound');
+      const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
       
       soundSystem.processSoundEvents({
         ballHit: true,
@@ -326,7 +326,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
 
     test('processSoundEventsがscoreChangedイベントを処理する', () => {
-      const playSoundSpy = test.spyOn(soundSystem, 'playSound');
+      const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
       
       soundSystem.processSoundEvents({
         scoreChanged: true
@@ -336,7 +336,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
 
     test('processSoundEventsがgameOverイベントを処理する', () => {
-      const playSoundSpy = test.spyOn(soundSystem, 'playSound');
+      const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
       
       soundSystem.processSoundEvents({
         gameOver: true
@@ -346,7 +346,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
 
     test('processSoundEventsがpowerUpCollectedイベントを処理する', () => {
-      const playSoundSpy = test.spyOn(soundSystem, 'playSound');
+      const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
       
       soundSystem.processSoundEvents({
         powerUpCollected: true
@@ -366,7 +366,7 @@ test.describe('SoundSystem Unit Tests', () => {
 
     test('ミュート時はイベントが処理されない', () => {
       soundSystem.setMuted(true);
-      const playSoundSpy = test.spyOn(soundSystem, 'playSound');
+      const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
       
       soundSystem.processSoundEvents({
         ballHit: true,
@@ -378,7 +378,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
 
     test('ボール速度に応じたピッチ調整が適用される', () => {
-      const playSoundSpy = test.spyOn(soundSystem, 'playSound');
+      const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
       
       // 速度5のボール
       soundSystem.processSoundEvents({
@@ -400,7 +400,7 @@ test.describe('SoundSystem Unit Tests', () => {
     });
   });
 
-  test.describe('エラーハンドリング', () => {
+  describe('エラーハンドリング', () => {
     test('AudioContext作成エラー時にsoundEnabledがfalseになる', () => {
       global.window.AudioContext = function() {
         throw new Error('AudioContext not supported');

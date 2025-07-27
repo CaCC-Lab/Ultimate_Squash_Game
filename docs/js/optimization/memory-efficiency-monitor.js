@@ -3,6 +3,8 @@
  * WebAssembly環境特化のメモリ最適化
  */
 
+import { ErrorHandler } from '../utils/error-handler.js';
+
 export class MemoryEfficiencyMonitor {
     constructor() {
         this.config = {
@@ -23,7 +25,7 @@ export class MemoryEfficiencyMonitor {
             intervalId: null,
             snapshotIntervalId: null,
             memoryHistory: [],
-            leakDetectionData: new Map(),
+            leakDetectionData: new WeakMap(),
             performanceObserver: null
         };
         
@@ -61,7 +63,13 @@ export class MemoryEfficiencyMonitor {
                 
                 this.state.performanceObserver.observe({ entryTypes: ['memory'] });
             } catch (error) {
-                console.warn('[MemoryMonitor] PerformanceObserver not supported:', error);
+                const structuredError = ErrorHandler.createError({
+                    what: 'PerformanceObserverの初期化に失敗',
+                    why: error.message || 'PerformanceObserver APIがサポートされていない可能性',
+                    how: 'ブラウザが最新版であることを確認してください',
+                    originalError: error
+                });
+                ErrorHandler.logError(structuredError, 'warn');
             }
         }
     }
@@ -114,6 +122,16 @@ export class MemoryEfficiencyMonitor {
             this.state.snapshotIntervalId = null;
         }
         
+        // PerformanceObserverのクリーンアップ
+        if (this.state.performanceObserver) {
+            this.state.performanceObserver.disconnect();
+            this.state.performanceObserver = null;
+        }
+        
+        // メモリ履歴のクリア（メモリ解放）
+        this.state.memoryHistory = [];
+        this.state.leakDetectionData.clear();
+        
         console.log('🧠 [MemoryMonitor] Monitoring stopped');
     }
     
@@ -153,7 +171,14 @@ export class MemoryEfficiencyMonitor {
             }
             
         } catch (error) {
-            console.error('[MemoryMonitor] Measurement failed:', error);
+            const structuredError = ErrorHandler.createError({
+                what: 'メモリ測定に失敗',
+                why: error.message || 'メモリ情報の取得中にエラーが発生',
+                how: 'システムリソースが限界に達している可能性があります。不要なタブを閉じて再試行してください',
+                originalError: error,
+                context: { timestamp: performance.now() }
+            });
+            ErrorHandler.logError(structuredError);
         }
     }
     
@@ -190,7 +215,13 @@ export class MemoryEfficiencyMonitor {
                 `);
                 info.pyodideMemory = pyodideStats.memory_usage || 0;
             } catch (error) {
-                console.warn('[MemoryMonitor] Failed to get Pyodide memory:', error);
+                const structuredError = ErrorHandler.createError({
+                    what: 'Pyodideメモリ情報の取得に失敗',
+                    why: error.message || 'Pyodideが正しく初期化されていない可能性',
+                    how: 'Pyodideの初期化が完了していることを確認してください',
+                    originalError: error
+                });
+                ErrorHandler.logError(structuredError, 'warn');
             }
         }
         
@@ -239,6 +270,11 @@ export class MemoryEfficiencyMonitor {
             };
             
             this.metrics.potentialLeaks.push(leak);
+            
+            // リーク履歴の制限（最新10件）
+            if (this.metrics.potentialLeaks.length > 10) {
+                this.metrics.potentialLeaks.shift();
+            }
             
             console.warn(`🕳️ [MemoryMonitor] Potential memory leak detected: ${(slope * 60 / (1024 * 1024)).toFixed(2)}MB/min`);
             
@@ -292,7 +328,14 @@ export class MemoryEfficiencyMonitor {
             console.log('✅ [MemoryMonitor] Memory optimization completed');
             
         } catch (error) {
-            console.error('[MemoryMonitor] Optimization failed:', error);
+            const structuredError = ErrorHandler.createError({
+                what: 'メモリ最適化に失敗',
+                why: error.message || 'ガベージコレクションまたはメモリ解放処理中のエラー',
+                how: 'ブラウザを再起動して再試行してください',
+                originalError: error,
+                context: { timestamp: Date.now() }
+            });
+            ErrorHandler.logError(structuredError);
         }
     }
     
@@ -334,7 +377,13 @@ export class MemoryEfficiencyMonitor {
             }
             
         } catch (error) {
-            console.warn('[MemoryMonitor] Pyodide optimization failed:', error);
+            const structuredError = ErrorHandler.createError({
+                what: 'Pyodideメモリ最適化に失敗',
+                why: error.message || 'Pythonガベージコレクションの実行中にエラー',
+                how: 'Pythonコードの実行を一時停止して再試行してください',
+                originalError: error
+            });
+            ErrorHandler.logError(structuredError, 'warn');
         }
     }
     
@@ -430,7 +479,14 @@ export class MemoryEfficiencyMonitor {
             this.saveSnapshotToIndexedDB(snapshot);
             
         } catch (error) {
-            console.error('[MemoryMonitor] Snapshot capture failed:', error);
+            const structuredError = ErrorHandler.createError({
+                what: 'ヒープスナップショットの取得に失敗',
+                why: error.message || 'メモリ情報の収集中にエラーが発生',
+                how: 'メモリ使用量が少ない状態で再試行してください',
+                originalError: error,
+                context: { timestamp: Date.now() }
+            });
+            ErrorHandler.logError(structuredError);
         }
     }
     
@@ -493,7 +549,13 @@ export class MemoryEfficiencyMonitor {
             };
             
         } catch (error) {
-            console.warn('[MemoryMonitor] IndexedDB save failed:', error);
+            const structuredError = ErrorHandler.createError({
+                what: 'IndexedDBへのスナップショット保存に失敗',
+                why: error.message || 'IndexedDBの容量制限またはアクセス権限の問題',
+                how: 'ブラウザのストレージ設定を確認し、不要なデータを削除してください',
+                originalError: error
+            });
+            ErrorHandler.logError(structuredError, 'warn');
         }
     }
     
