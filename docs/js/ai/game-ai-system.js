@@ -5,7 +5,15 @@
 
 class GameAISystem {
     constructor() {
-        this.enabled = true;
+        // 設定を取得
+        this.config = window.configLoader?.getAIConfig() || {
+            commentaryEnabled: true,
+            commentaryInterval: 5000,
+            cacheExpiry: 30000,
+            adaEnabled: true
+        };
+        
+        this.enabled = this.config.commentaryEnabled;
         this.commentaryQueue = [];
         this.commentaryElement = null;
         this.adaSystem = new ADASystem();
@@ -16,74 +24,82 @@ class GameAISystem {
      * AI機能のUI要素を初期化
      */
     initializeUI() {
+        // UIHelperが利用可能か確認
+        const createEl = window.UIHelper ? 
+            (tag, opts) => window.UIHelper.createElement(tag, opts) : 
+            this.createElementFallback.bind(this);
+        
         // AIコメンタリー表示要素
-        const commentaryDiv = document.createElement('div');
-        commentaryDiv.id = 'ai-commentary';
-        commentaryDiv.className = 'ai-commentary';
-        commentaryDiv.style.cssText = `
-            position: absolute;
-            bottom: 100px;
-            left: 20px;
-            max-width: 300px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px 15px;
-            border-radius: 8px;
-            font-size: 14px;
-            display: none;
-            z-index: 1000;
-            transition: opacity 0.3s ease;
-        `;
+        const commentaryDiv = createEl('div', {
+            id: 'ai-commentary',
+            className: 'ai-commentary',
+            cssText: `
+                position: absolute;
+                bottom: 100px;
+                left: 20px;
+                max-width: 300px;
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 10px 15px;
+                border-radius: 8px;
+                font-size: 14px;
+                display: none;
+                z-index: 1000;
+                transition: opacity 0.3s ease;
+            `
+        });
         document.body.appendChild(commentaryDiv);
         this.commentaryElement = commentaryDiv;
         
         // AI機能トグルボタン
-        const toggleButton = document.createElement('button');
-        toggleButton.id = 'ai-toggle-button';
-        toggleButton.className = 'ai-toggle-button';
-        toggleButton.innerHTML = '🤖 AI';
-        toggleButton.setAttribute('data-ai-enabled', 'true');
-        toggleButton.style.cssText = `
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            padding: 8px 16px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 16px;
-            z-index: 1001;
-            transition: background 0.3s ease;
-        `;
-        toggleButton.addEventListener('click', () => this.toggleAI());
+        const toggleButton = createEl('button', {
+            id: 'ai-toggle-button',
+            className: 'ai-toggle-button',
+            innerHTML: '🤖 AI',
+            attributes: { 'data-ai-enabled': 'true' },
+            cssText: `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                padding: 8px 16px;
+                background: #4CAF50;
+                color: white;
+                border: none;
+                border-radius: 20px;
+                cursor: pointer;
+                font-size: 16px;
+                z-index: 1001;
+                transition: background 0.3s ease;
+            `,
+            events: { click: () => this.toggleAI() }
+        });
         document.body.appendChild(toggleButton);
         
         // ADA情報パネル
-        const adaPanel = document.createElement('div');
-        adaPanel.id = 'ada-info-panel';
-        adaPanel.className = 'ada-info-panel';
-        adaPanel.style.cssText = `
-            position: absolute;
-            top: 80px;
-            right: 20px;
-            width: 200px;
-            background: rgba(0, 0, 50, 0.9);
-            color: white;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 12px;
-            display: none;
-            z-index: 1000;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        `;
-        adaPanel.innerHTML = `
-            <h4 style="margin: 0 0 10px 0;">ADA System</h4>
-            <div id="ada-difficulty">難易度: 1.0x</div>
-            <div id="ada-miss-rate">ミス率: 0%</div>
-            <div id="ada-evaluation">評価: 0/10</div>
-        `;
+        const adaPanel = createEl('div', {
+            id: 'ada-info-panel',
+            className: 'ada-info-panel',
+            cssText: `
+                position: absolute;
+                top: 80px;
+                right: 20px;
+                width: 200px;
+                background: rgba(0, 0, 50, 0.9);
+                color: white;
+                padding: 15px;
+                border-radius: 8px;
+                font-size: 12px;
+                display: none;
+                z-index: 1000;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            `,
+            innerHTML: `
+                <h4 style="margin: 0 0 10px 0;">ADA System</h4>
+                <div id="ada-difficulty">難易度: 1.0x</div>
+                <div id="ada-miss-rate">ミス率: 0%</div>
+                <div id="ada-evaluation">評価: 0/10</div>
+            `
+        });
         document.body.appendChild(adaPanel);
     }
     
@@ -139,6 +155,28 @@ class GameAISystem {
         if (commentary) {
             this.showCommentary(commentary);
         }
+    }
+    
+    /**
+     * createElementのフォールバック実装
+     */
+    createElementFallback(tag, options) {
+        const element = document.createElement(tag);
+        if (options.id) element.id = options.id;
+        if (options.className) element.className = options.className;
+        if (options.innerHTML) element.innerHTML = options.innerHTML;
+        if (options.cssText) element.style.cssText = options.cssText;
+        if (options.attributes) {
+            Object.entries(options.attributes).forEach(([key, value]) => {
+                element.setAttribute(key, value);
+            });
+        }
+        if (options.events) {
+            Object.entries(options.events).forEach(([event, handler]) => {
+                element.addEventListener(event, handler);
+            });
+        }
+        return element;
     }
     
     /**
@@ -198,13 +236,13 @@ class GameAISystem {
         this.commentaryElement.style.display = 'block';
         this.commentaryElement.style.opacity = '1';
         
-        // 3秒後にフェードアウト
+        // 設定可能な間隔でフェードアウト
         setTimeout(() => {
             this.commentaryElement.style.opacity = '0';
             setTimeout(() => {
                 this.commentaryElement.style.display = 'none';
             }, 300);
-        }, 3000);
+        }, this.config.commentaryInterval * 0.6 || 3000);
     }
 }
 

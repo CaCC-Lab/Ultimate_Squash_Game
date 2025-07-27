@@ -1,0 +1,135 @@
+{
+  "game": {
+    "canvas": {
+      "width": 800,
+      "height": 600,
+      "style": {
+        "border": "2px solid #333",
+        "borderRadius": "10px",
+        "background": "#000",
+        "display": "block",
+        "margin": "20px auto",
+        "boxShadow": "0 0 20px rgba(0,0,0,0.5)"
+      }
+    },
+    "audio": {
+      "frequency": 22050,
+      "size": -16,
+      "channels": 2,
+      "buffer": 512,
+      "sounds": {
+        "hit": "sounds/hit.wav",
+        "score": "sounds/score.wav", 
+        "wall": "sounds/wall.wav"
+      }
+    },
+    "colors": {
+      "background": "#000000",
+      "paddle": "#FFFFFF",
+      "ball": "#FFFFFF"
+    }
+  },
+  "ai": {
+    "model": {
+      "default": "mistral",
+      "fallback": "gemma"
+    },
+    "commentary": {
+      "enabled": true,
+      "minInterval": 5000,
+      "cacheExpiry": 30000,
+      "language": "ja"
+    },
+    "ada": {
+      "enabled": true,
+      "adjustmentInterval": 10000,
+      "maxDifficultyIncrease": 0.2,
+      "minDifficultyDecrease": 0.1
+    },
+    "eventPolling": {
+      "interval": 500,
+      "enabled": true
+    }
+  },
+  "initialization": {
+    "pyodide": {
+      "version": "0.26.4",
+      "indexURL": "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/",
+      "packages": {
+        "minimal": ["micropip"],
+        "standard": ["numpy", "micropip"],
+        "full": ["numpy", "micropip", "pygame-ce"]
+      },
+      "timeout": {
+        "initial": 30000,
+        "checkInterval": 100
+      }
+    },
+    "parallel": {
+      "stages": [
+        {"name": "pyodide", "priority": 1, "parallel": false},
+        {"name": "pygame-ce", "priority": 2, "parallel": true},
+        {"name": "game-code", "priority": 2, "parallel": true},
+        {"name": "audio-system", "priority": 3, "parallel": true},
+        {"name": "canvas-setup", "priority": 3, "parallel": true}
+      ],
+      "webWorkerPoolSize": {
+        "default": 2,
+        "lowPerformance": 1,
+        "highPerformance": 4
+      }
+    },
+    "gameFiles": [
+      "main.py",
+      "game_engine.py",
+      "ai_enhancer.py"
+    ]
+  },
+  "retry": {
+    "default": {
+      "maxRetries": 3,
+      "initialDelay": 1000,
+      "maxDelay": 10000,
+      "factor": 2,
+      "jitterPercent": 0.3
+    },
+    "pyodideInit": {
+      "maxRetries": 3,
+      "initialDelay": 2000,
+      "maxDelay": 10000
+    },
+    "networkRequests": {
+      "maxRetries": 5,
+      "initialDelay": 500,
+      "maxDelay": 5000
+    }
+  },
+  "security": {
+    "csp": {
+      "reportOnly": true,
+      "reportUri": "/csp-report",
+      "directives": {
+        "defaultSrc": ["'self'"],
+        "scriptSrc": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://www.googletagmanager.com", "https://www.google-analytics.com"],
+        "styleSrc": ["'self'", "'unsafe-inline'"],
+        "imgSrc": ["'self'", "data:", "blob:"],
+        "connectSrc": ["'self'", "http://localhost:*", "http://127.0.0.1:*", "ws://localhost:*"],
+        "workerSrc": ["'self'", "blob:"],
+        "childSrc": ["'self'", "blob:"],
+        "objectSrc": ["'none'"],
+        "fontSrc": ["'self'"]
+      }
+    }
+  },
+  "development": {
+    "logging": {
+      "enabled": true,
+      "level": "info"
+    },
+    "debugging": {
+      "showPerformanceMetrics": true,
+      "showCSPViolations": true,
+      "verboseMode": false
+    }
+  }
+}

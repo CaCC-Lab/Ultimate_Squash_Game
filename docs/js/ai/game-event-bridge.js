@@ -14,9 +14,14 @@ class GameEventBridge {
      * Pythonとの通信を設定
      */
     async setupPythonBridge() {
+        // 設定を取得
+        const pyodideConfig = window.configLoader ? 
+            window.configLoader.getPyodideConfig() : 
+            { timeout: 30000, checkInterval: 100 };
+        
         // Pyodideが読み込まれるまで待機（リトライ制限付き）
-        const maxWaitTime = 30000; // 30秒
-        const checkInterval = 100;
+        const maxWaitTime = pyodideConfig.timeout;
+        const checkInterval = pyodideConfig.checkInterval;
         let elapsedTime = 0;
         
         const waitForPyodide = async () => {
@@ -173,7 +178,7 @@ else:
             } catch (error) {
                 // エラーは無視（ゲームがまだ初期化されていない可能性）
             }
-        }, 500); // 500msごとにチェック
+        }, window.configLoader?.getAIConfig().eventPollingInterval || 500); // 設定可能なポーリング間隔
     }
 }
 
