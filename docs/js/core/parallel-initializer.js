@@ -153,7 +153,7 @@ class ParallelInitializer {
     }
     
     /**
-     * Pyodide初期化（適応的タイムアウト対応）
+     * Pyodide初期化（適応的タイムアウト対応＋リトライ制限）
      */
     async initializePyodide() {
         const startTime = Date.now();
@@ -161,19 +161,53 @@ class ParallelInitializer {
         this.emit('stageStarted', { stage: 'pyodide', message: 'Pyodide初期化中...' });
         
         try {
-            // 適応的タイムアウトを使用した初期化
-            if (this.adaptiveTimeout) {
-                return await this.adaptiveTimeout.waitWithProgressiveTimeout(
-                    'pyodideInit',
-                    async () => await this.performPyodideInitialization(startTime),
-                    3 // 最大3回リトライ
+            // RetryHandlerが利用可能か確認
+            if (window.RetryHandler) {
+                await RetryHandler.execute(
+                    async () => {
+                        // 適応的タイムアウトを使用した初期化
+                        if (this.adaptiveTimeout) {
+                            return await this.adaptiveTimeout.waitWithProgressiveTimeout(
+                                'pyodideInit',
+                                async () => await this.performPyodideInitialization(startTime),
+                                3 // 最大3回リトライ
+                            );
+                        } else {
+                            return await this.performPyodideInitialization(startTime);
+                        }
+                    },
+                    {
+                        maxRetries: 3,
+                        initialDelay: 2000,
+                        maxDelay: 10000,
+                        onRetry: (error, attempt, delay) => {
+                            console.warn(`[Parallel Initializer] Pyodide init retry ${attempt}/3, waiting ${delay}ms...`, error.message);
+                            this.emit('stageProgress', { 
+                                stage: 'pyodide', 
+                                progress: 10 * attempt, 
+                                message: `初期化リトライ中... (${attempt}/3)` 
+                            });
+                        },
+                        shouldRetry: (error) => {
+                            // ネットワークエラーまたは一時的なエラーの場合のみリトライ
+                            return RetryHandler.isTransientError(error);
+                        }
+                    }
                 );
             } else {
-                return await this.performPyodideInitialization(startTime);
+                // RetryHandlerが利用できない場合は従来の処理
+                if (this.adaptiveTimeout) {
+                    await this.adaptiveTimeout.waitWithProgressiveTimeout(
+                        'pyodideInit',
+                        async () => await this.performPyodideInitialization(startTime),
+                        3
+                    );
+                } else {
+                    await this.performPyodideInitialization(startTime);
+                }
             }
-            
         } catch (error) {
-            console.error('[Parallel Initializer] Pyodide initialization failed:', error);
+            console.error('[Parallel Initializer] Pyodide initialization failed after all retries:', error);
             this.initializationStatus.stages.pyodide = {
                 completed: false,
                 duration: Date.now() - startTime,
@@ -412,6 +446,14 @@ class ParallelInitializer {
             
             for (const filename of gameFiles) {
                 try {
+                    // ファイル存在確認（HEADリクエスト）
+                    const checkResponse = await fetch(filename, { method: 'HEAD' });
+                    if (!checkResponse.ok) {
+                        console.warn(`[Parallel Initializer] File not found: ${filename} (${checkResponse.status})`);
+                        continue;
+                    }
+                    
+                    // ファイルの実際の読み込み
                     const response = await fetch(filename);
                     if (response.ok) {
                         const code = await response.text();

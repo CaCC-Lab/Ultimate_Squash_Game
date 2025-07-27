@@ -13,20 +13,46 @@ class GameEventBridge {
     /**
      * Pythonとの通信を設定
      */
-    setupPythonBridge() {
-        // Pyodideが読み込まれるまで待機
-        const checkPyodide = setInterval(() => {
-            if (window.pyodide && window.pyodide.runPython) {
-                clearInterval(checkPyodide);
-                this.initializeBridge();
+    async setupPythonBridge() {
+        // Pyodideが読み込まれるまで待機（リトライ制限付き）
+        const maxWaitTime = 30000; // 30秒
+        const checkInterval = 100;
+        let elapsedTime = 0;
+        
+        const waitForPyodide = async () => {
+            while (elapsedTime < maxWaitTime) {
+                if (window.pyodide && window.pyodide.runPython) {
+                    await this.initializeBridge();
+                    return;
+                }
+                await RetryHandler.sleep(checkInterval);
+                elapsedTime += checkInterval;
             }
-        }, 100);
+            
+            console.error('Pyodide initialization timeout after', maxWaitTime, 'ms');
+            this.handleInitializationFailure();
+        };
+        
+        await waitForPyodide();
+    }
+    
+    /**
+     * 初期化失敗を処理
+     */
+    handleInitializationFailure() {
+        console.warn('Game Event Bridge: Failed to initialize Pyodide connection');
+        this.initialized = false;
+        
+        // AI機能を縮退モードで動作させる
+        if (window.gameAI) {
+            window.gameAI.setDegradedMode(true);
+        }
     }
     
     /**
      * ブリッジを初期化
      */
-    initializeBridge() {
+    async initializeBridge() {
         try {
             // Python側にJavaScriptのイベント発火関数を登録
             window.pyodide.runPython(`

@@ -8,6 +8,9 @@
     <meta name="author" content="Ultimate Squash Game Team">
     <meta name="theme-color" content="#004274">
     
+    <!-- Content Security Policy (Report-Only Mode) -->
+    <meta http-equiv="Content-Security-Policy-Report-Only" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com https://pyodide-cdn2.iodide.io; worker-src 'self' blob:; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /csp-report">
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Ultimate Squash Game - WebAssembly版">
@@ -23,6 +26,9 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    
+    <!-- CSP Reporter (開発環境用) -->
+    <script src="js/security/csp-reporter.js"></script>
     
     <!-- Google Analytics 4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
@@ -1125,6 +1131,9 @@
     <!-- アナリティクスシステム -->
     <script src="js/analytics/analytics.js"></script>
     <script src="js/ui/beta-test.js"></script>
+    
+    <!-- Utilities -->
+    <script src="js/utils/retry-handler.js"></script>
     
     <!-- AI System -->
     <script src="js/ai/game-ai-system.js"></script>
