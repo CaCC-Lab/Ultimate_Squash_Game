@@ -7,6 +7,9 @@ module.exports = {
   transform: {
     '^.+\\.js$': 'babel-jest',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(docs)/)'
+  ],
   setupFilesAfterEnv: ['<rootDir>/tests/unit/setup.js'],
   collectCoverageFrom: [
     'docs/js/**/*.js',
