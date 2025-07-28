@@ -7,13 +7,37 @@ import asyncio
 import websockets
 import json
 import logging
-from typing import Set, Dict, Any
+import hmac
+import hashlib
+import secrets
+import os
+from typing import Set, Dict, Any, Optional
 from dataclasses import dataclass, asdict
-from datetime import datetime
+from datetime import datetime, timedelta
+from enum import Enum
 
 # ログ設定
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+class AuthStatus(Enum):
+    """認証ステータス"""
+    PENDING = "pending"
+    AUTHENTICATED = "authenticated"
+    FAILED = "failed"
+
+@dataclass
+class ClientSession:
+    """クライアントセッション情報"""
+    websocket: websockets.WebSocketServerProtocol
+    auth_status: AuthStatus = AuthStatus.PENDING
+    auth_token: Optional[str] = None
+    connected_at: datetime = None
+    last_activity: datetime = None
+    
+    def __post_init__(self):
+        self.connected_at = datetime.now()
+        self.last_activity = datetime.now()
 
 @dataclass
 class GameState:
@@ -30,24 +54,39 @@ class GameState:
         return asdict(self)
 
 class GameWebSocketServer:
-    def __init__(self, game_engine=None):
-        self.clients: Set[websockets.WebSocketServerProtocol] = set()
+    def __init__(self, game_engine=None, auth_enabled=True):
+        self.sessions: Dict[websockets.WebSocketServerProtocol, ClientSession] = {}
         self.game_engine = game_engine
         self.game_state = GameState()
         self.current_challenge = None
+        self.auth_enabled = auth_enabled
+        self.server_secret = os.environ.get('WS_SERVER_SECRET', secrets.token_hex(32))
+        self.auth_timeout = 30  # 認証タイムアウト（秒）
         
     async def register(self, websocket):
         """新しいクライアントを登録"""
-        self.clients.add(websocket)
-        logger.info(f"Client connected. Total clients: {len(self.clients)}")
+        session = ClientSession(websocket=websocket)
+        self.sessions[websocket] = session
+        logger.info(f"Client connected. Total clients: {len(self.sessions)}")
         
-        # 現在のゲーム状態を送信
-        await self.send_to_client(websocket, "game:state", self.game_state.to_dict())
+        if self.auth_enabled:
+            # 認証要求を送信
+            await self.send_to_client(websocket, "auth:required", {
+                "message": "Authentication required",
+                "timeout": self.auth_timeout
+            })
+            # 認証タイムアウトを設定
+            asyncio.create_task(self._auth_timeout_handler(websocket))
+        else:
+            # 認証無効時は自動的に認証済みとする
+            session.auth_status = AuthStatus.AUTHENTICATED
+            await self.send_to_client(websocket, "game:state", self.game_state.to_dict())
         
     async def unregister(self, websocket):
         """クライアントを登録解除"""
-        self.clients.remove(websocket)
-        logger.info(f"Client disconnected. Total clients: {len(self.clients)}")
+        if websocket in self.sessions:
+            del self.sessions[websocket]
+            logger.info(f"Client disconnected. Total clients: {len(self.sessions)}")
         
     async def send_to_client(self, websocket, event_type: str, payload: Dict[str, Any]):
         """特定のクライアントにメッセージを送信"""
@@ -58,18 +97,27 @@ class GameWebSocketServer:
         })
         await websocket.send(message)
         
-    async def broadcast(self, event_type: str, payload: Dict[str, Any]):
-        """全クライアントにメッセージをブロードキャスト"""
-        if self.clients:
+    async def broadcast(self, event_type: str, payload: Dict[str, Any], auth_required=True):
+        """認証済みクライアントにメッセージをブロードキャスト"""
+        if self.sessions:
             message = json.dumps({
                 "type": event_type,
                 "payload": payload,
                 "timestamp": datetime.now().isoformat()
             })
-            await asyncio.gather(
-                *[client.send(message) for client in self.clients],
-                return_exceptions=True
-            )
+            
+            # 認証済みクライアントのみに送信
+            authenticated_clients = [
+                session.websocket 
+                for session in self.sessions.values() 
+                if not auth_required or session.auth_status == AuthStatus.AUTHENTICATED
+            ]
+            
+            if authenticated_clients:
+                await asyncio.gather(
+                    *[client.send(message) for client in authenticated_clients],
+                    return_exceptions=True
+                )
             
     async def handle_message(self, websocket, message: str):
         """クライアントからのメッセージを処理"""
@@ -78,7 +126,27 @@ class GameWebSocketServer:
             event_type = data.get("type")
             payload = data.get("payload", {})
             
+            session = self.sessions.get(websocket)
+            if not session:
+                return
+            
+            # アクティビティを更新
+            session.last_activity = datetime.now()
+            
             logger.info(f"Received message: {event_type}")
+            
+            # 認証処理
+            if event_type == "auth:token":
+                await self._handle_auth(websocket, payload)
+                return
+            
+            # 認証が必要な場合はチェック
+            if self.auth_enabled and session.auth_status != AuthStatus.AUTHENTICATED:
+                await self.send_to_client(websocket, "error", {
+                    "message": "Authentication required",
+                    "code": "AUTH_REQUIRED"
+                })
+                return
             
             # イベントタイプに応じて処理
             if event_type == "challenge:load":
@@ -149,6 +217,68 @@ class GameWebSocketServer:
                 })
                 
             await asyncio.sleep(0.1)  # 100msごとに更新
+    
+    async def _handle_auth(self, websocket, auth_data: Dict[str, Any]):
+        """認証処理"""
+        session = self.sessions.get(websocket)
+        if not session:
+            return
+        
+        token = auth_data.get("token")
+        timestamp = auth_data.get("timestamp")
+        signature = auth_data.get("signature")
+        
+        if not all([token, timestamp, signature]):
+            session.auth_status = AuthStatus.FAILED
+            await self.send_to_client(websocket, "auth:failed", {
+                "message": "Missing authentication data"
+            })
+            return
+        
+        # タイムスタンプの検証（5分以内）
+        try:
+            auth_time = datetime.fromisoformat(timestamp)
+            if abs((datetime.now() - auth_time).total_seconds()) > 300:
+                raise ValueError("Timestamp too old")
+        except (ValueError, TypeError):
+            session.auth_status = AuthStatus.FAILED
+            await self.send_to_client(websocket, "auth:failed", {
+                "message": "Invalid timestamp"
+            })
+            return
+        
+        # 署名の検証
+        expected_signature = hmac.new(
+            self.server_secret.encode(),
+            f"{token}:{timestamp}".encode(),
+            hashlib.sha256
+        ).hexdigest()
+        
+        if hmac.compare_digest(signature, expected_signature):
+            session.auth_status = AuthStatus.AUTHENTICATED
+            session.auth_token = token
+            await self.send_to_client(websocket, "auth:success", {
+                "message": "Authentication successful"
+            })
+            # 認証成功後、ゲーム状態を送信
+            await self.send_to_client(websocket, "game:state", self.game_state.to_dict())
+        else:
+            session.auth_status = AuthStatus.FAILED
+            await self.send_to_client(websocket, "auth:failed", {
+                "message": "Invalid signature"
+            })
+    
+    async def _auth_timeout_handler(self, websocket):
+        """認証タイムアウト処理"""
+        await asyncio.sleep(self.auth_timeout)
+        
+        session = self.sessions.get(websocket)
+        if session and session.auth_status == AuthStatus.PENDING:
+            logger.warning(f"Authentication timeout for client")
+            await self.send_to_client(websocket, "auth:timeout", {
+                "message": "Authentication timeout"
+            })
+            await websocket.close()
             
     async def handle_client(self, websocket, path):
         """クライアント接続を処理"""
@@ -177,9 +307,13 @@ class GameWebSocketServer:
         """パワーアップ収集を通知"""
         asyncio.create_task(self.broadcast("powerup:collected", powerup_data))
 
-async def start_server(host="localhost", port=8765, game_engine=None):
+async def start_server(host="localhost", port=8765, game_engine=None, auth_enabled=None):
     """WebSocketサーバーを起動（ポート競合チェック付き）"""
-    server = GameWebSocketServer(game_engine)
+    # 環境変数から認証設定を読み込み
+    if auth_enabled is None:
+        auth_enabled = os.environ.get('WS_AUTH_ENABLED', 'true').lower() == 'true'
+    
+    server = GameWebSocketServer(game_engine, auth_enabled=auth_enabled)
     
     # ポート競合チェック
     import socket

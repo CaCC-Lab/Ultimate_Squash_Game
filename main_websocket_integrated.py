@@ -208,17 +208,23 @@ class WebSocketGameEngine:
     def apply_challenge(self, challenge_data):
         """チャレンジデータを適用（WebSocketから呼び出し）"""
         logger.info(f"チャレンジを適用: {challenge_data.get('id', 'unknown')}")
-        # TODO: ゲーム状態にチャレンジ設定を適用
+        # チャレンジ設定をゲームエンジンに適用
+        if hasattr(self.game_state, 'apply_challenge_settings'):
+            self.game_state.apply_challenge_settings(challenge_data)
         
     def set_difficulty(self, level):
         """難易度設定（WebSocketから呼び出し）"""
         logger.info(f"難易度を設定: レベル {level}")
-        # TODO: ゲーム難易度を調整
+        # ゲーム難易度を調整
+        if hasattr(self.game_state, 'set_difficulty'):
+            self.game_state.set_difficulty(level)
         
     def apply_modifier(self, modifier_type, value):
         """ゲーム修飾子を適用（WebSocketから呼び出し）"""
         logger.info(f"修飾子を適用: {modifier_type} = {value}")
-        # TODO: ゲーム修飾子を適用
+        # ゲーム修飾子を適用
+        if hasattr(self.game_state, 'apply_modifier'):
+            self.game_state.apply_modifier(modifier_type, value)
     
     def notify_events_to_websocket(self):
         """ゲームイベントをWebSocketに通知"""

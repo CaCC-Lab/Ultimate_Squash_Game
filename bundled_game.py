@@ -3987,7 +3987,9 @@ class MemoryProfiler:
         tracemalloc.start()
         
         # GC統計を有効化
-        gc.set_debug(gc.DEBUG_STATS)
+        # デバッグモードでのみ有効化
+        if os.environ.get('DEBUG_MODE', '').lower() == 'true':
+            gc.set_debug(gc.DEBUG_STATS)
         
         # 初期スナップショット
         self._take_snapshot("initial")
