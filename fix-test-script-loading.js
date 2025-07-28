@@ -21,19 +21,19 @@ const scriptWaitCode = `        // スクリプト読み込み完了まで待機
 
 // page.goto直後にスクリプト読み込み待機を追加する正規表現パターン
 const patterns = [
-    {
-        search: /(\s+await page\.goto\('http:\/\/localhost:3000\/game\.html'\);\s*\n)(\s+\/\/ (?!スクリプト読み込み完了まで待機))/g,
-        replace: `$1${scriptWaitCode}\n$2`
-    },
-    {
-        search: /(\s+await page\.goto\('http:\/\/localhost:3000\/game\.html'\);\s*\n)(\s+(?!\/\/)(?!await page\.waitForFunction\(\(\) => \{\s*return window\.scriptLoadingStatus))/g,
-        replace: `$1${scriptWaitCode}\n$2`
-    }
+  {
+    search: /(\s+await page\.goto\('http:\/\/localhost:3000\/game\.html'\);\s*\n)(\s+\/\/ (?!スクリプト読み込み完了まで待機))/g,
+    replace: `$1${scriptWaitCode}\n$2`
+  },
+  {
+    search: /(\s+await page\.goto\('http:\/\/localhost:3000\/game\.html'\);\s*\n)(\s+(?!\/\/)(?!await page\.waitForFunction\(\(\) => \{\s*return window\.scriptLoadingStatus))/g,
+    replace: `$1${scriptWaitCode}\n$2`
+  }
 ];
 
 // パターンマッチングして置換
 patterns.forEach(pattern => {
-    content = content.replace(pattern.search, pattern.replace);
+  content = content.replace(pattern.search, pattern.replace);
 });
 
 // 重複する待機コードを削除

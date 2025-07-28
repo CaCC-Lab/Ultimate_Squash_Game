@@ -11,16 +11,16 @@ class RankingUI {
     this.gameModeChangeCallback = null;
     this.refreshCallback = null;
     this.closeCallback = null;
-    
+
     // DOM構造の作成
     if (container) {
       container.classList.add('ranking-container');
       container.style.display = 'none';
-      
+
       // コントロール部分
       const controls = document.createElement('div');
       controls.className = 'ranking-controls';
-      
+
       // 期間ボタン
       const periods = ['daily', 'weekly', 'monthly', 'all'];
       const periodTexts = ['日間', '週間', '月間', '全期間'];
@@ -32,7 +32,7 @@ class RankingUI {
         if (period === 'daily') btn.classList.add('active');
         controls.appendChild(btn);
       });
-      
+
       // ゲームモード選択
       const select = document.createElement('select');
       select.className = 'game-mode-select';
@@ -49,56 +49,56 @@ class RankingUI {
         select.appendChild(option);
       });
       controls.appendChild(select);
-      
+
       // リフレッシュボタン
       const refreshBtn = document.createElement('button');
       refreshBtn.className = 'refresh-button';
       refreshBtn.textContent = '更新';
       controls.appendChild(refreshBtn);
-      
+
       // クローズボタン
       const closeBtn = document.createElement('button');
       closeBtn.className = 'close-button';
       closeBtn.textContent = '閉じる';
       controls.appendChild(closeBtn);
-      
+
       container.appendChild(controls);
-      
+
       // ランキングリスト
       const list = document.createElement('div');
       list.className = 'ranking-list';
       container.appendChild(list);
     }
   }
-  
+
   show() {
     this.visible = true;
     if (this.container) {
       this.container.style.display = 'block';
     }
   }
-  
+
   hide() {
     this.visible = false;
     if (this.container) {
       this.container.style.display = 'none';
     }
   }
-  
+
   displayRankings(rankings) {
     const list = this.container.querySelector('.ranking-list');
     if (!list) return;
-    
+
     // 既存のコンテンツをクリア
     list.innerHTML = '';
-    
+
     if (!rankings || rankings.length === 0) {
       const empty = document.createElement('div');
       empty.textContent = 'ランキングデータがありません';
       list.appendChild(empty);
       return;
     }
-    
+
     rankings.forEach(ranking => {
       const item = document.createElement('div');
       item.className = 'ranking-item';
@@ -106,29 +106,29 @@ class RankingUI {
       list.appendChild(item);
     });
   }
-  
+
   displayError(message) {
     const list = this.container.querySelector('.ranking-list');
     if (!list) return;
-    
+
     list.innerHTML = '';
     const error = document.createElement('div');
     error.className = 'error-message';
     error.textContent = message;
     list.appendChild(error);
   }
-  
+
   showLoading() {
     const list = this.container.querySelector('.ranking-list');
     if (!list) return;
-    
+
     list.innerHTML = '';
     const loading = document.createElement('div');
     loading.className = 'loading';
     loading.textContent = '読み込み中...';
     list.appendChild(loading);
   }
-  
+
   onPeriodChange(callback) {
     this.periodChangeCallback = callback;
     const buttons = this.container.querySelectorAll('.period-btn');
@@ -143,7 +143,7 @@ class RankingUI {
       });
     });
   }
-  
+
   onGameModeChange(callback) {
     this.gameModeChangeCallback = callback;
     const select = this.container.querySelector('.game-mode-select');
@@ -156,7 +156,7 @@ class RankingUI {
       });
     }
   }
-  
+
   onRefresh(callback) {
     this.refreshCallback = callback;
     const btn = this.container.querySelector('.refresh-button');
@@ -168,7 +168,7 @@ class RankingUI {
       });
     }
   }
-  
+
   onClose(callback) {
     this.closeCallback = callback;
     const btn = this.container.querySelector('.close-button');
@@ -180,12 +180,12 @@ class RankingUI {
       });
     }
   }
-  
+
   getCurrentPeriod() {
     const activeBtn = this.container.querySelector('.period-btn.active');
     return activeBtn ? activeBtn.getAttribute('data-period') : 'daily';
   }
-  
+
   getCurrentGameMode() {
     const select = this.container.querySelector('.game-mode-select');
     return select ? select.value : 'all';
@@ -202,7 +202,7 @@ describe('RankingUI', () => {
     container = document.createElement('div');
     container.id = 'testContainer';
     document.body.appendChild(container);
-    
+
     rankingUI = new RankingUI(container);
   });
 
@@ -223,7 +223,7 @@ describe('RankingUI', () => {
     test('should create period buttons', () => {
       const periodButtons = container.querySelectorAll('.period-btn');
       expect(periodButtons.length).toBe(4);
-      
+
       const buttonTexts = Array.from(periodButtons).map(btn => btn.textContent.trim());
       expect(buttonTexts).toEqual(['日間', '週間', '月間', '全期間']);
     });
@@ -231,7 +231,7 @@ describe('RankingUI', () => {
     test('should create game mode select', () => {
       const gameModeSelect = container.querySelector('.game-mode-select');
       expect(gameModeSelect).toBeTruthy();
-      
+
       const options = Array.from(gameModeSelect.options);
       expect(options.length).toBe(4);
       expect(options.map(opt => opt.value)).toEqual(['all', 'normal', 'hard', 'expert']);
@@ -256,7 +256,7 @@ describe('RankingUI', () => {
   describe('show', () => {
     test('should make container visible', () => {
       rankingUI.show();
-      
+
       expect(container.style.display).toBe('block');
     });
 
@@ -270,10 +270,10 @@ describe('RankingUI', () => {
     test('should hide container', () => {
       // First show the container
       rankingUI.show();
-      
+
       // Then hide it
       rankingUI.hide();
-      
+
       expect(container.style.display).toBe('none');
     });
   });
@@ -287,12 +287,12 @@ describe('RankingUI', () => {
 
     test('should display rankings correctly', () => {
       rankingUI.displayRankings(mockRankings);
-      
+
       const rankingList = container.querySelector('.ranking-list');
       const items = rankingList.querySelectorAll('.ranking-item');
-      
+
       expect(items.length).toBe(3);
-      
+
       // Check first item
       expect(items[0].textContent).toContain('#1');
       expect(items[0].textContent).toContain('Player1');
@@ -303,13 +303,13 @@ describe('RankingUI', () => {
       // Add some initial rankings
       rankingUI.displayRankings(mockRankings);
       expect(container.querySelectorAll('.ranking-item').length).toBe(3);
-      
+
       // Display new rankings
       const newRankings = [
         { rank: 1, playerName: 'NewPlayer', score: 1500, gameMode: 'normal' }
       ];
       rankingUI.displayRankings(newRankings);
-      
+
       const items = container.querySelectorAll('.ranking-item');
       expect(items.length).toBe(1);
       expect(items[0].textContent).toContain('NewPlayer');
@@ -317,10 +317,10 @@ describe('RankingUI', () => {
 
     test('should handle empty rankings array', () => {
       rankingUI.displayRankings([]);
-      
+
       const rankingList = container.querySelector('.ranking-list');
       const items = rankingList.querySelectorAll('.ranking-item');
-      
+
       expect(items.length).toBe(0);
       expect(rankingList.textContent).toContain('ランキングデータがありません');
     });
@@ -332,9 +332,9 @@ describe('RankingUI', () => {
       loading.className = 'loading';
       loading.textContent = 'Loading...';
       rankingList.appendChild(loading);
-      
+
       rankingUI.displayRankings(mockRankings);
-      
+
       expect(rankingList.querySelector('.loading')).toBeFalsy();
     });
   });
@@ -342,12 +342,12 @@ describe('RankingUI', () => {
   describe('displayError', () => {
     test('should display error message', () => {
       const errorMessage = 'データの読み込みに失敗しました';
-      
+
       rankingUI.displayError(errorMessage);
-      
+
       const rankingList = container.querySelector('.ranking-list');
       const errorElement = rankingList.querySelector('.error-message');
-      
+
       expect(errorElement).toBeTruthy();
       expect(errorElement.textContent).toContain(errorMessage);
     });
@@ -359,9 +359,9 @@ describe('RankingUI', () => {
       loading.className = 'loading';
       loading.textContent = 'Loading...';
       rankingList.appendChild(loading);
-      
+
       rankingUI.displayError('Error occurred');
-      
+
       expect(rankingList.querySelector('.loading')).toBeFalsy();
     });
 
@@ -371,10 +371,10 @@ describe('RankingUI', () => {
         { rank: 1, playerName: 'Player1', score: 1000, gameMode: 'normal' }
       ];
       rankingUI.displayRankings(mockRankings);
-      
+
       // Then show error
       rankingUI.displayError('Error occurred');
-      
+
       const rankingList = container.querySelector('.ranking-list');
       expect(rankingList.querySelectorAll('.ranking-item').length).toBe(0);
       expect(rankingList.querySelector('.error-message')).toBeTruthy();
@@ -385,41 +385,41 @@ describe('RankingUI', () => {
     test('should handle period button clicks', () => {
       const mockCallback = jest.fn();
       rankingUI.onPeriodChange(mockCallback);
-      
+
       const weeklyButton = container.querySelector('.period-btn[data-period="weekly"]');
       weeklyButton.click();
-      
+
       expect(mockCallback).toHaveBeenCalledWith('weekly');
     });
 
     test('should handle game mode select change', () => {
       const mockCallback = jest.fn();
       rankingUI.onGameModeChange(mockCallback);
-      
+
       const gameModeSelect = container.querySelector('.game-mode-select');
       gameModeSelect.value = 'hard';
       gameModeSelect.dispatchEvent(new Event('change'));
-      
+
       expect(mockCallback).toHaveBeenCalledWith('hard');
     });
 
     test('should handle refresh button click', () => {
       const mockCallback = jest.fn();
       rankingUI.onRefresh(mockCallback);
-      
+
       const refreshButton = container.querySelector('.refresh-button');
       refreshButton.click();
-      
+
       expect(mockCallback).toHaveBeenCalled();
     });
 
     test('should handle close button click', () => {
       const mockCallback = jest.fn();
       rankingUI.onClose(mockCallback);
-      
+
       const closeButton = container.querySelector('.close-button');
       closeButton.click();
-      
+
       expect(mockCallback).toHaveBeenCalled();
     });
   });
@@ -427,14 +427,14 @@ describe('RankingUI', () => {
   describe('getCurrentPeriod', () => {
     test('should return current period', () => {
       expect(rankingUI.getCurrentPeriod()).toBe('daily');
-      
+
       // Click weekly button
       const weeklyButton = container.querySelector('.period-btn[data-period="weekly"]');
-      
+
       // Simulate the active state change that would happen in the real UI
       container.querySelector('.period-btn.active').classList.remove('active');
       weeklyButton.classList.add('active');
-      
+
       expect(rankingUI.getCurrentPeriod()).toBe('weekly');
     });
   });
@@ -442,12 +442,12 @@ describe('RankingUI', () => {
   describe('getCurrentGameMode', () => {
     test('should return current game mode', () => {
       expect(rankingUI.getCurrentGameMode()).toBe('all');
-      
+
       // Change game mode
       const gameModeSelect = container.querySelector('.game-mode-select');
       gameModeSelect.value = 'normal';
       gameModeSelect.dispatchEvent(new Event('change'));
-      
+
       expect(rankingUI.getCurrentGameMode()).toBe('normal');
     });
   });
@@ -455,10 +455,10 @@ describe('RankingUI', () => {
   describe('showLoading', () => {
     test('should show loading state', () => {
       rankingUI.showLoading();
-      
+
       const rankingList = container.querySelector('.ranking-list');
       const loading = rankingList.querySelector('.loading');
-      
+
       expect(loading).toBeTruthy();
       expect(loading.textContent).toContain('読み込み中');
     });
@@ -469,10 +469,10 @@ describe('RankingUI', () => {
         { rank: 1, playerName: 'Player1', score: 1000 }
       ];
       rankingUI.displayRankings(mockRankings);
-      
+
       // Then show loading
       rankingUI.showLoading();
-      
+
       const rankingList = container.querySelector('.ranking-list');
       expect(rankingList.querySelectorAll('.ranking-item').length).toBe(0);
       expect(rankingList.querySelector('.loading')).toBeTruthy();

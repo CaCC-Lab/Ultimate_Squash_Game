@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     : '/api/scores';
 
   const rankingApi = new RankingAPI(apiBaseUrl);
-  
+
   const rankingContainer = document.createElement('div');
   rankingContainer.id = 'rankingContainer';
   document.body.appendChild(rankingContainer);

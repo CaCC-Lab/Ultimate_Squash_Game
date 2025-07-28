@@ -19,7 +19,7 @@ class NetworkMonitor {
       offline: [],
       degraded: []
     };
-    
+
     this.initialize();
   }
 
@@ -30,18 +30,18 @@ class NetworkMonitor {
     // オンライン/オフラインイベントリスナーを設定
     window.addEventListener('online', () => this.handleOnline());
     window.addEventListener('offline', () => this.handleOffline());
-    
+
     // Connection APIの変更を監視
     if (navigator.connection) {
       navigator.connection.addEventListener('change', () => this.handleConnectionChange());
     }
-    
+
     // 定期的な接続品質チェック
     setInterval(() => this.measureConnectionQuality(), 30000); // 30秒間隔
-    
+
     // 初期測定
     this.measureConnectionQuality();
-    
+
     // ステータス表示エリアを作成
     this.createStatusDisplay();
   }
@@ -52,7 +52,7 @@ class NetworkMonitor {
   createStatusDisplay() {
     // 既存の要素をチェック
     this.statusElement = document.getElementById('network-status');
-    
+
     if (!this.statusElement) {
       this.statusElement = document.createElement('div');
       this.statusElement.id = 'network-status';
@@ -69,7 +69,7 @@ class NetworkMonitor {
       `;
       document.body.appendChild(this.statusElement);
     }
-    
+
     this.updateStatusDisplay();
   }
 
@@ -78,11 +78,11 @@ class NetworkMonitor {
    */
   updateStatusDisplay() {
     if (!this.statusElement) return;
-    
+
     let statusText = '';
     let className = 'network-status';
     let backgroundColor = '';
-    
+
     if (!this.isOnline) {
       statusText = 'オフライン';
       className += ' offline';
@@ -96,7 +96,7 @@ class NetworkMonitor {
       className += ' online';
       backgroundColor = '#44aa44';
     }
-    
+
     this.statusElement.textContent = statusText;
     this.statusElement.className = className;
     this.statusElement.style.backgroundColor = backgroundColor;
@@ -114,7 +114,7 @@ class NetworkMonitor {
         rtt: undefined
       };
     }
-    
+
     return {
       effectiveType: navigator.connection.effectiveType,
       downlink: navigator.connection.downlink,
@@ -127,7 +127,7 @@ class NetworkMonitor {
    */
   getConnectionDescription() {
     const conn = this.connectionInfo;
-    
+
     if (conn.effectiveType) {
       switch (conn.effectiveType) {
         case 'slow-2g':
@@ -142,11 +142,11 @@ class NetworkMonitor {
           return conn.effectiveType;
       }
     }
-    
+
     if (this.metrics.latency > 0) {
       return `${this.metrics.latency}ms`;
     }
-    
+
     return '不明';
   }
 
@@ -155,25 +155,25 @@ class NetworkMonitor {
    */
   isConnectionDegraded() {
     const conn = this.connectionInfo;
-    
+
     // Connection APIによる判定
     if (conn.effectiveType === 'slow-2g' || conn.effectiveType === '2g') {
       return true;
     }
-    
+
     if (conn.rtt && conn.rtt > 300) {
       return true;
     }
-    
+
     if (conn.downlink && conn.downlink < 1.0) {
       return true;
     }
-    
+
     // 測定値による判定
     if (this.metrics.latency > 500) {
       return true;
     }
-    
+
     return false;
   }
 
@@ -182,7 +182,7 @@ class NetworkMonitor {
    */
   async measureConnectionQuality() {
     if (!this.isOnline) return;
-    
+
     try {
       await this.measureLatency();
       await this.estimateBandwidth();
@@ -197,32 +197,32 @@ class NetworkMonitor {
   async measureLatency() {
     const samples = [];
     const iterations = 3;
-    
+
     for (let i = 0; i < iterations; i++) {
       try {
         const startTime = performance.now();
-        
+
         // 小さなリソースを取得してレイテンシを測定
         const response = await fetch(window.location.origin + '/favicon.ico?' + Date.now(), {
           method: 'HEAD',
           cache: 'no-cache'
         });
-        
+
         const endTime = performance.now();
-        
+
         if (response.ok) {
           samples.push(endTime - startTime);
         }
       } catch (error) {
         // エラーは無視して続行
       }
-      
+
       // 測定間隔
       if (i < iterations - 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
-    
+
     if (samples.length > 0) {
       this.metrics.latency = Math.round(samples.reduce((a, b) => a + b) / samples.length);
     }
@@ -234,19 +234,19 @@ class NetworkMonitor {
   async estimateBandwidth() {
     try {
       const startTime = performance.now();
-      
+
       // 小さなテストファイルをダウンロード（実際の実装では適切なテストリソースを使用）
       const response = await fetch(window.location.origin + '/?bandwidth-test=' + Date.now(), {
         cache: 'no-cache'
       });
-      
+
       const data = await response.blob();
       const endTime = performance.now();
-      
+
       const duration = (endTime - startTime) / 1000; // 秒
       const sizeBytes = data.size;
       const bandwidthBps = sizeBytes / duration;
-      
+
       this.metrics.bandwidth = Math.round(bandwidthBps / 1024); // KB/s
     } catch (error) {
       // エラーは無視
@@ -261,7 +261,7 @@ class NetworkMonitor {
     this.isOnline = true;
     this.updateStatusDisplay();
     this.measureConnectionQuality();
-    
+
     // コールバックを実行
     this.callbacks.online.forEach(callback => {
       try {
@@ -279,7 +279,7 @@ class NetworkMonitor {
     console.log('ネットワーク接続が切断されました');
     this.isOnline = false;
     this.updateStatusDisplay();
-    
+
     // コールバックを実行
     this.callbacks.offline.forEach(callback => {
       try {
@@ -297,7 +297,7 @@ class NetworkMonitor {
     console.log('ネットワーク接続状態が変更されました');
     this.connectionInfo = this.getConnectionInfo();
     this.updateStatusDisplay();
-    
+
     if (this.isConnectionDegraded()) {
       this.callbacks.degraded.forEach(callback => {
         try {
@@ -349,7 +349,7 @@ class NetworkMonitor {
   exportDiagnostics() {
     const diagnostics = this.getDiagnostics();
     const jsonString = JSON.stringify(diagnostics, null, 2);
-    
+
     console.log('ネットワーク診断情報:', jsonString);
     return jsonString;
   }
@@ -361,7 +361,7 @@ window.networkDiagnostics = {
     if (window.networkMonitor) {
       return window.networkMonitor.getDiagnostics();
     }
-    
+
     return {
       online: navigator.onLine,
       connection: navigator.connection ? {
@@ -390,7 +390,7 @@ class GameNetworkAdapter {
         simplifyGraphics: true
       }
     };
-    
+
     this.setupEventHandlers();
   }
 
@@ -402,12 +402,12 @@ class GameNetworkAdapter {
     this.networkMonitor.addEventListener('offline', () => {
       this.adaptToOfflineMode();
     });
-    
+
     // オンライン復帰時の処理
     this.networkMonitor.addEventListener('online', () => {
       this.adaptToOnlineMode();
     });
-    
+
     // 接続劣化時の処理
     this.networkMonitor.addEventListener('degraded', (connectionInfo) => {
       this.adaptToSlowConnection(connectionInfo);
@@ -419,12 +419,12 @@ class GameNetworkAdapter {
    */
   adaptToOfflineMode() {
     console.log('ゲームをオフラインモードに適応');
-    
+
     // オフライン機能を有効化
     if (this.game && this.game.enableOfflineMode) {
       this.game.enableOfflineMode();
     }
-    
+
     // UI通知
     this.showNotification('オフラインモードで動作中', 'warning');
   }
@@ -434,12 +434,12 @@ class GameNetworkAdapter {
    */
   adaptToOnlineMode() {
     console.log('ゲームをオンラインモードに復帰');
-    
+
     // オンライン機能を復元
     if (this.game && this.game.enableOnlineMode) {
       this.game.enableOnlineMode();
     }
-    
+
     // UI通知
     this.showNotification('オンライン接続が復帰しました', 'success');
   }
@@ -449,7 +449,7 @@ class GameNetworkAdapter {
    */
   adaptToSlowConnection(connectionInfo) {
     console.log('低速接続を検出、ゲーム設定を調整');
-    
+
     // パフォーマンス設定を調整
     if (this.game && this.game.adjustPerformanceSettings) {
       this.game.adjustPerformanceSettings({
@@ -457,7 +457,7 @@ class GameNetworkAdapter {
         lowerQuality: true
       });
     }
-    
+
     // UI通知
     this.showNotification(`低速接続を検出 (${connectionInfo.effectiveType})`, 'info');
   }
@@ -495,7 +495,7 @@ if (typeof module !== 'undefined' && module.exports) {
 document.addEventListener('DOMContentLoaded', () => {
   // グローバルネットワークモニターを作成
   window.networkMonitor = new NetworkMonitor();
-  
+
   // ゲームオブジェクトが利用可能な場合は適応システムも初期化
   if (window.game) {
     window.gameNetworkAdapter = new GameNetworkAdapter(window.game);

@@ -5,7 +5,7 @@ global.console = {
   ...console,
   error: jest.fn(),
   warn: jest.fn(),
-  log: jest.fn(),
+  log: jest.fn()
 };
 
 // Mock TextEncoder for Web Crypto API tests

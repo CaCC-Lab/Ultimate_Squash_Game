@@ -4,7 +4,7 @@ const createMockClass = (className, defaultMethods = {}) => {
     constructor(...args) {
       this.constructorArgs = args;
       this.className = className;
-      
+
       // Default methodsを設定
       Object.entries(defaultMethods).forEach(([method, impl]) => {
         if (typeof impl === 'function') {
@@ -23,7 +23,7 @@ export class ChallengeType {
   static TIME = 'time';
   static STREAK = 'streak';
   static ACCURACY = 'accuracy';
-  
+
   constructor(config = {}) {
     this.id = config.id || '';
     this.name = config.name || '';
@@ -34,11 +34,11 @@ export class ChallengeType {
     this.restrictions = config.restrictions || [];
     this.conditions = config.conditions || [];
   }
-  
+
   validate() {
     return ['score', 'time', 'streak', 'accuracy', 'SCORE_TARGET', 'TIME_LIMIT', 'RESTRICTION', 'ENDURANCE'].includes(this.type);
   }
-  
+
   checkCompletion(gameState) {
     switch (this.type) {
       case 'SCORE_TARGET':
@@ -51,10 +51,10 @@ export class ChallengeType {
         return false;
     }
   }
-  
+
   checkViolation(event) {
     if (this.type !== 'RESTRICTION') return false;
-    
+
     if (this.restrictions.includes('NO_POWERUPS') && event.action === 'POWERUP_USED') {
       return true;
     }
@@ -63,16 +63,16 @@ export class ChallengeType {
     }
     return false;
   }
-  
+
   getProgress(gameState) {
     if (this.type === 'SCORE_TARGET') {
       const progress = (gameState.score / this.target) * 100;
       return Math.min(100, Math.floor(progress));
     }
-    
+
     if ((this.type === 'COMPOSITE' || this.type === 'COMBO') && this.conditions) {
       const progresses = [];
-      
+
       // conditionsが配列の場合
       if (Array.isArray(this.conditions)) {
         this.conditions.forEach(condition => {
@@ -93,13 +93,13 @@ export class ChallengeType {
           progresses.push((gameState.consecutiveHits / this.conditions.consecutiveHits) * 100);
         }
       }
-      
+
       if (progresses.length > 0) {
         const avgProgress = progresses.reduce((a, b) => a + b, 0) / progresses.length;
         return Math.min(100, Math.floor(avgProgress));
       }
     }
-    
+
     return 0;
   }
 }
@@ -113,15 +113,15 @@ export class ChallengeFactory {
       { type: 'ENDURANCE', baseTarget: 2000, multiplier: 1.15 }
     ];
   }
-  
+
   createChallenge(weekNumber) {
     // 決定論的な生成（同じ週番号は同じチャレンジ）
     const templateIndex = weekNumber % this.weeklyTemplates.length;
     const template = this.weeklyTemplates[templateIndex];
-    
+
     const scaleFactor = Math.pow(template.multiplier, Math.floor(weekNumber / 4));
     const target = Math.floor(template.baseTarget * scaleFactor);
-    
+
     const challenge = new ChallengeType({
       id: `weekly-challenge-${weekNumber}`,
       name: `週替わりチャレンジ Week ${weekNumber}`,
@@ -130,10 +130,10 @@ export class ChallengeFactory {
       timeLimit: template.timeLimit,
       restrictions: template.restrictions || []
     });
-    
+
     return challenge;
   }
-  
+
   static create(type, config = {}) {
     return new ChallengeType({
       ...config,
@@ -146,7 +146,7 @@ export class ChallengeFactory {
       difficulty: config.difficulty || 'normal'
     });
   }
-  
+
   static createBatch(configs) {
     return configs.map(config => this.create(config.type, config));
   }
@@ -218,19 +218,19 @@ describe('ChallengeType', () => {
         target: 500
       });
 
-      expect(challenge.checkCompletion({ 
-        score: 500, 
-        elapsedTime: 59000 
+      expect(challenge.checkCompletion({
+        score: 500,
+        elapsedTime: 59000
       })).toBe(true);
 
-      expect(challenge.checkCompletion({ 
-        score: 500, 
-        elapsedTime: 61000 
+      expect(challenge.checkCompletion({
+        score: 500,
+        elapsedTime: 61000
       })).toBe(false);
 
-      expect(challenge.checkCompletion({ 
-        score: 400, 
-        elapsedTime: 50000 
+      expect(challenge.checkCompletion({
+        score: 400,
+        elapsedTime: 50000
       })).toBe(false);
     });
 
@@ -241,16 +241,16 @@ describe('ChallengeType', () => {
         target: 300
       });
 
-      expect(challenge.checkViolation({ 
-        action: 'POWERUP_USED' 
+      expect(challenge.checkViolation({
+        action: 'POWERUP_USED'
       })).toBe(true);
 
-      expect(challenge.checkViolation({ 
-        action: 'GAME_PAUSED' 
+      expect(challenge.checkViolation({
+        action: 'GAME_PAUSED'
       })).toBe(true);
 
-      expect(challenge.checkViolation({ 
-        action: 'BALL_HIT' 
+      expect(challenge.checkViolation({
+        action: 'BALL_HIT'
       })).toBe(false);
     });
   });
@@ -277,9 +277,9 @@ describe('ChallengeType', () => {
         ]
       });
 
-      expect(challenge.getProgress({ 
-        score: 500, 
-        consecutiveHits: 5 
+      expect(challenge.getProgress({
+        score: 500,
+        consecutiveHits: 5
       })).toBe(50); // (50% + 50%) / 2
     });
   });
@@ -288,10 +288,10 @@ describe('ChallengeType', () => {
 describe('ChallengeFactory', () => {
   test('週番号に基づいてチャレンジタイプを生成できる', () => {
     const factory = new ChallengeFactory();
-    
+
     const challenge1 = factory.createChallenge(1);
     const challenge2 = factory.createChallenge(2);
-    
+
     expect(challenge1).toBeDefined();
     expect(challenge2).toBeDefined();
     expect(challenge1.id).not.toBe(challenge2.id);
@@ -299,10 +299,10 @@ describe('ChallengeFactory', () => {
 
   test('同じ週番号からは同じチャレンジが生成される', () => {
     const factory = new ChallengeFactory();
-    
+
     const challenge1a = factory.createChallenge(1);
     const challenge1b = factory.createChallenge(1);
-    
+
     expect(challenge1a.id).toBe(challenge1b.id);
     expect(challenge1a.type).toBe(challenge1b.type);
     expect(challenge1a.target).toBe(challenge1b.target);
@@ -310,7 +310,7 @@ describe('ChallengeFactory', () => {
 
   test('チャレンジパラメータが週に応じて適切にスケールする', () => {
     const factory = new ChallengeFactory();
-    
+
     const weeklyTargets = [];
     for (let week = 1; week <= 10; week++) {
       const challenge = factory.createChallenge(week);
@@ -318,9 +318,9 @@ describe('ChallengeFactory', () => {
         weeklyTargets.push(challenge.target);
       }
     }
-    
+
     // 週が進むにつれて難易度が上がることを確認
-    const isIncreasing = weeklyTargets.every((target, i) => 
+    const isIncreasing = weeklyTargets.every((target, i) =>
       i === 0 || target >= weeklyTargets[i - 1]
     );
     expect(weeklyTargets.length).toBeGreaterThan(0);

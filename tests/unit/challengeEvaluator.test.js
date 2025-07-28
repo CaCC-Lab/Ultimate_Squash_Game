@@ -8,7 +8,7 @@ class ChallengeEvaluator {
   constructor() {
     this.evaluations = [];
   }
-  
+
   evaluate(challenge, gameResult) {
     const result = {
       challengeId: challenge.id,
@@ -16,7 +16,7 @@ class ChallengeEvaluator {
       progress: 0,
       message: ''
     };
-    
+
     switch (challenge.type) {
       case 'score':
         if (gameResult.score === undefined) {
@@ -27,7 +27,7 @@ class ChallengeEvaluator {
         result.progress = Math.min(100, (gameResult.score / targetScore) * 100);
         result.message = `Score: ${gameResult.score}/${targetScore}`;
         break;
-        
+
       case 'time':
         if (gameResult.duration === undefined) {
           throw new Error('Invalid game result: missing duration');
@@ -37,7 +37,7 @@ class ChallengeEvaluator {
         result.progress = Math.min(100, ((maxDuration - gameResult.duration) / maxDuration) * 100);
         result.message = `Time: ${gameResult.duration}s/${maxDuration}s`;
         break;
-        
+
       case 'restriction':
         if (gameResult.powerUpsUsed === undefined) {
           throw new Error('Invalid game result: missing powerUpsUsed');
@@ -46,41 +46,41 @@ class ChallengeEvaluator {
         result.passed = gameResult.powerUpsUsed <= maxPowerUps;
         result.message = `PowerUps: ${gameResult.powerUpsUsed}/${maxPowerUps}`;
         break;
-        
+
       case 'composite':
         // 複合チャレンジ：すべての条件を満たす必要がある
         let allConditionsMet = true;
-        
+
         if (challenge.goal.targetScore !== undefined) {
           if (gameResult.score === undefined) {
             throw new Error('Invalid game result: missing score');
           }
           allConditionsMet = allConditionsMet && (gameResult.score >= challenge.goal.targetScore);
         }
-        
+
         if (challenge.goal.maxPowerUps !== undefined) {
           if (gameResult.powerUpsUsed === undefined) {
             throw new Error('Invalid game result: missing powerUpsUsed');
           }
           allConditionsMet = allConditionsMet && (gameResult.powerUpsUsed <= challenge.goal.maxPowerUps);
         }
-        
+
         result.passed = allConditionsMet;
         result.message = 'Composite challenge';
         break;
-        
+
       default:
         throw new Error(`Unknown challenge type: ${challenge.type}`);
     }
-    
+
     this.evaluations.push(result);
     return result.passed;
   }
-  
+
   getLastEvaluation() {
     return this.evaluations[this.evaluations.length - 1];
   }
-  
+
   reset() {
     this.evaluations = [];
   }
@@ -88,7 +88,7 @@ class ChallengeEvaluator {
 
 describe('ChallengeEvaluator', () => {
   let challengeEvaluator;
-  
+
   beforeEach(() => {
     challengeEvaluator = new ChallengeEvaluator();
   });
@@ -260,7 +260,7 @@ describe('ChallengeEvaluator', () => {
         id: 'score_3000_no_powerups',
         type: 'composite',
         description: '3000点をパワーアップなしで達成しよう',
-        goal: { 
+        goal: {
           targetScore: 3000,
           maxPowerUps: 0
         }
@@ -285,7 +285,7 @@ describe('ChallengeEvaluator', () => {
         id: 'score_3000_no_powerups',
         type: 'composite',
         description: '3000点をパワーアップなしで達成しよう',
-        goal: { 
+        goal: {
           targetScore: 3000,
           maxPowerUps: 0
         }

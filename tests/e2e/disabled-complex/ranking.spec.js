@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   expectNoErrors,
   loadGamePage,
-  setupErrorHandlers,
+  setupErrorHandlers
 } from './helpers.js';
 
 // Mock API responses
@@ -11,26 +11,26 @@ const mockRankingData = (period, gameMode) => ({
   contentType: 'application/json',
   body: JSON.stringify([
     { rank: 1, name: `Player1-${period}-${gameMode}`, score: 1000 },
-    { rank: 2, name: `Player2-${period}-${gameMode}`, score: 900 },
-  ]),
+    { rank: 2, name: `Player2-${period}-${gameMode}`, score: 900 }
+  ])
 });
 
 const mockErrorResponse = {
   status: 500,
   contentType: 'application/json',
-  body: JSON.stringify({ message: 'Internal Server Error' }),
+  body: JSON.stringify({ message: 'Internal Server Error' })
 };
 
 const mockSubmitSuccess = {
   status: 200,
   contentType: 'application/json',
-  body: JSON.stringify({ message: 'Score submitted successfully' }),
+  body: JSON.stringify({ message: 'Score submitted successfully' })
 };
 
 const mockSubmitError = {
   status: 500,
   contentType: 'application/json',
-  body: JSON.stringify({ message: 'Submission failed' }),
+  body: JSON.stringify({ message: 'Submission failed' })
 };
 
 test.describe('Online Ranking System Characterization', () => {
@@ -56,7 +56,7 @@ test.describe('Online Ranking System Characterization', () => {
     test('should display initial ranking view correctly', async ({ page }) => {
       const rankingContainer = page.locator('#rankingContainer');
       await expect(rankingContainer).toBeVisible();
-      
+
       // 1. Verify default period is "Daily"
       const dailyButton = page.locator('.period-btn:has-text("日間")');
       await expect(dailyButton).toHaveClass(/active/);
@@ -77,7 +77,7 @@ test.describe('Online Ranking System Characterization', () => {
     test('should fetch new data when switching periods', async ({ page }) => {
       const periods = ['週間', '月間', '全期間', '日間'];
       let requestCount = 0;
-      
+
       await page.route('**/api/scores/get**', (route, request) => {
         requestCount++;
         const url = new URL(request.url());
@@ -90,7 +90,7 @@ test.describe('Online Ranking System Characterization', () => {
         await test.step(`Switching to ${period}`, async () => {
           await page.click(`.period-btn:has-text("${period}")`);
           await expect(page.locator(`.period-btn:has-text("${period}")`)).toHaveClass(/active/);
-          
+
           // Wait for the new data to be rendered
           await expect(page.locator(`text=Player1-${period.toLowerCase()}-all`).first()).toBeVisible();
         });
@@ -104,7 +104,7 @@ test.describe('Online Ranking System Characterization', () => {
         { value: 'normal', label: 'ノーマル' },
         { value: 'hard', label: 'ハード' },
         { value: 'expert', label: 'エキスパート' },
-        { value: 'all', label: 'すべて' },
+        { value: 'all', label: 'すべて' }
       ];
       let requestCount = 0;
 
@@ -120,7 +120,7 @@ test.describe('Online Ranking System Characterization', () => {
         await test.step(`Switching to ${mode.label}`, async () => {
           await page.selectOption('#gameModeSelect', { label: mode.label });
           await expect(page.locator('#gameModeSelect')).toHaveValue(mode.value);
-          
+
           // Wait for the new data to be rendered
           await expect(page.locator(`text=Player1-daily-${mode.value}`).first()).toBeVisible();
         });
@@ -142,7 +142,7 @@ test.describe('Online Ranking System Characterization', () => {
       // Click refresh button
       await page.click('.refresh-button');
       await expect(page.locator('#rankingList .loading')).toBeVisible();
-      
+
       // Wait for the list to reload
       await expect(page.locator('.ranking-item').first()).toBeVisible();
       expect(requestCount).toBe(initialRequestCount + 1);
@@ -158,7 +158,7 @@ test.describe('Online Ranking System Characterization', () => {
 
       // Refresh to trigger the error
       await page.click('.refresh-button');
-      
+
       const rankingList = page.locator('#rankingList');
       await expect(rankingList.locator('.error-message')).toBeVisible();
       await expect(rankingList).toContainText('ランキングの読み込みに失敗しました');

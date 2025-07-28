@@ -7,7 +7,7 @@ const createMockClass = (className, defaultMethods = {}) => {
     constructor(...args) {
       this.constructorArgs = args;
       this.className = className;
-      
+
       // Default methodsを設定
       Object.entries(defaultMethods).forEach(([method, impl]) => {
         if (typeof impl === 'function') {
@@ -20,7 +20,6 @@ const createMockClass = (className, defaultMethods = {}) => {
   };
 };
 
-
 class RankingAPI {
   constructor(apiBaseUrl) {
     this.apiBaseUrl = apiBaseUrl || 'http://localhost:3000';
@@ -29,23 +28,23 @@ class RankingAPI {
       'Content-Type': 'application/json'
     };
   }
-  
+
   async fetchRankings(period = 'daily', gameMode = 'all', limit = 10) {
     try {
       const url = `${this.apiBaseUrl}/get?period=${period}&gameMode=${gameMode}&limit=${limit}`;
       const response = await fetch(url);
-      
+
       if (!response.ok) {
         throw new Error('ランキング取得に失敗しました');
       }
-      
+
       const data = await response.json();
       return data.rankings;
     } catch (error) {
       throw error;
     }
   }
-  
+
   async submitScore(gameData, gameHash) {
     try {
       const response = await fetch(`${this.apiBaseUrl}/submit`, {
@@ -56,25 +55,25 @@ class RankingAPI {
           gameHash: gameHash
         })
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'スコア送信に失敗しました');
       }
-      
+
       return data;
     } catch (error) {
       throw error;
     }
   }
-  
+
   async generateGameHash(gameData) {
     const dataString = `${gameData.playerName}:${gameData.score}:${gameData.gameMode}:${gameData.duration}:${gameData.timestamp}`;
     const encoder = new TextEncoder();
     const data = encoder.encode(dataString);
     const keyData = encoder.encode(this.secretKey);
-    
+
     const key = await crypto.subtle.importKey(
       'raw',
       keyData,
@@ -82,14 +81,14 @@ class RankingAPI {
       false,
       ['sign']
     );
-    
+
     const signature = await crypto.subtle.sign('HMAC', key, data);
     const hashArray = Array.from(new Uint8Array(signature));
     const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    
+
     return hashHex;
   }
-  
+
   async getLeaderboard(limit = 10) {
     // Mock leaderboard data
     return Promise.resolve(
@@ -101,7 +100,7 @@ class RankingAPI {
       }))
     );
   }
-  
+
   async getUserRank(userId) {
     return Promise.resolve({
       rank: Math.floor(Math.random() * 1000) + 1,
@@ -109,11 +108,11 @@ class RankingAPI {
       percentile: Math.floor(Math.random() * 100)
     });
   }
-  
+
   async getWeeklyLeaderboard() {
     return this.getLeaderboard(20);
   }
-  
+
   async getMonthlyLeaderboard() {
     return this.getLeaderboard(50);
   }
@@ -128,7 +127,7 @@ global.fetch = jest.fn();
 global.crypto = {
   subtle: {
     importKey: jest.fn(),
-    sign: jest.fn(),
+    sign: jest.fn()
   }
 };
 

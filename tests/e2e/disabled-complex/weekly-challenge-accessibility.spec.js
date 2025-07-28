@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 /**
  * Phase 3: 週替わりチャレンジのアクセシビリティテスト
- * 
+ *
  * WCAG 2.1 AAレベル準拠のアクセシビリティテスト
  * - キーボードナビゲーション
  * - スクリーンリーダー対応
@@ -37,22 +37,22 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
         cursor: pointer;
         font-size: 14px;
       `;
-      
+
       // フォーカス時のスタイル
       challengeButton.addEventListener('focus', () => {
         challengeButton.style.borderColor = '#4ecdc4';
         challengeButton.style.outline = '2px solid #4ecdc4';
       });
-      
+
       challengeButton.addEventListener('blur', () => {
         challengeButton.style.borderColor = 'transparent';
         challengeButton.style.outline = 'none';
       });
-      
+
       challengeButton.addEventListener('click', () => {
         alert('チャレンジモーダルを表示');
       });
-      
+
       // Enterキーでもクリック可能にする
       challengeButton.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -60,22 +60,22 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           challengeButton.click();
         }
       });
-      
+
       document.body.appendChild(challengeButton);
     });
-    
+
     // Tabキーでボタンにフォーカス
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
-    
+
     // チャレンジボタンにフォーカスが当たることを確認
     const focusedElement = await page.locator('#weeklyChallenge');
     await expect(focusedElement).toBeFocused();
-    
+
     // Enterキーでボタンを押す
     await page.keyboard.press('Enter');
-    
+
     // アラートが表示されることを確認
     page.on('dialog', dialog => {
       expect(dialog.message()).toContain('チャレンジモーダルを表示');
@@ -159,23 +159,23 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           </p>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', challengePanelHTML);
-      
+
       // 進捗とタイマーを動的に更新
       let progress = 45;
       let timeLeft = 35;
-      
+
       const updateInterval = setInterval(() => {
         progress = Math.min(progress + 2, 100);
         timeLeft = Math.max(timeLeft - 1, 0);
-        
+
         const progressBar = document.querySelector('[role="progressbar"]');
         const progressFill = progressBar.querySelector('div > div');
         const progressText = document.getElementById('progressText');
         const currentScore = document.getElementById('currentScore');
         const timeRemaining = document.getElementById('timeRemaining');
-        
+
         if (progressBar && progressFill && progressText) {
           progressBar.setAttribute('aria-valuenow', progress);
           progressFill.style.width = `${progress}%`;
@@ -183,32 +183,32 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           currentScore.textContent = Math.round(675 + (progress - 45) * 20);
           timeRemaining.textContent = `${timeLeft}秒`;
         }
-        
+
         if (progress >= 100 || timeLeft <= 0) {
           clearInterval(updateInterval);
         }
       }, 1000);
-      
+
       // ボタンクリックイベント
       document.getElementById('challengeAction').addEventListener('click', () => {
         alert('チャレンジが開始されました！');
       });
     });
-    
+
     // チャレンジパネルが表示されることを確認
     await expect(page.locator('#accessibleChallengePanel')).toBeVisible();
-    
+
     // ARIA属性が正しく設定されていることを確認
     const challengePanel = page.locator('#accessibleChallengePanel');
     await expect(challengePanel).toHaveAttribute('role', 'region');
     await expect(challengePanel).toHaveAttribute('aria-labelledby', 'challengeTitle');
-    
+
     // プログレスバーのARIA属性を確認
     const progressBar = page.locator('[role="progressbar"]');
     await expect(progressBar).toHaveAttribute('aria-valuenow', '45');
     await expect(progressBar).toHaveAttribute('aria-valuemin', '0');
     await expect(progressBar).toHaveAttribute('aria-valuemax', '100');
-    
+
     // ライブリージョンが機能することを確認
     await page.waitForTimeout(2000);
     const updatedProgress = await progressBar.getAttribute('aria-valuenow');
@@ -348,19 +348,19 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           </div>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', colorBlindFriendlyHTML);
     });
-    
+
     // 色覚異常対応のチャレンジ表示が正しく表示されることを確認
     await expect(page.locator('#colorBlindChallenge')).toBeVisible();
-    
+
     // テキストベースの情報が適切に表示されることを確認
     await expect(page.locator('#colorBlindChallenge')).toContainText('目標: 1500点');
     await expect(page.locator('#colorBlindChallenge')).toContainText('現在: 845点');
     await expect(page.locator('#colorBlindChallenge')).toContainText('56%');
     await expect(page.locator('#colorBlindChallenge')).toContainText('報酬');
-    
+
     // 視覚的な指標（アイコン、パターン）が含まれていることを確認
     await expect(page.locator('#colorBlindChallenge')).toContainText('★★★');
     await expect(page.locator('#colorBlindChallenge')).toContainText('⏰');
@@ -372,7 +372,7 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
     await page.evaluate(() => {
       document.body.classList.add('high-contrast');
     });
-    
+
     // 高コントラストモード用のチャレンジ表示を作成
     await page.evaluate(() => {
       const highContrastStyle = `
@@ -413,9 +413,9 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           }
         </style>
       `;
-      
+
       document.head.insertAdjacentHTML('beforeend', highContrastStyle);
-      
+
       const highContrastHTML = `
         <div id="highContrastChallenge" style="
           position: absolute;
@@ -516,19 +516,19 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           </button>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', highContrastHTML);
     });
-    
+
     // 高コントラストモードでチャレンジが正しく表示されることを確認
     await expect(page.locator('#highContrastChallenge')).toBeVisible();
     await expect(page.locator('#highContrastChallenge .title')).toContainText('高コントラストチャレンジ');
-    
+
     // 色分けされた情報が適切に表示されることを確認
     await expect(page.locator('.success')).toContainText('✓');
     await expect(page.locator('.warning')).toContainText('⚠');
     await expect(page.locator('.error')).toContainText('⏰');
-    
+
     // 進捗バーが視認可能であることを確認
     await expect(page.locator('.progress-bar')).toBeVisible();
     await expect(page.locator('.progress-fill')).toContainText('82%');
@@ -544,13 +544,13 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           e.preventDefault();
           alert('チャレンジ表示ショートカット（Ctrl+C）が実行されました');
         }
-        
+
         // Ctrl+Pでチャレンジ進捗表示
         if (e.ctrlKey && e.key === 'p') {
           e.preventDefault();
           alert('チャレンジ進捗表示ショートカット（Ctrl+P）が実行されました');
         }
-        
+
         // Escapeでモーダルを閉じる
         if (e.key === 'Escape') {
           const modals = document.querySelectorAll('.modal[style*="display: flex"], .modal[style*="display: block"]');
@@ -559,7 +559,7 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           });
         }
       });
-      
+
       // フォーカス可能な要素を作成
       const focusableElements = `
         <div id="focusableChallenge" style="
@@ -587,53 +587,53 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           </p>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', focusableElements);
-      
+
       // フォーカス時のスタイルを追加
       document.querySelectorAll('#focusableChallenge button, #focusableChallenge input, #focusableChallenge select').forEach(el => {
         el.style.margin = '5px';
         el.style.padding = '8px';
         el.style.borderRadius = '4px';
         el.style.border = '2px solid transparent';
-        
+
         el.addEventListener('focus', () => {
           el.style.borderColor = '#4ecdc4';
           el.style.outline = '2px solid #4ecdc4';
         });
-        
+
         el.addEventListener('blur', () => {
           el.style.borderColor = 'transparent';
           el.style.outline = 'none';
         });
       });
     });
-    
+
     // フォーカス管理テストエリアが表示されることを確認
     await expect(page.locator('#focusableChallenge')).toBeVisible();
-    
+
     // Tab キーでフォーカスを移動
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
     await page.keyboard.press('Tab');
-    
+
     // 最初のボタンにフォーカスが当たることを確認
     await expect(page.locator('#btn1')).toBeFocused();
-    
+
     // 続けてTabキーでフォーカスを移動
     await page.keyboard.press('Tab');
     await expect(page.locator('#btn2')).toBeFocused();
-    
+
     await page.keyboard.press('Tab');
     await expect(page.locator('#input1')).toBeFocused();
-    
+
     // キーボードショートカットをテスト
     await page.keyboard.press('Control+c');
     page.on('dialog', dialog => {
       expect(dialog.message()).toContain('チャレンジ表示ショートカット（Ctrl+C）が実行されました');
       dialog.accept();
     });
-    
+
     await page.keyboard.press('Control+p');
     page.on('dialog', dialog => {
       expect(dialog.message()).toContain('チャレンジ進捗表示ショートカット（Ctrl+P）が実行されました');
@@ -699,9 +699,9 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
           </button>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', ariaLiveHTML);
-      
+
       // 進捗更新の実装
       let updateCount = 0;
       document.getElementById('updateProgress').addEventListener('click', () => {
@@ -709,10 +709,10 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
         const score = document.getElementById('scoreInput').value;
         const statusElement = document.getElementById('challengeStatus');
         const alertsElement = document.getElementById('challengeAlerts');
-        
+
         // politeな更新（穏やかに読み上げられる）
         statusElement.textContent = `更新 ${updateCount}: スコア ${score}点で進捗更新中...`;
-        
+
         // assertiveな更新（緊急に読み上げられる）
         if (parseInt(score) >= 1000) {
           alertsElement.textContent = '目標達成！チャレンジクリアまであと少しです！';
@@ -721,31 +721,31 @@ test.describe('Weekly Challenge Accessibility Tests', () => {
         } else {
           alertsElement.textContent = '';
         }
-        
+
         // 2秒後にステータスをクリア
         setTimeout(() => {
           statusElement.textContent = 'チャレンジ進行中...';
         }, 2000);
       });
     });
-    
+
     // ARIAライブリージョンテストエリアが表示されることを確認
     await expect(page.locator('#ariaLiveChallenge')).toBeVisible();
-    
+
     // 初期状態の確認
     await expect(page.locator('#challengeStatus')).toContainText('チャレンジ待機中...');
-    
+
     // スコア入力とボタンクリック
     await page.fill('#scoreInput', '750');
     await page.click('#updateProgress');
-    
+
     // ライブリージョンが更新されることを確認
     await expect(page.locator('#challengeStatus')).toContainText('スコア 750点で進捗更新中...');
-    
+
     // 高スコアでアラートが表示されることをテスト
     await page.fill('#scoreInput', '1200');
     await page.click('#updateProgress');
-    
+
     await expect(page.locator('#challengeAlerts')).toContainText('目標達成！チャレンジクリアまであと少しです！');
   });
 });

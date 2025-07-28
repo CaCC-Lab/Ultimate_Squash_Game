@@ -7,21 +7,21 @@ const path = require('path');
 
 // 失敗しているテストファイルのリスト
 const failingTests = [
-    'tests/unit/weekly-challenge-api.test.js',
-    'tests/unit/ranking-api.test.js', 
-    'tests/unit/challenge-progress.test.js',
-    'tests/unit/challenge-generator.test.js',
-    'tests/unit/ranking-controller.test.js',
-    'tests/unit/challenge-game-integration.test.js',
-    'tests/unit/ranking-ui.test.js',
-    'tests/unit/challengeGenerator.test.js',
-    'tests/unit/test-coverage.test.js',
-    'tests/unit/challengeEvaluator.test.js'
+  'tests/unit/weekly-challenge-api.test.js',
+  'tests/unit/ranking-api.test.js',
+  'tests/unit/challenge-progress.test.js',
+  'tests/unit/challenge-generator.test.js',
+  'tests/unit/ranking-controller.test.js',
+  'tests/unit/challenge-game-integration.test.js',
+  'tests/unit/ranking-ui.test.js',
+  'tests/unit/challengeGenerator.test.js',
+  'tests/unit/test-coverage.test.js',
+  'tests/unit/challengeEvaluator.test.js'
 ];
 
 // 各テストファイルに必要なモック実装
 const mockImplementations = {
-    'weekly-challenge-api.test.js': `
+  'weekly-challenge-api.test.js': `
 // weekly-challenge-api.jsが存在しないため、モック実装
 class WeeklyChallengeAPI {
     constructor(baseURL = 'http://localhost:3000') {
@@ -59,7 +59,7 @@ class WeeklyChallengeAPI {
     }
 }
 `,
-    'ranking-api.test.js': `
+  'ranking-api.test.js': `
 // ranking-api.jsが存在しないため、モック実装
 class RankingAPI {
     constructor() {
@@ -86,7 +86,7 @@ class RankingAPI {
     }
 }
 `,
-    'challenge-progress.test.js': `
+  'challenge-progress.test.js': `
 // 既存のモックを修正
 const ChallengeProgress = window.ChallengeProgress || class ChallengeProgress {
     constructor() {
@@ -123,7 +123,7 @@ const ChallengeProgress = window.ChallengeProgress || class ChallengeProgress {
     }
 };
 `,
-    'ranking-controller.test.js': `
+  'ranking-controller.test.js': `
 // ranking-controller.jsが存在しないため、モック実装
 class RankingController {
     constructor(api, ui) {
@@ -153,7 +153,7 @@ class RankingController {
     }
 }
 `,
-    'ranking-ui.test.js': `
+  'ranking-ui.test.js': `
 // ranking-ui.jsが存在しないため、モック実装
 class RankingUI {
     constructor(container) {
@@ -200,39 +200,39 @@ class RankingUI {
 
 // 各テストファイルを修正
 failingTests.forEach(testFile => {
-    const filePath = path.join(process.cwd(), testFile);
-    const fileName = path.basename(testFile);
-    
-    if (!fs.existsSync(filePath)) {
-        console.log(`❌ ファイルが存在しません: ${testFile}`);
-        return;
-    }
-    
-    let content = fs.readFileSync(filePath, 'utf8');
-    const mockImpl = mockImplementations[fileName];
-    
-    if (mockImpl) {
-        // ES6 importをCommonJSに変換
-        content = content.replace(/^import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/gm, 
-            (match, imports, module) => {
-                // 実装ファイルが存在しない場合はモックを使用
-                if (module.includes('docs/js/')) {
-                    return `// ${match}\n${mockImpl}\nconst {${imports}} = { ${imports.split(',').map(i => i.trim()).join(', ')} };`;
-                }
-                return match;
-            });
-        
-        // import文が残っている場合の対処
-        if (content.includes('import ') && !content.includes('// CommonJS形式')) {
-            content = '// CommonJS形式に変換\n' + content;
+  const filePath = path.join(process.cwd(), testFile);
+  const fileName = path.basename(testFile);
+
+  if (!fs.existsSync(filePath)) {
+    console.log(`❌ ファイルが存在しません: ${testFile}`);
+    return;
+  }
+
+  let content = fs.readFileSync(filePath, 'utf8');
+  const mockImpl = mockImplementations[fileName];
+
+  if (mockImpl) {
+    // ES6 importをCommonJSに変換
+    content = content.replace(/^import\s+\{([^}]+)\}\s+from\s+['"]([^'"]+)['"]/gm,
+      (match, imports, module) => {
+        // 実装ファイルが存在しない場合はモックを使用
+        if (module.includes('docs/js/')) {
+          return `// ${match}\n${mockImpl}\nconst {${imports}} = { ${imports.split(',').map(i => i.trim()).join(', ')} };`;
         }
-        
-        // test.spyOnをjest.spyOnに変換
-        content = content.replace(/test\.spyOn/g, 'jest.spyOn');
-        
-        // localStorageのモック追加
-        if (content.includes('localStorage') && !content.includes('global.localStorage')) {
-            const localStorageMock = `
+        return match;
+      });
+
+    // import文が残っている場合の対処
+    if (content.includes('import ') && !content.includes('// CommonJS形式')) {
+      content = '// CommonJS形式に変換\n' + content;
+    }
+
+    // test.spyOnをjest.spyOnに変換
+    content = content.replace(/test\.spyOn/g, 'jest.spyOn');
+
+    // localStorageのモック追加
+    if (content.includes('localStorage') && !content.includes('global.localStorage')) {
+      const localStorageMock = `
 // localStorageのモック
 global.localStorage = {
     getItem: jest.fn(),
@@ -241,14 +241,14 @@ global.localStorage = {
     clear: jest.fn()
 };
 `;
-            content = localStorageMock + content;
-        }
-        
-        fs.writeFileSync(filePath, content);
-        console.log(`✅ 修正完了: ${testFile}`);
-    } else {
-        console.log(`⚠️  モック実装が見つかりません: ${fileName}`);
+      content = localStorageMock + content;
     }
+
+    fs.writeFileSync(filePath, content);
+    console.log(`✅ 修正完了: ${testFile}`);
+  } else {
+    console.log(`⚠️  モック実装が見つかりません: ${fileName}`);
+  }
 });
 
 console.log('\\n修正完了！テストを実行してください: npm test');

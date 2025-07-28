@@ -8,40 +8,40 @@ class RankingController {
     this.currentPeriod = 'daily';
     this.currentGameMode = 'all';
     this.initialized = false;
-    
+
     // UIコントローラーの参照を設定
     if (ui) {
       ui.controller = this;
     }
   }
-  
+
   async initialize() {
     this.initialized = true;
     return true;
   }
-  
+
   async loadRankings(period, gameMode, limit = 10) {
     try {
       // パラメータが指定されていない場合は現在の値を使用
       const targetPeriod = period || this.currentPeriod;
       const targetGameMode = gameMode || this.currentGameMode;
-      
+
       // ローディング表示
       if (this.ui && this.ui.showLoading) {
         this.ui.showLoading();
       }
-      
+
       // APIからランキングを取得
       const rankings = await this.api.fetchRankings(targetPeriod, targetGameMode, limit);
-      
+
       // nullやundefinedの場合は空配列として扱う
       const validRankings = rankings || [];
-      
+
       // UIに表示
       if (this.ui && this.ui.displayRankings) {
         this.ui.displayRankings(validRankings);
       }
-      
+
       return validRankings;
     } catch (error) {
       console.error('Error loading rankings:', error);
@@ -51,7 +51,7 @@ class RankingController {
       throw error;
     }
   }
-  
+
   async submitScore(playerName, score, gameMode, duration) {
     try {
       const gameData = {
@@ -61,20 +61,20 @@ class RankingController {
         duration,
         timestamp: Date.now()
       };
-      
+
       // ハッシュ生成
       const hash = await this.api.generateGameHash(gameData);
-      
+
       // スコア送信
       const result = await this.api.submitScore(gameData, hash);
-      
+
       return result;
     } catch (error) {
       console.error('Error submitting score:', error);
       throw error;
     }
   }
-  
+
   async showRanking() {
     // UIから現在の期間とゲームモードを取得
     if (this.ui) {
@@ -89,7 +89,7 @@ class RankingController {
       }
     }
   }
-  
+
   async refreshRankings() {
     try {
       await this.loadRankings();
@@ -97,7 +97,7 @@ class RankingController {
       console.error('Error refreshing rankings:', error);
     }
   }
-  
+
   async changePeriod(newPeriod) {
     this.currentPeriod = newPeriod;
     try {
@@ -106,7 +106,7 @@ class RankingController {
       console.error('Error changing period:', error);
     }
   }
-  
+
   async changeGameMode(newGameMode) {
     this.currentGameMode = newGameMode;
     try {
@@ -115,15 +115,15 @@ class RankingController {
       console.error('Error changing game mode:', error);
     }
   }
-  
+
   updateLeaderboard() {
     this.lastUpdate = new Date();
   }
-  
+
   getRankings() {
     return [];
   }
-  
+
   getUserRank() {
     return { rank: 1, total: 100 };
   }
@@ -420,13 +420,13 @@ describe('RankingController', () => {
   describe('error handling', () => {
     test('should log errors to console', async () => {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-      
+
       mockRankingAPI.fetchRankings.mockRejectedValueOnce(new Error('Test error'));
 
       await expect(rankingController.loadRankings()).rejects.toThrow();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Error loading rankings:', expect.any(Error));
-      
+
       consoleErrorSpy.mockRestore();
     });
 

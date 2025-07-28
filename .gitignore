@@ -48,6 +48,7 @@ Thumbs.db
 
 # ローカル設定
 config.local.json
+docs/js/config.js
 
 # テスト関連
 .pytest_cache/

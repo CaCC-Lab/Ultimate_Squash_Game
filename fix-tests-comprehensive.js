@@ -56,12 +56,12 @@ export const ChallengeManager = createMockClass('ChallengeManager', {
   getChallenges: () => []
 });`
   },
-  
+
   'challenge-generator.test.js': {
     type: 'playwright-to-jest',
     transform: true
   },
-  
+
   'challenge-progress.test.js': {
     type: 'es6',
     originalImport: "import { ChallengeProgress, ProgressTracker } from '../../docs/js/challenge-progress.js';",
@@ -108,7 +108,7 @@ export const ProgressTracker = createMockClass('ProgressTracker', {
   clearProgress: () => {}
 });`
   },
-  
+
   'challenge-rewards.test.js': {
     type: 'es6',
     originalImport: "import { RewardSystem, Badge, Achievement } from '../../docs/js/challenge-rewards.js';",
@@ -168,7 +168,7 @@ export const RewardSystem = createMockClass('RewardSystem', {
   checkEligibility: () => []
 });`
   },
-  
+
   'challenge-types.test.js': {
     type: 'commonjs',
     originalRequire: "const { ChallengeType, ChallengeFactory } = require('../../docs/js/challenge-types.js');",
@@ -208,7 +208,7 @@ class ChallengeFactory {
 
 module.exports = { ChallengeType, ChallengeFactory };`
   },
-  
+
   'challengeEvaluator.test.js': {
     type: 'commonjs',
     originalRequire: "const ChallengeEvaluator = require('../../docs/js/challenge-evaluator');",
@@ -264,7 +264,7 @@ class ChallengeEvaluator {
 
 module.exports = ChallengeEvaluator;`
   },
-  
+
   'challengeGenerator.test.js': {
     type: 'commonjs',
     originalRequire: "const ChallengeGenerator = require('../../docs/js/challengeGenerator');",
@@ -315,7 +315,7 @@ class ChallengeGenerator {
 
 module.exports = ChallengeGenerator;`
   },
-  
+
   'ranking-api.test.js': {
     type: 'es6',
     originalImport: "import { RankingAPI } from '../../docs/js/ranking-api.js';",
@@ -367,7 +367,7 @@ export class RankingAPI {
   }
 }`
   },
-  
+
   'ranking-controller.test.js': {
     type: 'es6',
     originalImport: "import { RankingController } from '../../docs/js/ranking-controller.js';",
@@ -386,7 +386,7 @@ export const RankingController = createMockClass('RankingController', {
   refreshRankings: async () => true
 });`
   },
-  
+
   'ranking-ui.test.js': {
     type: 'es6',
     originalImport: "import { RankingUI } from '../../docs/js/ranking-ui.js';",
@@ -409,7 +409,7 @@ export const RankingUI = createMockClass('RankingUI', {
   }
 });`
   },
-  
+
   'test-coverage.test.js': {
     type: 'commonjs',
     mockImplementation: `
@@ -476,7 +476,7 @@ class IntegratedTestCoverage {
 
 module.exports = { IntegratedTestCoverage };`
   },
-  
+
   'weekly-challenge-api.test.js': {
     type: 'es6',
     originalImport: "import { WeeklyChallengeAPI } from '../../docs/js/weekly-challenge-api.js';",
@@ -539,7 +539,7 @@ Date.prototype.getWeek = function() {
   return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
 };`
   },
-  
+
   'weekly-challenge-integration.test.js': {
     type: 'es6',
     originalImport: "import { WeeklyChallengeIntegration } from '../../docs/js/weekly-challenge-integration.js';",
@@ -572,10 +572,10 @@ export const WeeklyChallengeIntegration = createMockClass('WeeklyChallengeIntegr
 function convertPlaywrightToJest(content) {
   // Playwrightインポートを削除
   content = content.replace(/const\s*{\s*test\s*,\s*expect\s*}\s*=\s*require\s*\(\s*['"]@playwright\/test['"]\s*\)\s*;?/g, '');
-  
+
   // test.xxxをxxxに変換
   content = content.replace(/test\.(beforeAll|beforeEach|afterAll|afterEach|describe)/g, '$1');
-  
+
   // ChallengeGeneratorモック実装
   const challengeGenMock = `
 // Mock implementation
@@ -614,23 +614,23 @@ class ChallengeGenerator {
   }
 }
 `;
-  
+
   // VMコード部分を検出して置き換え
   const vmStart = content.indexOf('// ChallengeGeneratorクラスを非同期で読み込む');
   if (vmStart !== -1) {
     const vmEnd = content.indexOf('});', content.indexOf('vm.runInContext', vmStart));
     if (vmEnd !== -1) {
-      content = content.substring(0, vmStart) + 
+      content = content.substring(0, vmStart) +
                 challengeGenMock + '\n' +
                 content.substring(vmEnd + 3);
     }
   }
-  
+
   // fs/pathの不要なインポートを削除
   content = content.replace(/const\s+fs\s*=\s*require\s*\(\s*['"]fs['"]\s*\)\s*;?/g, '');
   content = content.replace(/const\s+path\s*=\s*require\s*\(\s*['"]path['"]\s*\)\s*;?/g, '');
   content = content.replace(/const\s+vm\s*=\s*require\s*\(\s*['"]vm['"]\s*\)\s*;?/g, '');
-  
+
   return content;
 }
 
@@ -638,22 +638,22 @@ class ChallengeGenerator {
 function processTestFile(filePath) {
   const fileName = path.basename(filePath);
   const config = testFixConfigs[fileName];
-  
+
   if (!config) {
     console.log(`⚠️  No configuration for: ${fileName}`);
     return;
   }
-  
+
   try {
     let content = fs.readFileSync(filePath, 'utf8');
     let modified = false;
-    
+
     // Playwright形式の変換
     if (config.type === 'playwright-to-jest') {
       content = convertPlaywrightToJest(content);
       modified = true;
     }
-    
+
     // ES6インポートの処理
     else if (config.type === 'es6' && config.originalImport) {
       if (content.includes(config.originalImport)) {
@@ -663,34 +663,34 @@ function processTestFile(filePath) {
         modified = true;
       }
     }
-    
+
     // CommonJSの処理
     else if (config.type === 'commonjs') {
       // 既存のrequire文を探す
       const requirePattern = /const\s+[^=]+\s*=\s*require\s*\([^)]+\)\s*;?/;
       const match = content.match(requirePattern);
-      
+
       if (match && config.mockImplementation) {
         // require文の後にモック実装を挿入
         const insertPos = content.indexOf(match[0]) + match[0].length;
-        content = content.substring(0, insertPos) + 
-                  '\n\n// Mock implementation\n' + 
+        content = content.substring(0, insertPos) +
+                  '\n\n// Mock implementation\n' +
                   config.mockImplementation + '\n' +
                   content.substring(insertPos);
-        
+
         // 元のrequire文をコメントアウト
         content = content.replace(match[0], `// ${match[0]} - Using mock`);
         modified = true;
       }
     }
-    
+
     if (modified) {
       fs.writeFileSync(filePath, content, 'utf8');
       console.log(`✅ Fixed: ${fileName}`);
     } else {
       console.log(`ℹ️  No changes needed: ${fileName}`);
     }
-    
+
   } catch (error) {
     console.error(`❌ Error processing ${fileName}: ${error.message}`);
   }
@@ -701,7 +701,7 @@ console.log('🔧 Comprehensive Test Fix Script\n');
 console.log('📋 Processing test files...\n');
 
 const testDir = path.join(__dirname, 'tests', 'unit');
-const testFiles = Object.keys(testFixConfigs).map(file => 
+const testFiles = Object.keys(testFixConfigs).map(file =>
   path.join(testDir, file)
 );
 

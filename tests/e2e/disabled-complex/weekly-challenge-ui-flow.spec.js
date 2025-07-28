@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 /**
  * Phase 3: 週替わりチャレンジUI操作フローテスト
- * 
+ *
  * 実際のユーザー操作を模擬したE2Eテスト
  * - チャレンジ表示UI
  * - ゲーム中のチャレンジ進捗表示
@@ -18,7 +18,7 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
         console.error('Browser console error:', msg.text());
       }
     });
-    
+
     await page.goto('/docs/game.html');
     await page.waitForLoadState('networkidle');
     await page.waitForSelector('#loadingOverlay', { state: 'hidden' });
@@ -29,7 +29,7 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
     await page.evaluate(() => {
       // 既存のボタン要素を取得
       const existingButton = document.querySelector('.control-button');
-      
+
       if (existingButton && !document.getElementById('weeklyChallenge')) {
         // 週替わりチャレンジボタンを作成
         const challengeButton = document.createElement('button');
@@ -45,17 +45,17 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
         challengeButton.style.padding = '8px 16px';
         challengeButton.style.borderRadius = '4px';
         challengeButton.style.cursor = 'pointer';
-        
+
         // クリックイベントを追加
         challengeButton.addEventListener('click', () => {
           window.showWeeklyChallengeModal();
         });
-        
+
         // ボタンを追加
         existingButton.parentNode.insertBefore(challengeButton, existingButton);
       }
     });
-    
+
     // ボタンが表示されることを確認
     await expect(page.locator('#weeklyChallenge')).toBeVisible();
   });
@@ -108,7 +108,7 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           </div>
         </div>
       `;
-      
+
       // モーダルのスタイル
       const modalStyle = `
         <style>
@@ -169,36 +169,36 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           }
         </style>
       `;
-      
+
       // HTMLとスタイルを追加
       document.head.insertAdjacentHTML('beforeend', modalStyle);
       document.body.insertAdjacentHTML('beforeend', modalHTML);
-      
+
       // モーダル表示関数
       window.showWeeklyChallengeModal = () => {
         // 現在のチャレンジを生成
         const currentChallenge = window.ChallengeGenerator.generateWeeklyChallenge(new Date());
-        
+
         // モーダルに情報を設定
         document.getElementById('challengeTitle').textContent = currentChallenge.title;
         document.getElementById('challengeDescription').textContent = currentChallenge.description;
         document.getElementById('targetValue').textContent = currentChallenge.target;
         document.getElementById('timeRemaining').textContent = `${currentChallenge.timeLimit}秒`;
-        
+
         // 報酬情報
         const reward = window.ChallengeRewards.calculateReward(currentChallenge.difficulty);
         document.getElementById('rewardInfo').innerHTML = `
           <span class="reward-points">+${reward.points} ポイント</span>
           <span class="reward-title">称号: ${reward.title}</span>
         `;
-        
+
         // 現在の進捗を更新
         updateChallengeProgress(currentChallenge);
-        
+
         // モーダルを表示
         document.getElementById('weeklyChallengeModal').style.display = 'flex';
       };
-      
+
       // 進捗更新関数
       function updateChallengeProgress(challenge) {
         // 模擬的なゲーム統計を取得
@@ -208,10 +208,10 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           gameDuration: 60,
           specialActions: []
         };
-        
+
         let progressValue = 0;
         let currentValue = 0;
-        
+
         switch (challenge.type) {
           case 'score':
             currentValue = currentStats.score;
@@ -228,24 +228,24 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           default:
             progressValue = 0;
         }
-        
+
         // UI更新
         document.getElementById('currentScore').textContent = currentValue;
         document.getElementById('challengeProgress').style.width = `${progressValue}%`;
         document.getElementById('progressText').textContent = `${Math.round(progressValue)}%`;
       }
-      
+
       // イベントリスナーを追加
       document.getElementById('startChallenge').addEventListener('click', () => {
         alert('チャレンジを開始します！ゲームをプレイしてください。');
         document.getElementById('weeklyChallengeModal').style.display = 'none';
       });
-      
+
       document.getElementById('closeChallenge').addEventListener('click', () => {
         document.getElementById('weeklyChallengeModal').style.display = 'none';
       });
     });
-    
+
     // チャレンジボタンを追加
     await page.evaluate(() => {
       const challengeButton = document.createElement('button');
@@ -260,28 +260,28 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
       challengeButton.style.padding = '8px 16px';
       challengeButton.style.borderRadius = '4px';
       challengeButton.style.cursor = 'pointer';
-      
+
       challengeButton.addEventListener('click', () => {
         window.showWeeklyChallengeModal();
       });
-      
+
       document.body.appendChild(challengeButton);
     });
-    
+
     // チャレンジボタンをクリック
     await page.click('#weeklyChallenge');
-    
+
     // モーダルが表示されることを確認
     await expect(page.locator('#weeklyChallengeModal')).toBeVisible();
-    
+
     // モーダルの内容を確認
     await expect(page.locator('#challengeTitle')).toContainText('チャレンジ');
     await expect(page.locator('#challengeDescription')).toContainText('以上');
     await expect(page.locator('#targetValue')).not.toContainText('-');
-    
+
     // 進捗バーが存在することを確認
     await expect(page.locator('#challengeProgress')).toBeVisible();
-    
+
     // 報酬情報が表示されることを確認
     await expect(page.locator('.reward-points')).toContainText('ポイント');
     await expect(page.locator('.reward-title')).toContainText('称号');
@@ -323,37 +323,37 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           <div id="overlayStats" style="font-size: 12px; color: #ccc;"></div>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', overlayHTML);
-      
+
       // チャレンジオーバーレイを表示する関数
       window.showChallengeOverlay = () => {
         const overlay = document.getElementById('challengeOverlay');
         if (overlay) {
           overlay.style.display = 'block';
-          
+
           // 現在のチャレンジを取得
           const challenge = window.ChallengeGenerator.generateWeeklyChallenge(new Date());
-          
+
           // オーバーレイの内容を更新
           document.getElementById('overlayTitle').textContent = challenge.title;
-          
+
           // 進捗を更新（模擬データ）
           const progress = Math.floor(Math.random() * 100);
           document.getElementById('overlayProgress').style.width = `${progress}%`;
           document.getElementById('overlayStats').textContent = `進捗: ${progress}% | 目標: ${challenge.target}`;
         }
       };
-      
+
       // 5秒後にオーバーレイを表示
       setTimeout(() => {
         window.showChallengeOverlay();
       }, 2000);
     });
-    
+
     // オーバーレイが表示されるまで待機
     await page.waitForSelector('#challengeOverlay', { state: 'visible' });
-    
+
     // オーバーレイの内容を確認
     await expect(page.locator('#overlayTitle')).toContainText('チャレンジ');
     await expect(page.locator('#overlayProgress')).toBeVisible();
@@ -403,48 +403,48 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           ">報酬を受け取る</button>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', notificationHTML);
-      
+
       // チャレンジ完了をシミュレート
       window.simulateChallengeCompletion = () => {
         const challenge = window.ChallengeGenerator.generateWeeklyChallenge(new Date());
         const reward = window.ChallengeRewards.calculateReward(challenge.difficulty);
-        
+
         // 通知内容を設定
         document.getElementById('completedChallengeTitle').textContent = challenge.title;
         document.getElementById('rewardDetails').innerHTML = `
           <div>+ ${reward.points} ポイント</div>
           <div>称号: ${reward.title}</div>
         `;
-        
+
         // 通知を表示
         document.getElementById('challengeCompleteNotification').style.display = 'block';
-        
+
         // 報酬受け取りボタンのイベント
         document.getElementById('claimReward').addEventListener('click', () => {
           alert('報酬を受け取りました！');
           document.getElementById('challengeCompleteNotification').style.display = 'none';
         });
       };
-      
+
       // 3秒後に完了通知を表示
       setTimeout(() => {
         window.simulateChallengeCompletion();
       }, 3000);
     });
-    
+
     // 完了通知が表示されるまで待機
     await page.waitForSelector('#challengeCompleteNotification', { state: 'visible' });
-    
+
     // 通知内容を確認
     await expect(page.locator('#completedChallengeTitle')).toContainText('チャレンジ');
     await expect(page.locator('#rewardDetails')).toContainText('ポイント');
     await expect(page.locator('#rewardDetails')).toContainText('称号');
-    
+
     // 報酬受け取りボタンをクリック
     await page.click('#claimReward');
-    
+
     // 通知が非表示になることを確認
     await expect(page.locator('#challengeCompleteNotification')).toBeHidden();
   });
@@ -461,21 +461,21 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           completedAt: new Date().toISOString(),
           type: 'weekly_challenge'
         };
-        
+
         // ローカルストレージに保存
         const rankings = JSON.parse(localStorage.getItem('weeklyChallengeRankings') || '[]');
         rankings.push(challengeEntry);
         rankings.sort((a, b) => b.score - a.score);
         localStorage.setItem('weeklyChallengeRankings', JSON.stringify(rankings));
-        
+
         return challengeEntry;
       };
-      
+
       // チャレンジランキングを表示
       window.showChallengeRankings = () => {
         const rankings = JSON.parse(localStorage.getItem('weeklyChallengeRankings') || '[]');
         console.log('Challenge Rankings:', rankings);
-        
+
         // 既存のランキングモーダルを拡張
         const existingModal = document.getElementById('rankingModal');
         if (existingModal) {
@@ -505,7 +505,7 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
               </div>
             </div>
           `;
-          
+
           // 既存のランキングリストに追加
           const rankingList = existingModal.querySelector('#rankingList');
           if (rankingList) {
@@ -513,23 +513,23 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           }
         }
       };
-      
+
       // テストデータを追加
       window.addChallengeToRanking('Alice', 'スコアマスター', 1500);
       window.addChallengeToRanking('Bob', 'スピードランナー', 1200);
       window.addChallengeToRanking('Charlie', 'コンボキング', 1800);
     });
-    
+
     // ランキングボタンがある場合はクリック
     const rankingButton = page.locator('button:has-text("ランキング")');
     if (await rankingButton.isVisible()) {
       await rankingButton.click();
-      
+
       // チャレンジランキングを表示
       await page.evaluate(() => {
         window.showChallengeRankings();
       });
-      
+
       // チャレンジランキングセクションが表示されることを確認
       await expect(page.locator('#challengeRankingTab')).toBeVisible();
       await expect(page.locator('#challengeRankingList')).toContainText('Alice');
@@ -541,7 +541,7 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
   test('レスポンシブデザインでのチャレンジUI', async ({ page }) => {
     // モバイルサイズでのチャレンジUIをテスト
     await page.setViewportSize({ width: 375, height: 667 });
-    
+
     // モバイル用のチャレンジボタンを追加
     await page.evaluate(() => {
       // モバイル用の簡略化されたチャレンジパネル
@@ -575,40 +575,40 @@ test.describe('Weekly Challenge UI Flow Tests', () => {
           </div>
         </div>
       `;
-      
+
       document.body.insertAdjacentHTML('beforeend', mobileChallengePanelHTML);
-      
+
       // モバイルパネルを表示
       window.showMobileChallengePanel = () => {
         const challenge = window.ChallengeGenerator.generateWeeklyChallenge(new Date());
         const progress = Math.floor(Math.random() * 100);
-        
+
         document.getElementById('mobileChallengeName').textContent = challenge.title;
         document.getElementById('mobileChallengeProgress').textContent = `進捗: ${progress}%`;
         document.getElementById('mobileChallengePanel').style.display = 'block';
       };
-      
+
       // 詳細ボタンのイベント
       document.getElementById('mobileShowDetails').addEventListener('click', () => {
         alert('モバイル用チャレンジ詳細画面');
       });
-      
+
       // 2秒後にモバイルパネルを表示
       setTimeout(() => {
         window.showMobileChallengePanel();
       }, 2000);
     });
-    
+
     // モバイルパネルが表示されることを確認
     await page.waitForSelector('#mobileChallengePanel', { state: 'visible' });
-    
+
     // パネルの内容を確認
     await expect(page.locator('#mobileChallengeName')).toContainText('チャレンジ');
     await expect(page.locator('#mobileChallengeProgress')).toContainText('進捗');
-    
+
     // 詳細ボタンをクリック
     await page.click('#mobileShowDetails');
-    
+
     // アラートが表示されることを確認
     page.on('dialog', dialog => {
       expect(dialog.message()).toContain('モバイル用チャレンジ詳細画面');

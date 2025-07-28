@@ -15,7 +15,7 @@ class ChallengeProgress {
       maxCombo: 0,
       achievements: []
     };
-    
+
     this.milestones = [
       { score: 100, name: 'スタート', achieved: false },
       { score: 500, name: 'ウォームアップ', achieved: false },
@@ -23,7 +23,7 @@ class ChallengeProgress {
       { score: 2000, name: 'エキスパート', achieved: false },
       { score: 5000, name: 'マスター', achieved: false }
     ];
-    
+
     this.listeners = [];
   }
 
@@ -42,12 +42,12 @@ class ChallengeProgress {
       maxCombo: 0,
       achievements: []
     };
-    
+
     // マイルストーンをリセット
     this.milestones.forEach(milestone => {
       milestone.achieved = false;
     });
-    
+
     this.notifyListeners('start', this.currentProgress);
   }
 
@@ -58,7 +58,7 @@ class ChallengeProgress {
    */
   updateScore(points, isCombo = false) {
     this.currentProgress.currentScore += points;
-    
+
     if (isCombo) {
       this.currentProgress.combos++;
       if (this.currentProgress.combos > this.currentProgress.maxCombo) {
@@ -67,10 +67,10 @@ class ChallengeProgress {
     } else {
       this.currentProgress.combos = 0;
     }
-    
+
     // マイルストーンチェック
     this.checkMilestones();
-    
+
     this.notifyListeners('scoreUpdate', {
       score: this.currentProgress.currentScore,
       combos: this.currentProgress.combos
@@ -83,7 +83,7 @@ class ChallengeProgress {
   recordMistake() {
     this.currentProgress.mistakes++;
     this.currentProgress.combos = 0;
-    
+
     this.notifyListeners('mistake', {
       mistakes: this.currentProgress.mistakes
     });
@@ -95,7 +95,7 @@ class ChallengeProgress {
   updateTime() {
     if (this.currentProgress.startTime) {
       this.currentProgress.timeElapsed = Math.floor((Date.now() - this.currentProgress.startTime) / 1000);
-      
+
       this.notifyListeners('timeUpdate', {
         timeElapsed: this.currentProgress.timeElapsed
       });
@@ -114,7 +114,7 @@ class ChallengeProgress {
           score: milestone.score,
           achievedAt: Date.now()
         });
-        
+
         this.notifyListeners('milestone', milestone);
       }
     });
@@ -129,12 +129,12 @@ class ChallengeProgress {
       endTime: Date.now(),
       totalTime: this.currentProgress.timeElapsed
     };
-    
+
     this.notifyListeners('end', finalProgress);
-    
+
     // 履歴に保存
     this.saveToHistory(finalProgress);
-    
+
     return finalProgress;
   }
 
@@ -148,12 +148,12 @@ class ChallengeProgress {
       ...progress,
       completedAt: Date.now()
     });
-    
+
     // 最新100件のみ保持
     if (history.length > 100) {
       history.splice(0, history.length - 100);
     }
-    
+
     localStorage.setItem('challengeProgressHistory', JSON.stringify(history));
   }
 
@@ -227,7 +227,7 @@ class ChallengeProgress {
    */
   getStatistics() {
     const history = this.getHistory();
-    
+
     if (history.length === 0) {
       return {
         totalChallenges: 0,
@@ -237,11 +237,11 @@ class ChallengeProgress {
         averagePlayTime: 0
       };
     }
-    
+
     const totalScore = history.reduce((sum, entry) => sum + entry.currentScore, 0);
     const totalTime = history.reduce((sum, entry) => sum + entry.totalTime, 0);
     const bestScore = Math.max(...history.map(entry => entry.currentScore));
-    
+
     return {
       totalChallenges: history.length,
       averageScore: Math.round(totalScore / history.length),
@@ -265,11 +265,11 @@ class ChallengeProgress {
       maxCombo: 0,
       achievements: []
     };
-    
+
     this.milestones.forEach(milestone => {
       milestone.achieved = false;
     });
-    
+
     this.notifyListeners('reset', {});
   }
 }

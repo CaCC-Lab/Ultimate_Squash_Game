@@ -8,14 +8,14 @@ const RUNTIME_CACHE = 'runtime-cache-v1';
 const STATIC_ASSETS = [
   './',
   './game.html',
-  './manifest.json',
+  './manifest.json'
   // Pyodide関連のファイルは動的に取得されるため、ここには含めない
 ];
 
 // Service Worker インストール時
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker...');
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -36,7 +36,7 @@ self.addEventListener('install', (event) => {
 // Service Worker アクティベート時
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker...');
-  
+
   event.waitUntil(
     caches.keys()
       .then((cacheNames) => {
@@ -64,12 +64,12 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
-  
+
   // 同一オリジンのリクエストのみ処理
   if (url.origin !== location.origin) {
     return;
   }
-  
+
   // キャッシュ戦略の決定
   if (request.mode === 'navigate' || request.destination === 'document') {
     // HTMLページはネットワークファースト
@@ -77,8 +77,8 @@ self.addEventListener('fetch', (event) => {
   } else if (url.pathname.includes('pyodide') || url.pathname.includes('.wasm')) {
     // Pyodide関連ファイルはキャッシュファースト（大きいファイルなので）
     event.respondWith(cacheFirstStrategy(request));
-  } else if (request.destination === 'image' || 
-             request.destination === 'font' || 
+  } else if (request.destination === 'image' ||
+             request.destination === 'font' ||
              request.destination === 'style') {
     // 静的アセットはキャッシュファースト
     event.respondWith(cacheFirstStrategy(request));
@@ -92,28 +92,28 @@ self.addEventListener('fetch', (event) => {
 async function networkFirstStrategy(request) {
   try {
     const networkResponse = await fetch(request);
-    
+
     // 成功したレスポンスをキャッシュに保存
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.log('[SW] Network request failed, falling back to cache:', error);
-    
+
     // ネットワークエラー時はキャッシュから返す
     const cachedResponse = await caches.match(request);
     if (cachedResponse) {
       return cachedResponse;
     }
-    
+
     // キャッシュもない場合はオフラインページを返す（あれば）
     if (request.mode === 'navigate') {
       return caches.match('./game.html');
     }
-    
+
     // 何もない場合はエラーを投げる
     throw error;
   }
@@ -128,17 +128,17 @@ async function cacheFirstStrategy(request) {
     refreshCache(request);
     return cachedResponse;
   }
-  
+
   // キャッシュにない場合はネットワークから取得
   try {
     const networkResponse = await fetch(request);
-    
+
     // 成功したレスポンスをキャッシュに保存
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, networkResponse.clone());
     }
-    
+
     return networkResponse;
   } catch (error) {
     console.error('[SW] Failed to fetch:', request.url, error);
@@ -151,7 +151,7 @@ async function cacheFirstStrategy(request) {
 async function refreshCache(request) {
   try {
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse && networkResponse.status === 200) {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, networkResponse);
@@ -182,7 +182,7 @@ self.addEventListener('message', (event) => {
         })
     );
   }
-  
+
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
@@ -191,7 +191,7 @@ self.addEventListener('message', (event) => {
 // プッシュ通知（将来の実装用）
 self.addEventListener('push', (event) => {
   console.log('[SW] Push received:', event);
-  
+
   const options = {
     title: 'Ultimate Squash Game',
     body: event.data ? event.data.text() : '新しいチャレンジが利用可能です！',
@@ -200,7 +200,7 @@ self.addEventListener('push', (event) => {
     vibrate: [200, 100, 200],
     tag: 'ultimate-squash-notification'
   };
-  
+
   event.waitUntil(
     self.registration.showNotification('Ultimate Squash Game', options)
   );
@@ -209,9 +209,9 @@ self.addEventListener('push', (event) => {
 // 通知クリック処理
 self.addEventListener('notificationclick', (event) => {
   console.log('[SW] Notification clicked:', event);
-  
+
   event.notification.close();
-  
+
   event.waitUntil(
     clients.openWindow('/')
   );

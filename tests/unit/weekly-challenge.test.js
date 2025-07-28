@@ -9,25 +9,25 @@ class WeeklyChallenge {
     this.weekNumber = calculateWeekNumber(this.date, this.epoch);
     this.seed = generateSeed(this.weekNumber);
   }
-  
+
   getSeed() {
     return this.seed;
   }
-  
+
   getLevelParameters() {
     return generateLevelParameters(this.seed);
   }
-  
+
   getChallengeInfo() {
     if (this.weekNumber <= 0) return null;
-    
+
     const startDate = new Date(this.epoch);
     startDate.setUTCDate(startDate.getUTCDate() + (this.weekNumber - 1) * 7);
-    
+
     const endDate = new Date(startDate);
     endDate.setUTCDate(endDate.getUTCDate() + 6);
     endDate.setUTCHours(0, 0, 0, 0);
-    
+
     return {
       id: `weekly-challenge-${this.weekNumber}`,
       weekNumber: this.weekNumber,
@@ -35,7 +35,7 @@ class WeeklyChallenge {
       endDate: endDate
     };
   }
-  
+
   // その他のメソッドはモックから使用
   init = mockWeeklyChallenge.WeeklyChallenge.init;
   loadChallenge = mockWeeklyChallenge.WeeklyChallenge.loadChallenge;
@@ -68,13 +68,13 @@ const generateLevelParameters = (seed) => {
     x = ((x * 1103515245) + 12345) & 0x7fffffff;
     return x / 0x7fffffff;
   };
-  
+
   let currentSeed = seed;
   const random = () => {
     currentSeed = rng(currentSeed);
     return currentSeed;
   };
-  
+
   return {
     ballSpeed: 5 + Math.floor(random() * 6), // 5-10の範囲
     paddleSize: 50 + Math.floor(random() * 51), // 50-100の範囲
@@ -195,7 +195,7 @@ describe('WeeklyChallenge', () => {
       expect(info.startDate).toEqual(expectedStartDate);
       expect(info.endDate).toEqual(expectedEndDate);
     });
-    
+
     test('起算日より前の日付ではnullを返す', () => {
       const invalidDate = new Date('2023-12-31');
       const challenge = new WeeklyChallenge(invalidDate);

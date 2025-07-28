@@ -62,7 +62,7 @@ class MockWeeklyChallengeAPI {
   async submitChallengeResult(challengeId, result) {
     const evaluation = mockChallengeEvaluator.evaluateChallenge(result);
     const rewards = evaluation.success ? mockChallengeRewards.grantRewards(evaluation) : null;
-    
+
     const historyEntry = {
       challengeId,
       result,
@@ -70,7 +70,7 @@ class MockWeeklyChallengeAPI {
       rewards,
       completedAt: Date.now()
     };
-    
+
     this.challengeHistory.push(historyEntry);
     return historyEntry;
   }
@@ -96,11 +96,11 @@ class MockWeeklyChallengeUI {
     this.progressBar = document.getElementById('challenge-progress-bar');
     this.timer = document.getElementById('challenge-timer');
     this.startButton = document.getElementById('start-challenge-btn');
-    
+
     // チャレンジ情報の表示
     const challenge = await this.api.getCurrentChallenge();
     this.displayChallenge(challenge);
-    
+
     // イベントリスナーの設定
     if (this.startButton) {
       this.startButton.addEventListener('click', () => this.startChallenge());
@@ -121,27 +121,27 @@ class MockWeeklyChallengeUI {
   async startChallenge() {
     const challenge = await this.api.getCurrentChallenge();
     const session = await this.api.startChallenge(challenge.id);
-    
+
     // タイマー開始
     this.startTimer(challenge.timeLimit);
-    
+
     // ボタンを無効化
     if (this.startButton) {
       this.startButton.disabled = true;
       this.startButton.textContent = '進行中...';
     }
-    
+
     return session;
   }
 
   startTimer(timeLimit) {
     let remainingTime = timeLimit;
-    
+
     const updateTimer = () => {
       if (this.timer) {
         this.timer.textContent = `残り時間: ${remainingTime}秒`;
       }
-      
+
       if (remainingTime > 0) {
         remainingTime--;
         setTimeout(updateTimer, 1000);
@@ -149,7 +149,7 @@ class MockWeeklyChallengeUI {
         this.endChallenge();
       }
     };
-    
+
     updateTimer();
   }
 
@@ -159,17 +159,17 @@ class MockWeeklyChallengeUI {
       this.startButton.disabled = false;
       this.startButton.textContent = '開始';
     }
-    
+
     // 結果の送信（モック）
     const result = {
       score: 1500,
       timeUsed: 45,
       mistakes: 2
     };
-    
+
     const challenge = await this.api.getCurrentChallenge();
     const submission = await this.api.submitChallengeResult(challenge.id, result);
-    
+
     // 結果の表示
     this.displayResult(submission);
   }
@@ -208,13 +208,13 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
       <div id="challenge-timer">残り時間: --</div>
       <button id="start-challenge-btn">開始</button>
     `;
-    
+
     // localStorage のモック
     Storage.prototype.getItem = jest.fn();
     Storage.prototype.setItem = jest.fn();
     Storage.prototype.removeItem = jest.fn();
     Storage.prototype.clear = jest.fn();
-    
+
     // インスタンスの作成
     api = new MockWeeklyChallengeAPI();
     ui = new MockWeeklyChallengeUI(api);
@@ -227,7 +227,7 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
   describe('初期化', () => {
     test('UIが正しく初期化される', async () => {
       await ui.init();
-      
+
       const challengeInfo = document.getElementById('current-challenge-info');
       expect(challengeInfo.innerHTML).toContain('テストチャレンジ');
       expect(challengeInfo.innerHTML).toContain('medium');
@@ -236,7 +236,7 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
 
     test('APIが現在のチャレンジを取得できる', async () => {
       const challenge = await api.getCurrentChallenge();
-      
+
       expect(challenge).toBeDefined();
       expect(challenge.id).toBe('test-challenge-1');
       expect(challenge.title).toBe('テストチャレンジ');
@@ -251,7 +251,7 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
 
     test('チャレンジを開始できる', async () => {
       const session = await ui.startChallenge();
-      
+
       expect(session).toBeDefined();
       expect(session.challengeId).toBe('test-challenge-1');
       expect(session.status).toBe('active');
@@ -260,16 +260,16 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
 
     test('開始ボタンが無効化される', async () => {
       const startButton = document.getElementById('start-challenge-btn');
-      
+
       await ui.startChallenge();
-      
+
       expect(startButton.disabled).toBe(true);
       expect(startButton.textContent).toBe('進行中...');
     });
 
     test('タイマーが更新される', async () => {
       await ui.startChallenge();
-      
+
       const timer = document.getElementById('challenge-timer');
       expect(timer.textContent).toContain('残り時間:');
     });
@@ -286,9 +286,9 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
         timeUsed: 45,
         mistakes: 2
       };
-      
+
       const submission = await api.submitChallengeResult('test-challenge-1', result);
-      
+
       expect(submission).toBeDefined();
       expect(submission.evaluation.success).toBe(true);
       expect(submission.evaluation.score).toBe(1500);
@@ -302,9 +302,9 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
         timeUsed: 45,
         mistakes: 2
       };
-      
+
       await api.submitChallengeResult('test-challenge-1', result);
-      
+
       const history = api.getChallengeHistory();
       expect(history).toHaveLength(1);
       expect(history[0].challengeId).toBe('test-challenge-1');
@@ -314,7 +314,7 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
     test('結果が表示される', async () => {
       await ui.startChallenge();
       await ui.endChallenge();
-      
+
       const challengeInfo = document.getElementById('current-challenge-info');
       expect(challengeInfo.innerHTML).toContain('結果');
       expect(challengeInfo.innerHTML).toContain('1500');
@@ -329,7 +329,7 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
 
     test('プログレスバーが更新される', () => {
       ui.updateProgress(50);
-      
+
       const progressBar = document.getElementById('challenge-progress-bar');
       expect(progressBar.style.width).toBe('50%');
       expect(progressBar.textContent).toBe('50%');
@@ -337,7 +337,7 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
 
     test('100%まで更新できる', () => {
       ui.updateProgress(100);
-      
+
       const progressBar = document.getElementById('challenge-progress-bar');
       expect(progressBar.style.width).toBe('100%');
       expect(progressBar.textContent).toBe('100%');
@@ -352,7 +352,7 @@ describe('ウィークリーチャレンジシステム統合テスト', () => {
     test('チャレンジが存在しない場合の処理', async () => {
       api.currentChallenge = null;
       const challenge = await api.getCurrentChallenge();
-      
+
       expect(challenge).toBeDefined();
       expect(mockChallengeGenerator.generateWeeklyChallenge).toHaveBeenCalled();
     });

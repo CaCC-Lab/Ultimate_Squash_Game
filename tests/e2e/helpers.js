@@ -14,7 +14,7 @@ export const SELECTORS = {
   score: '#score',
   adaDebugPanel: '#ada-debug-panel',
   debugInfo: '#debug-info',
-  pyodideScript: 'script[src*="pyodide"]',
+  pyodideScript: 'script[src*="pyodide"]'
 };
 
 // キーボードキー定数
@@ -27,7 +27,7 @@ export const KEYS = {
   ToggleDebug: 'd',
   Pause: 'p',
   Escape: 'Escape',
-  Fullscreen: 'f',
+  Fullscreen: 'f'
 };
 
 // タイムアウト定数（環境変数で上書き可能）
@@ -40,7 +40,7 @@ export const TIMEOUTS = {
   pageLoad: parseInt(process.env.E2E_TIMEOUT_PAGE_LOAD || '3000', 10),
   pyodideLoad: parseInt(process.env.E2E_TIMEOUT_PYODIDE_LOAD || '60000', 10), // 60秒に延長してPyodide初期化を確実に
   animation: parseInt(process.env.E2E_TIMEOUT_ANIMATION || '200', 10),
-  gameStart: parseInt(process.env.E2E_TIMEOUT_GAME_START || '1000', 10),
+  gameStart: parseInt(process.env.E2E_TIMEOUT_GAME_START || '1000', 10)
 };
 
 // テストデータ
@@ -53,8 +53,8 @@ export const TEST_DATA = {
     { name: 'Mobile', width: 375, height: 667 },
     { name: 'Tablet', width: 768, height: 1024 },
     { name: 'Desktop', width: 1920, height: 1080 },
-    { name: 'Ultra-wide', width: 2560, height: 1080 },
-  ],
+    { name: 'Ultra-wide', width: 2560, height: 1080 }
+  ]
 };
 
 // 定数値
@@ -69,7 +69,7 @@ export const CONSTANTS = {
   PERFORMANCE_TEST_DURATION: 5000, // ms
   MEMORY_LEAK_THRESHOLD: 52428800, // 50MB in bytes
   MIN_CANVAS_SIZE: 100, // px
-  DEFAULT_RANDOM_ACTION_COUNT: 10,
+  DEFAULT_RANDOM_ACTION_COUNT: 10
 };
 
 /**
@@ -80,7 +80,7 @@ export const CONSTANTS = {
  */
 export function setupErrorHandlers(page, consoleErrors, jsErrors) {
   page.on('console', msg => {
-    if (msg.type() === 'error' && 
+    if (msg.type() === 'error' &&
         !msg.text().includes('AudioContext') &&
         !msg.text().includes('Failed to load resource') &&
         !msg.text().includes('404')) {
@@ -228,7 +228,7 @@ export async function injectFPSMonitoring(page) {
           return callback(timestamp);
         });
       };
-    `,
+    `
   });
 }
 
@@ -250,7 +250,7 @@ export async function injectMemoryMonitoring(page) {
           });
         }
       }, ${CONSTANTS.MEMORY_SAMPLE_INTERVAL});
-    `,
+    `
   });
 }
 

@@ -7,17 +7,17 @@ test.describe('Sound System Tests', () => {
 
     // ゲームの読み込みを待機（より長く、段階的に）
     await page.waitForLoadState('networkidle');
-    
+
     // Pyodide初期化待機（ローディングオーバーレイが消えるまで）
     try {
       await page.waitForSelector('#loadingOverlay', { state: 'hidden', timeout: 60000 });
     } catch (e) {
       console.log('ローディングオーバーレイのタイムアウト - ゲーム状態を直接確認します');
     }
-    
+
     // ゲームキャンバスが利用可能になるまで待機
     await page.waitForSelector('#gameCanvas', { state: 'visible', timeout: 30000 });
-    
+
     // 追加の初期化時間
     await page.waitForTimeout(2000);
   });
@@ -59,9 +59,9 @@ test.describe('Sound System Tests', () => {
       // 実際のAudioContextオブジェクトの存在と状態を確認
       const audioContextInfo = await page.evaluate(() => {
         // ブラウザのAudioContext APIが利用可能かチェック
-        const hasAudioContext = typeof window.AudioContext !== 'undefined' || 
+        const hasAudioContext = typeof window.AudioContext !== 'undefined' ||
                                typeof window.webkitAudioContext !== 'undefined';
-        
+
         return {
           hasAudioContext,
           audioContextState: null,
@@ -79,7 +79,7 @@ test.describe('Sound System Tests', () => {
       const afterInteractionState = await page.evaluate(() => {
         // ゲーム内でAudioContextが初期化されているかチェック
         let audioContext = window.audioContext || window.webkitAudioContext;
-        
+
         if (!audioContext) {
           // AudioContextを作成して状態を確認
           try {
@@ -116,19 +116,19 @@ test.describe('Sound System Tests', () => {
 
         const audioContext = new AudioContextClass();
         const initialState = audioContext.state;
-        
+
         // サスペンド状態にする
         if (audioContext.state === 'running') {
           await audioContext.suspend();
         }
         const suspendedState = audioContext.state;
-        
+
         // 再開する
         if (audioContext.state === 'suspended') {
           await audioContext.resume();
         }
         const resumedState = audioContext.state;
-        
+
         audioContext.close();
         const closedState = audioContext.state;
 
@@ -160,24 +160,24 @@ test.describe('Sound System Tests', () => {
 
         // 実際のAudioContextを作成
         const audioContext = new AudioContextClass();
-        
+
         // パドルヒット音のサウンド効果を生成（実際の音響合成）
         const createPaddleHitSound = () => {
           const oscillator = audioContext.createOscillator();
           const gainNode = audioContext.createGain();
-          
+
           // パドルヒット音の特性：短い、高めの音
           oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
           oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
-          
+
           // エンベロープ（音量変化）
           gainNode.gain.setValueAtTime(0, audioContext.currentTime);
           gainNode.gain.linearRampToValueAtTime(0.3, audioContext.currentTime + 0.01);
           gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-          
+
           oscillator.connect(gainNode);
           gainNode.connect(audioContext.destination);
-          
+
           return { oscillator, gainNode };
         };
 

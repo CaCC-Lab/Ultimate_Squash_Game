@@ -7,7 +7,7 @@ const createMockClass = (className, defaultMethods = {}) => {
     constructor(...args) {
       this.constructorArgs = args;
       this.className = className;
-      
+
       // Default methodsを設定
       Object.entries(defaultMethods).forEach(([method, impl]) => {
         if (typeof impl === 'function') {
@@ -20,12 +20,11 @@ const createMockClass = (className, defaultMethods = {}) => {
   };
 };
 
-
 class WeeklyChallengeAPI {
   constructor(apiBaseUrl) {
     this.apiBaseUrl = apiBaseUrl || 'http://localhost:3000';
   }
-  
+
   async getCurrentChallenge() {
     return Promise.resolve({
       id: 'weekly-' + new Date().getWeek(),
@@ -38,7 +37,7 @@ class WeeklyChallengeAPI {
       endsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     });
   }
-  
+
   async submitChallengeResult(result) {
     return Promise.resolve({
       success: true,
@@ -47,7 +46,7 @@ class WeeklyChallengeAPI {
       rewardEarned: result.completed ? 500 : 0
     });
   }
-  
+
   async submitChallengeScore(challengeData) {
     try {
       const response = await fetch(`${this.apiBaseUrl}/submit`, {
@@ -59,36 +58,36 @@ class WeeklyChallengeAPI {
           challengeData: challengeData
         })
       });
-      
+
       const data = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(data.error || 'チャレンジスコア送信に失敗しました');
       }
-      
+
       return data;
     } catch (error) {
       throw error;
     }
   }
-  
+
   async getChallengeLeaderboard(challengeId, limit = 10) {
     try {
       const response = await fetch(
         `${this.apiBaseUrl}/leaderboard?challengeId=${challengeId}&limit=${limit}`
       );
-      
+
       if (!response.ok) {
         throw new Error('リーダーボード取得に失敗しました');
       }
-      
+
       const data = await response.json();
       return data.leaderboard;
     } catch (error) {
       throw error;
     }
   }
-  
+
   async getWeeklyLeaderboard() {
     return Promise.resolve(
       Array.from({ length: 10 }, (_, i) => ({
@@ -99,7 +98,7 @@ class WeeklyChallengeAPI {
       }))
     );
   }
-  
+
   async getPastChallenges(limit = 10) {
     return Promise.resolve(
       Array.from({ length: limit }, (_, i) => ({

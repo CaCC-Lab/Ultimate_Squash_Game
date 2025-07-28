@@ -28,21 +28,21 @@ export class ChallengeType {
     switch (this.type) {
       case 'SCORE_TARGET':
         return gameState.score >= this.target;
-      
+
       case 'TIME_LIMIT':
-        return gameState.score >= this.target && 
+        return gameState.score >= this.target &&
                gameState.elapsedTime <= this.timeLimit;
-      
+
       case 'RESTRICTION':
         // 制限付きチャレンジは、違反がなく目標スコアを達成した場合に完了
         return gameState.score >= this.target && !this.hasViolations;
-      
+
       case 'COMBO':
         // 複合条件チャレンジは、すべての条件を満たした場合に完了
-        return this.conditions.every(condition => 
+        return this.conditions.every(condition =>
           this.checkCondition(condition, gameState)
         );
-      
+
       default:
         return false;
     }
@@ -85,20 +85,20 @@ export class ChallengeType {
         if (!this.target) return 0;
         const progress = (gameState.score / this.target) * 100;
         return Math.min(progress, 100);
-      
+
       case 'TIME_LIMIT':
         if (!this.target) return 0;
         const scoreProgress = (gameState.score / this.target) * 100;
         return Math.min(scoreProgress, 100);
-      
+
       case 'COMBO':
         if (this.conditions.length === 0) return 0;
-        const conditionProgress = this.conditions.map(condition => 
+        const conditionProgress = this.conditions.map(condition =>
           this.getConditionProgress(condition, gameState)
         );
         const averageProgress = conditionProgress.reduce((a, b) => a + b, 0) / conditionProgress.length;
         return Math.min(averageProgress, 100);
-      
+
       default:
         return 0;
     }
@@ -172,14 +172,14 @@ export class ChallengeFactory {
   createChallenge(weekNumber) {
     // 週番号からシード値を生成（決定論的）
     const seed = this.generateSeed(weekNumber);
-    
+
     // チャレンジタイプを決定
     const typeIndex = this.pseudoRandom(seed) % this.challengeTypes.length;
     const challengeType = this.challengeTypes[typeIndex];
-    
+
     // 難易度を計算
     const difficulty = this.calculateDifficulty(weekNumber);
-    
+
     // チャレンジを生成
     return this.generateChallengeByType(challengeType, weekNumber, seed, difficulty);
   }
@@ -217,7 +217,7 @@ export class ChallengeFactory {
    */
   generateChallengeByType(type, weekNumber, seed, difficulty) {
     const baseScore = Math.floor(this.baseDifficulty.scoreTarget * difficulty);
-    
+
     switch (type) {
       case 'SCORE_TARGET':
         return new ChallengeType({
@@ -227,7 +227,7 @@ export class ChallengeFactory {
           type: 'SCORE_TARGET',
           target: baseScore
         });
-      
+
       case 'TIME_LIMIT':
         const timeLimit = Math.max(60000, this.baseDifficulty.timeLimit - (weekNumber * 5000));
         return new ChallengeType({
@@ -238,7 +238,7 @@ export class ChallengeFactory {
           timeLimit: timeLimit,
           target: Math.floor(baseScore * 0.8)
         });
-      
+
       case 'RESTRICTION':
         const restrictionIndex = this.pseudoRandom(seed + 1) % this.restrictions.length;
         const restriction = this.restrictions[restrictionIndex];
@@ -250,19 +250,19 @@ export class ChallengeFactory {
           restrictions: [restriction],
           target: Math.floor(baseScore * 0.6)
         });
-      
+
       case 'COMBO':
         return new ChallengeType({
           id: `weekly-challenge-${weekNumber}-combo`,
           name: `コンボチャレンジ #${weekNumber}`,
-          description: `複数の条件を同時に達成！`,
+          description: '複数の条件を同時に達成！',
           type: 'COMBO',
           conditions: [
             { type: 'SCORE', target: Math.floor(baseScore * 0.7) },
             { type: 'CONSECUTIVE_HITS', target: Math.min(10 + weekNumber, 30) }
           ]
         });
-      
+
       default:
         // フォールバック
         return this.generateChallengeByType('SCORE_TARGET', weekNumber, seed, difficulty);

@@ -4,116 +4,90 @@
 ![Code Quality](https://github.com/CaCC-Lab/ultimate-squash-game/workflows/Code%20Quality%20&%20Security/badge.svg)
 ![Deploy](https://github.com/CaCC-Lab/ultimate-squash-game/workflows/Deploy%20to%20GitHub%20Pages/badge.svg)
 
-AI パワーアップ機能を搭載したクラシックなスカッシュゲーム。MVCパターンで実装され、TDDで開発されています。
+ブラウザで動作するスカッシュゲーム。AIパワーアップ機能、WebSocket対応のリアルタイムマルチプレイヤー、チャレンジシステムなど多彩な機能を搭載。
 
-## 🎮 ゲーム概要
+## 🎮 プレイ方法
 
-ラケットでボールを打ち返すクラシックなスカッシュゲーム。コンボシステムとAI統合機能（開発中）を特徴としています。
+[ゲームをプレイする](https://cacc-lab.github.io/ultimate-squash-game/)
 
-### 主な機能
-- **コンボシステム**: 連続ヒットでボーナススコア獲得
-- **難易度設定**: Easy / Normal / Hard（開発予定）
-- **サウンドエフェクト**: Windows環境でビープ音対応
-- **AI機能**: Ollamaと連携したゲームアシスタント（開発予定）
-
-## 🚀 必要環境
-
-- Python 3.6 以上
-- tkinter（通常はPythonに含まれています）
-- Ollama（AI機能使用時のみ）
-
-## セットアップ
-
-1. リポジトリのクローン:
-```bash
-git clone https://github.com/CaCC-Lab/ultimate-squash-game.git
-cd ultimate-squash-game
-```
-
-2. 必要なパッケージのインストール:
-```bash
-pip install -r requirements.txt
-```
-
-3. Ollamaのインストール（AIモード用）:
-- [Ollama公式サイト](https://ollama.ai/)の手順に従ってインストール
-
-4. 必要なモデルのダウンロード:
-```bash
-ollama pull mistral
-```
-
-## 実行方法
-
-```bash
-python main.py
-```
-
-または:
-
-```bash
-./run.sh
-```
-
-## 🎮 操作方法
-
+### 操作方法
 - **マウス移動**: ラケットを左右に移動
 - **クリック**: ゲームリセット
 - **スペースキー**: ポーズ/再開
+- **Shift+P**: パフォーマンスダッシュボード表示
 
-## 🏗️ アーキテクチャ
+## 🚀 主な機能
 
-### MVCパターン実装
+### ゲームプレイ
+- **コンボシステム**: 連続ヒットでボーナススコアとスピードブースト
+- **適応的難易度調整**: プレイヤーのスキルに応じて自動調整
+- **チャレンジシステム**: 日替わり・週替わりチャレンジに挑戦
+- **ランキング**: オンラインランキングで世界中のプレイヤーと競争
 
-```
-src/
-├── model/          # Model層（ゲーム状態管理）
-│   └── game_state.py   - ゲームロジック、物理演算
-├── view/           # View層（UI描画）
-│   └── game_view.py    - tkinter描画、Observerパターン
-├── controller/     # Controller層（制御）
-│   └── game_controller.py - イベント処理、Model-View協調
-└── game/           # レガシーコード
-    └── engine.py       - 元のモノリシック実装
-```
+### 技術的特徴
+- **AIコメンタリー**: Ollamaを使用したリアルタイムゲーム解説
+- **WebSocketマルチプレイヤー**: リアルタイム対戦機能
+- **パフォーマンス最適化**: Web Worker使用で60FPS維持
+- **セキュリティ**: CSP実装、XSS対策済み
 
-### Observerパターン
-- `GameState`（Model）が状態変更時に`GameView`（View）へ自動通知
-- Model-View間の疎結合を実現
-- 拡張性とテスタビリティの向上
+## 🛠️ 開発環境のセットアップ
 
-## 🧪 開発
+### 必要な環境
+- Node.js 16以上
+- npm または yarn
+- モダンブラウザ（Chrome, Firefox, Safari, Edge）
 
-### テスト駆動開発（TDD）
-
-#### 最新テスト状況（2025-07-28更新）
-**単体テスト**: ✅ 100%成功 (9/9ファイル修正完了)  
-**E2Eテスト**: ✅ 96.7%成功 (1/30失敗)  
-**パフォーマンス**: ✅ 3.4秒完了 (82%改善達成)
-
-#### Python単体テスト
+### インストール
 
 ```bash
-# すべてのテストを実行
-python -m pytest
+# リポジトリのクローン
+git clone https://github.com/CaCC-Lab/ultimate-squash-game.git
+cd ultimate-squash-game
 
-# 特定のテストを実行
-python -m pytest tests/test_game_state.py -v
+# 依存関係のインストール
+npm install
 
-# カバレッジレポート
-python -m pytest --cov=src tests/
+# Playwright ブラウザのインストール（E2Eテスト用）
+npx playwright install
 ```
 
-#### E2Eテスト（Playwright）
+### 開発サーバーの起動
 
 ```bash
-# E2Eテストの実行
+# Python を使用
+python -m http.server 8000
+
+# または Node.js を使用
+npx http-server docs -p 8000
+
+# ブラウザで開く
+open http://localhost:8000
+```
+
+### AI機能の有効化（オプション）
+
+```bash
+# Ollama のインストール
+# https://ollama.ai/ から手順に従ってインストール
+
+# 必要なモデルのダウンロード
+ollama pull mistral
+```
+
+## 🧪 テスト
+
+### E2Eテスト
+
+```bash
+# すべてのE2Eテストを実行
 npm test
 
-# ヘッドフルモード（ブラウザ表示）
-npm run test:headed
+# 特定のテストスイートを実行
+npm run test:e2e:websocket
+npm run test:e2e:challenge
+npm run test:e2e:integration
 
-# UIモード（テストデバッガー）
+# UIモードで実行（デバッグ用）
 npm run test:ui
 
 # 特定のブラウザでテスト
@@ -122,68 +96,80 @@ npm run test:firefox
 npm run test:webkit
 ```
 
-### テスト構成
+### 単体テスト
 
-#### Python単体テスト
-- **特性化テスト**: 既存動作の記録（11テスト）
-- **ユニットテスト**: 各コンポーネントの単体テスト
-  - GameState: 18テスト
-  - GameController: 5テスト
-- **統合テスト**: MVC連携の検証
+```bash
+# 単体テストを実行
+npm run test:unit
 
-#### E2Eテスト（WebAssembly版）
-- **ゲーム起動テスト**: HTML読み込み、Pyodide初期化の確認
-- **インタラクションテスト**: キーボード操作、マウス操作の確認
-- **サウンドシステムテスト**: AudioContext、BGM、効果音の確認
-- **ADAシステムテスト**: 適応的難易度調整の確認
-- **UIコントロールテスト**: ランキング、設定保存の確認
-- **レスポンシブテスト**: 異なる画面サイズでの動作確認
-- **クロスブラウザテスト**: Chromium、Firefox、WebKitでの確認
-- **パフォーマンステスト**: FPS、メモリリーク、安定性の確認
+# ウォッチモードで実行
+npm run test:unit:watch
 
-### CI/CDパイプライン
+# カバレッジレポート生成
+npm run test:unit:coverage
+```
 
-プロジェクトは包括的なCI/CDパイプラインを備えています：
+### コード品質
 
-#### 自動テスト（GitHub Actions）
-- **E2E Tests**: すべてのプッシュとPRで自動実行
-- **Code Quality & Security**: 依存関係監査、コード品質メトリクス
-- **クロスブラウザ・Node.jsマトリックステスト**: 複数環境での検証
+```bash
+# Linting
+npm run lint
+npm run lint:fix
 
-#### 自動デプロイ
-- **GitHub Pages**: mainブランチへのマージ時にE2Eテスト通過後の自動デプロイ
-- **スモークテスト**: デプロイ後の本番環境での動作確認
+# フォーマット
+npm run format
+npm run format:check
 
-#### 品質監視
-- **セキュリティ監査**: 週次での脆弱性チェック
-- **パフォーマンス監視**: ファイルサイズ、読み込み時間の追跡
-- **テストカバレッジ**: 自動的なカバレッジレポート生成
+# 型チェック
+npm run type-check
+```
 
-### 開発規約
-- **TDD必須**: テストファースト開発
-- **モック禁止**: 実環境でのテスト実施
-- **エラー3要素**: エラーメッセージに「何が・なぜ・どうすれば」を含める
+## 🏗️ アーキテクチャ
 
-## 🎯 プロジェクトステータス
+### ディレクトリ構造
 
-### 完了フェーズ
-- ✅ **フェーズ1**: プロジェクト基盤整備
-- ✅ **フェーズ1.5**: MVCパターンリファクタリング
-- ✅ **テスト修正フェーズ**: 単体テスト100%修正、E2E最適化完了
-- ✅ **「クリーンな前進」戦略**: Gemini協議による品質プロセス確立
+```
+docs/
+├── index.html          # メインゲームページ
+├── js/
+│   ├── game.js        # コアゲームエンジン
+│   ├── ai/            # AIシステムコンポーネント
+│   ├── analytics/     # 分析・モニタリング
+│   ├── challenge/     # チャレンジシステム
+│   ├── ranking/       # ランキングシステム
+│   ├── security/      # セキュリティ機能
+│   ├── utils/         # ユーティリティ関数
+│   └── websocket/     # WebSocket統合
+└── assets/            # ゲームアセット
 
-### 進行中・予定
-- 🔄 **フェーズ2**: コアゲームのTDD実装
-- 📅 **フェーズ3**: AI接続機能
-- 📅 **フェーズ4**: AI統合とエンハンサー
-- 📅 **フェーズ5**: 最終品質確認
+tests/
+├── e2e/              # E2Eテスト
+├── unit/             # 単体テスト
+└── integration/      # 統合テスト
+```
 
-### 最新の成果（2025-07-28）
-- **テスト安定化**: E2E実行時間を18.8s→3.4sに82%改善
-- **品質向上**: 単体テスト9ファイル完全修正、100%成功率達成
-- **開発プロセス**: 緊急修復手順とテスト前実行の徹底確立
+### 主要コンポーネント
 
-詳細は [TODO.md](TODO.md) を参照してください。
+- **Game Engine**: Canvas APIを使用したゲームロジック
+- **AI System**: Ollamaを使用したゲームコメンタリー
+- **Challenge System**: 動的なチャレンジ生成と進捗管理
+- **WebSocket**: リアルタイム通信とマルチプレイヤー機能
+- **Security**: CSP、XSS対策、入力検証
+
+## 🚀 CI/CD
+
+### GitHub Actions
+
+- **E2E Tests**: プッシュ・PR時に自動実行
+- **Code Quality**: ESLint、セキュリティ監査
+- **Deploy**: mainブランチへのマージ時にGitHub Pagesへ自動デプロイ
+
+### 品質基準
+
+- E2Eテスト: 95%以上合格
+- 単体テストカバレッジ: 80%以上
+- パフォーマンス: 60FPS維持
+- Lighthouse スコア: 90以上
 
 ## 📝 ライセンス
 
@@ -197,18 +183,19 @@ npm run test:webkit
 4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
 5. プルリクエストを作成
 
-### コーディング規約
-- Python PEP 8 準拠
-- 日本語コメント推奨
-- TDD実践必須
-- 個人開発規約の遵守
+### 開発規約
+
+- ES6+ JavaScript
+- JSDoc による型アノテーション
+- テストファースト開発
+- コミットメッセージは日本語可
 
 ## 🙏 謝辞
 
-- 開発支援: Claude Code + Gemini CLI [AI-PAIRED]
-- アーキテクチャ設計: MVCパターン + Observerパターン
-- テスト手法: 特性化テスト（Characterization Testing）
+- 開発支援: Claude Code
+- テストフレームワーク: Playwright, Jest
+- ホスティング: GitHub Pages
 
 ---
 
-**注**: このプロジェクトは個人開発規約に基づいて開発されています。詳細は `.claude/CLAUDE.md` を参照してください。
+**注**: 詳細な開発ガイドは `docs/CLAUDE.md` を参照してください。

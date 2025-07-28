@@ -71,7 +71,7 @@ async function goOnline(page) {
 async function simulatePacketLoss(page, lossRate = 0.1) {
   let requestCount = 0;
   const threshold = Math.floor(1 / lossRate);
-  
+
   await page.route('**/*', async route => {
     requestCount++;
     if (requestCount % threshold === 0) {
@@ -107,16 +107,16 @@ function monitorWebSocket(page) {
     messages: [],
     errors: []
   };
-  
+
   page.on('websocket', ws => {
     ws.on('open', () => {
       wsEvents.connected = true;
     });
-    
+
     ws.on('close', () => {
       wsEvents.disconnected = true;
     });
-    
+
     ws.on('framereceived', event => {
       wsEvents.messages.push({
         type: 'received',
@@ -124,7 +124,7 @@ function monitorWebSocket(page) {
         timestamp: Date.now()
       });
     });
-    
+
     ws.on('framesent', event => {
       wsEvents.messages.push({
         type: 'sent',
@@ -132,7 +132,7 @@ function monitorWebSocket(page) {
         timestamp: Date.now()
       });
     });
-    
+
     ws.on('socketerror', err => {
       wsEvents.errors.push({
         error: err,
@@ -140,7 +140,7 @@ function monitorWebSocket(page) {
       });
     });
   });
-  
+
   return wsEvents;
 }
 
@@ -152,19 +152,19 @@ function monitorWebSocket(page) {
  */
 async function testNetworkQuality(page, conditions) {
   const startTime = Date.now();
-  
+
   // ネットワーク条件を適用
   await applyNetworkConditions(page, conditions);
-  
+
   // テストページに移動
   const navigateStartTime = Date.now();
   await page.goto('http://localhost:3000');
   const navigateEndTime = Date.now();
-  
+
   // リソース読み込み完了を待機
   await page.waitForLoadState('networkidle');
   const totalLoadTime = Date.now() - startTime;
-  
+
   // パフォーマンス測定
   const performance = await page.evaluate(() => {
     const perfData = performance.getEntriesByType('navigation')[0];
@@ -175,7 +175,7 @@ async function testNetworkQuality(page, conditions) {
       firstContentfulPaint: performance.getEntriesByType('paint').find(p => p.name === 'first-contentful-paint')?.startTime || 0
     };
   });
-  
+
   return {
     navigation: {
       duration: navigateEndTime - navigateStartTime,
@@ -198,7 +198,7 @@ async function simulateIntermittentConnection(page, cycles = 3, offlineDuration 
     console.log(`サイクル ${i + 1}/${cycles}: オフラインに切り替え`);
     await goOffline(page);
     await page.waitForTimeout(offlineDuration);
-    
+
     console.log(`サイクル ${i + 1}/${cycles}: オンラインに切り替え`);
     await goOnline(page);
     await page.waitForTimeout(onlineDuration);
@@ -228,7 +228,7 @@ function captureNetworkErrors(page) {
     timeouts: [],
     aborts: []
   };
-  
+
   page.on('requestfailed', request => {
     errors.failedRequests.push({
       url: request.url(),
@@ -236,7 +236,7 @@ function captureNetworkErrors(page) {
       timestamp: Date.now()
     });
   });
-  
+
   page.on('response', response => {
     if (response.status() >= 400) {
       errors.failedRequests.push({
@@ -247,7 +247,7 @@ function captureNetworkErrors(page) {
       });
     }
   });
-  
+
   return errors;
 }
 
@@ -264,7 +264,7 @@ async function collectGamePerformanceMetrics(page) {
       inputLag: 0,
       renderTime: 0
     };
-    
+
     // FPS測定（可能な場合）
     if (window.gameMetrics) {
       metrics.fps = window.gameMetrics.fps || 0;
@@ -272,7 +272,7 @@ async function collectGamePerformanceMetrics(page) {
       metrics.inputLag = window.gameMetrics.inputLag || 0;
       metrics.renderTime = window.gameMetrics.renderTime || 0;
     }
-    
+
     // メモリ使用量
     if (performance.memory) {
       metrics.memory = {
@@ -281,7 +281,7 @@ async function collectGamePerformanceMetrics(page) {
         limit: performance.memory.jsHeapSizeLimit
       };
     }
-    
+
     return metrics;
   });
 }

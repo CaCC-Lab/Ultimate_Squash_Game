@@ -6,7 +6,7 @@ const createMockClass = (className, defaultMethods = {}) => {
     constructor(...args) {
       this.constructorArgs = args;
       this.className = className;
-      
+
       // Default methodsを設定
       Object.entries(defaultMethods).forEach(([method, impl]) => {
         if (typeof impl === 'function') {
@@ -19,7 +19,6 @@ const createMockClass = (className, defaultMethods = {}) => {
   };
 };
 
-
 class ChallengeGameMode {
   constructor(config = {}) {
     this.challengeId = config.challengeId || '';
@@ -30,7 +29,7 @@ class ChallengeGameMode {
     this.modifiers = {};
     this.listeners = {};
   }
-  
+
   start(gameEngine) {
     this.isActive = true;
     if (gameEngine && gameEngine.start) {
@@ -38,15 +37,15 @@ class ChallengeGameMode {
     }
     this.emit('challenge:start');
   }
-  
+
   stop() {
     this.isActive = false;
   }
-  
+
   applyModifiers(modifiers) {
     this.modifiers = modifiers;
   }
-  
+
   applyParameters(gameEngine) {
     if (this.parameters.ballSpeed && gameEngine.setGameSpeed) {
       gameEngine.setGameSpeed(this.parameters.ballSpeed);
@@ -58,7 +57,7 @@ class ChallengeGameMode {
       gameEngine.enablePowerups(this.parameters.powerupsEnabled);
     }
   }
-  
+
   applyRestrictions(gameEngine) {
     if (this.restrictions.includes('NO_POWERUPS') && gameEngine.enablePowerups) {
       gameEngine.enablePowerups(false);
@@ -67,29 +66,29 @@ class ChallengeGameMode {
       gameEngine.on('pause', () => {});
     }
   }
-  
+
   on(event, callback) {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
     this.listeners[event].push(callback);
   }
-  
+
   emit(event, data) {
     if (this.listeners[event]) {
       this.listeners[event].forEach(cb => cb(data));
     }
   }
-  
+
   end(result) {
     this.isActive = false;
     this.emit('challenge:end', result);
   }
-  
+
   checkChallengeCompletion() {
     return false;
   }
-  
+
   getProgress() {
     return { score: 0, time: 0 };
   }
@@ -107,7 +106,7 @@ class ChallengeManager {
     this.failureReason = null;
     this.completed = false;
     this.active = false;
-    
+
     // GameEngineにイベントリスナーをセットアップ
     if (gameEngine && gameEngine.on) {
       gameEngine.on('score:update', (data) => this.handleGameEvent('score:update', data));
@@ -115,12 +114,12 @@ class ChallengeManager {
       gameEngine.on('game:paused', (data) => this.handleGameEvent('game:paused', data));
     }
   }
-  
+
   async loadWeeklyChallenge() {
     // モック実装 - テストでモックされる
     return null;
   }
-  
+
   async startWeeklyChallenge() {
     const challenge = await this.loadWeeklyChallenge();
     if (challenge) {
@@ -129,7 +128,7 @@ class ChallengeManager {
       this.active = true;
     }
   }
-  
+
   startChallenge(challenge) {
     this.currentChallenge = challenge;
     this.challengeMode = new ChallengeGameMode(challenge);
@@ -140,14 +139,14 @@ class ChallengeManager {
     this.progress = { currentScore: 0, percentage: 0 };
     this.emit('state:change', { state: 'ACTIVE', challengeType: challenge.type });
   }
-  
+
   isChallengeModeActive() {
     return this.active && this.currentChallenge !== null;
   }
-  
+
   handleGameEvent(event, data) {
     if (!this.active) return;
-    
+
     switch (event) {
       case 'score:update':
         const score = data?.score !== undefined ? data.score : this.gameEngine.getScore();
@@ -159,7 +158,7 @@ class ChallengeManager {
           }
         }
         break;
-        
+
       case 'powerup:collected':
         if (this.currentChallenge?.restrictions?.includes('NO_POWERUPS')) {
           this.failed = true;
@@ -170,7 +169,7 @@ class ChallengeManager {
           });
         }
         break;
-        
+
       case 'game:paused':
         if (this.currentChallenge?.restrictions?.includes('NO_PAUSE')) {
           this.failed = true;
@@ -179,34 +178,34 @@ class ChallengeManager {
         break;
     }
   }
-  
+
   getProgress() {
     return this.progress;
   }
-  
+
   isCompleted() {
     return this.completed;
   }
-  
+
   isActive() {
     return this.active;
   }
-  
+
   isFailed() {
     return this.failed;
   }
-  
+
   getFailureReason() {
     return this.failureReason;
   }
-  
+
   async completeChallenge() {
     // 最新のスコアで完了状態を確認
     const score = this.gameEngine.getScore();
     if (this.currentChallenge?.parameters?.targetScore && score >= this.currentChallenge.parameters.targetScore) {
       this.completed = true;
     }
-    
+
     const result = {
       challengeId: this.currentChallenge?.id,
       completed: this.completed,
@@ -220,18 +219,18 @@ class ChallengeManager {
     this.active = false;
     return result;
   }
-  
+
   async submitResult() {
     if (!this.api || !this.currentChallenge) return null;
-    
+
     const data = {
       challengeId: this.currentChallenge.id,
       score: this.gameEngine.getScore()
     };
-    
+
     return await this.api.submitChallengeScore(data);
   }
-  
+
   updateProgress() {
     // ゲームエンジンから最新のスコアを取得
     if (this.gameEngine && this.gameEngine.getScore) {
@@ -241,7 +240,7 @@ class ChallengeManager {
         this.progress.percentage = (score / this.currentChallenge.parameters.targetScore) * 100;
       }
     }
-    
+
     const progress = {
       currentScore: this.progress.currentScore,
       targetScore: this.currentChallenge?.parameters?.targetScore || 0,
@@ -250,7 +249,7 @@ class ChallengeManager {
     };
     this.emit('progress:update', progress);
   }
-  
+
   checkCompletion() {
     // 最新のスコアで完了状態をチェック
     if (this.gameEngine && this.gameEngine.getScore && this.currentChallenge?.parameters?.targetScore) {
@@ -259,7 +258,7 @@ class ChallengeManager {
         this.completed = true;
       }
     }
-    
+
     if (this.completed) {
       this.emit('state:change', {
         state: 'COMPLETED',
@@ -267,13 +266,13 @@ class ChallengeManager {
       });
     }
   }
-  
+
   on(event, callback) {
     if (!this.listeners[event]) {
       this.listeners[event] = [];
     }
     this.listeners[event].push(callback);
-    
+
     // 時間制限チャレンジ用のタイマーセットアップ
     if (event === 'challenge:timeout' && this.currentChallenge?.type === 'TIME_LIMIT') {
       const timeLimit = this.currentChallenge.parameters?.timeLimit;
@@ -285,28 +284,28 @@ class ChallengeManager {
       }
     }
   }
-  
+
   emit(event, data) {
     if (this.listeners[event]) {
       this.listeners[event].forEach(cb => cb(data));
     }
   }
-  
+
   // 元のモックメソッド（互換性のため）
   createChallenge() {
-    return { 
-      id: 'test-challenge', 
+    return {
+      id: 'test-challenge',
       name: 'Test Challenge',
       type: 'score',
       target: 1000,
       reward: 100
     };
   }
-  
+
   getActiveChallenge() {
     return this.currentChallenge;
   }
-  
+
   getChallenges() {
     return [];
   }
@@ -392,7 +391,7 @@ describe('ChallengeGameMode', () => {
 
     const onStart = jest.fn();
     const onEnd = jest.fn();
-    
+
     gameMode.on('challenge:start', onStart);
     gameMode.on('challenge:end', onEnd);
 
@@ -439,7 +438,7 @@ describe('ChallengeManager', () => {
       };
 
       manager.loadWeeklyChallenge = jest.fn().mockResolvedValue(mockChallenge);
-      
+
       await manager.startWeeklyChallenge();
 
       expect(manager.currentChallenge).toBeDefined();
@@ -457,14 +456,14 @@ describe('ChallengeManager', () => {
       // スコア更新イベント
       mockGameEngine.getScore.mockReturnValue(500);
       manager.handleGameEvent('score:update', { score: 500 });
-      
+
       expect(manager.getProgress().currentScore).toBe(500);
       expect(manager.getProgress().percentage).toBe(50);
 
       // 目標達成
       mockGameEngine.getScore.mockReturnValue(1000);
       manager.handleGameEvent('score:update', { score: 1000 });
-      
+
       expect(manager.isCompleted()).toBe(true);
     });
 
@@ -567,7 +566,7 @@ describe('ChallengeManager', () => {
       });
 
       mockGameEngine.getScore.mockReturnValue(1500);
-      
+
       const submission = await manager.submitResult();
 
       expect(manager.api.submitChallengeScore).toHaveBeenCalledWith(

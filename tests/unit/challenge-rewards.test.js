@@ -6,7 +6,7 @@ const createMockClass = (className, defaultMethods = {}) => {
     constructor(...args) {
       this.constructorArgs = args;
       this.className = className;
-      
+
       // Default methodsを設定
       Object.entries(defaultMethods).forEach(([method, impl]) => {
         if (typeof impl === 'function') {
@@ -19,7 +19,6 @@ const createMockClass = (className, defaultMethods = {}) => {
   };
 };
 
-
 export class Badge {
   constructor(config = {}) {
     this.id = config.id || '';
@@ -29,15 +28,15 @@ export class Badge {
     this.rarity = config.rarity || 'COMMON';
     this.unlockedAt = config.unlockedAt || null;
   }
-  
+
   unlock() {
     this.unlockedAt = new Date();
   }
-  
+
   isUnlocked() {
     return this.unlockedAt !== null;
   }
-  
+
   getRarityValue() {
     const rarityValues = {
       'COMMON': 1,
@@ -61,11 +60,11 @@ export class Achievement {
     this.condition = config.condition;
     this.earnedAt = config.earnedAt;
   }
-  
+
   unlock() {
     this.unlockedAt = new Date();
   }
-  
+
   isUnlocked() {
     return this.unlockedAt !== null;
   }
@@ -77,62 +76,62 @@ export class RewardSystem {
     this.achievements = [];
     this.history = [];
   }
-  
+
   awardBadge(badgeId) {
     const badge = new Badge({ id: badgeId });
     badge.unlock();
     this.badges.push(badge);
     return badge;
   }
-  
+
   awardAchievement(achievementId) {
     const achievement = new Achievement({ id: achievementId });
     achievement.unlock();
     this.achievements.push(achievement);
     return achievement;
   }
-  
+
   getUnlockedBadges() {
     return this.badges.filter(b => b.isUnlocked());
   }
-  
+
   getUnlockedAchievements() {
     return this.achievements.filter(a => a.isUnlocked());
   }
-  
+
   getTotalPoints() {
     return this.achievements.reduce((sum, a) => sum + (a.points || 0), 0);
   }
-  
+
   checkEligibility() {
     return [];
   }
-  
+
   processChallengeClear(clearData) {
     const result = {
       badges: [],
       newAchievements: []
     };
-    
+
     if (clearData.isFirstClear) {
       const badge = new Badge({ id: 'first-challenge', rarity: 'COMMON' });
       badge.unlock();
       this.badges.push(badge);
       result.badges.push(badge);
-      
+
       const achievement = new Achievement({ id: 'first-clear' });
       achievement.unlock();
       this.achievements.push(achievement);
       result.newAchievements.push(achievement);
     }
-    
+
     if (clearData.isHighScore && clearData.percentile <= 1) {
       const badge = new Badge({ id: 'top-player', rarity: 'LEGENDARY' });
       badge.unlock();
       this.badges.push(badge);
       result.badges.push(badge);
     }
-    
+
     // ストリークバッジのチェック
     const weekNumber = parseInt(clearData.challengeId.split('-')[2]);
     if (weekNumber >= 3) {
@@ -141,18 +140,18 @@ export class RewardSystem {
       this.badges.push(streakBadge);
       result.badges.push(streakBadge);
     }
-    
+
     this.history.push(clearData);
     return result;
   }
-  
+
   saveAchievement(achievement) {
     this.achievements.push(achievement);
     if (typeof Storage !== 'undefined' && Storage.prototype.setItem) {
       Storage.prototype.setItem.call(localStorage, 'achievements', JSON.stringify(this.achievements));
     }
   }
-  
+
   loadAchievements() {
     if (typeof Storage !== 'undefined' && Storage.prototype.getItem) {
       const saved = Storage.prototype.getItem.call(localStorage, 'achievements');
@@ -162,34 +161,34 @@ export class RewardSystem {
     }
     return [];
   }
-  
+
   getAchievementStats() {
     const achievements = this.loadAchievements();
     const totalAchievements = achievements.length;
     const weeklyStreak = achievements.filter(a => a.condition === 'COMPLETE').length;
-    const lastAchievementDate = achievements.length > 0 ? 
+    const lastAchievementDate = achievements.length > 0 ?
       new Date(achievements[achievements.length - 1].earnedAt) : null;
-    
+
     return {
       totalAchievements,
       weeklyStreak,
       lastAchievementDate
     };
   }
-  
+
   checkPerfectClear(gameStats) {
-    return gameStats.missCount === 0 && 
-           gameStats.powerupsUsed === 0 && 
+    return gameStats.missCount === 0 &&
+           gameStats.powerupsUsed === 0 &&
            gameStats.pauseCount === 0;
   }
-  
+
   checkSpeedrun(challengeData) {
     const expectedTime = challengeData.expectedTime || 120000;
     return challengeData.challengeType === 'SCORE_TARGET' &&
            challengeData.actualScore >= challengeData.targetScore &&
            challengeData.timeElapsed < expectedTime / 2;
   }
-  
+
   getRewardPreview(challengeId) {
     return {
       possibleBadges: [

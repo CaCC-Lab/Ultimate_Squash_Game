@@ -11,7 +11,7 @@ class MockAudioContext {
     this.resume = async () => { this.state = 'running'; };
     this.createCalls = [];
   }
-  
+
   createOscillator() {
     const osc = {
       type: 'sine',
@@ -24,10 +24,10 @@ class MockAudioContext {
     this.createCalls.push('oscillator');
     return osc;
   }
-  
+
   createGain() {
     const gain = {
-      gain: { 
+      gain: {
         value: 1,
         setValueAtTime: () => {},
         exponentialRampToValueAtTime: () => {}
@@ -38,7 +38,7 @@ class MockAudioContext {
     this.createCalls.push('gain');
     return gain;
   }
-  
+
   createBiquadFilter() {
     const filter = {
       type: 'lowpass',
@@ -50,7 +50,7 @@ class MockAudioContext {
     this.createCalls.push('filter');
     return filter;
   }
-  
+
   createDynamicsCompressor() {
     const compressor = {
       threshold: { value: -24 },
@@ -74,80 +74,80 @@ class SoundSystem {
     this.soundEnabled = true;
     this.playingSounds = new Set();
     this.initialized = false;
-    
+
     this.initializeAudio();
   }
-  
+
   initializeAudio() {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext || MockAudioContext;
       this.audioContext = new AudioContext();
-      
+
       this.masterGainNode = this.audioContext.createGain();
       this.masterGainNode.connect(this.audioContext.destination);
       this.masterGainNode.gain.value = 0.5;
-      
+
       this.initialized = true;
     } catch (error) {
       console.error('Failed to initialize audio:', error);
       this.soundEnabled = false;
     }
   }
-  
+
   get muted() {
     return !this.soundEnabled;
   }
-  
+
   setMuted(muteState) {
     this.soundEnabled = !muteState;
     if (this.masterGainNode) {
       this.masterGainNode.gain.value = muteState ? 0 : 0.5;
     }
   }
-  
+
   async playSound(soundType, pitch = 1.0) {
     if (!this.soundEnabled || !this.audioContext) return;
-    
+
     try {
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
-      
+
       this.generateAndPlaySound(soundType, pitch);
     } catch (error) {
       console.error('Error playing sound:', error);
     }
   }
-  
+
   generateAndPlaySound(soundType, pitch) {
     const now = this.audioContext.currentTime;
     const soundConfig = this.getSoundConfig(soundType);
-    
+
     // オシレーター作成
     const oscillator = this.audioContext.createOscillator();
     oscillator.type = soundConfig.waveform;
     oscillator.frequency.setValueAtTime(soundConfig.frequency * pitch, now);
-    
+
     // ゲインノード作成
     const gainNode = this.audioContext.createGain();
     gainNode.gain.setValueAtTime(soundConfig.volume, now);
     gainNode.gain.exponentialRampToValueAtTime(0.01, now + soundConfig.duration);
-    
+
     // 接続
     oscillator.connect(gainNode);
     gainNode.connect(this.masterGainNode);
-    
+
     // 再生
     oscillator.start(now);
     oscillator.stop(now + soundConfig.duration);
-    
+
     // クリーンアップ
     oscillator.onended = () => {
       oscillator.disconnect();
       gainNode.disconnect();
     };
   }
-  
+
   getSoundConfig(soundType) {
     const configs = {
       ballHit: { frequency: 440, duration: 0.1, volume: 0.3, waveform: 'sine' },
@@ -156,27 +156,27 @@ class SoundSystem {
       gameOver: { frequency: 146.83, duration: 1.0, volume: 0.6, waveform: 'sawtooth' },
       powerUp: { frequency: 698.46, duration: 0.5, volume: 0.4, waveform: 'square' }
     };
-    
+
     return configs[soundType] || configs.ballHit;
   }
-  
+
   processSoundEvents(frameData) {
     if (!this.soundEnabled || !frameData) return;
-    
+
     if (frameData.ballHit) {
       const speed = Math.sqrt(frameData.ballVelocityX**2 + frameData.ballVelocityY**2);
       const pitch = Math.min(2.0, 1.0 + speed / 10);
       this.playSound('ballHit', pitch);
     }
-    
+
     if (frameData.scoreChanged) {
       this.playSound('scoreUp');
     }
-    
+
     if (frameData.powerUpCollected) {
       this.playSound('powerUp');
     }
-    
+
     if (frameData.gameOver) {
       this.playSound('gameOver');
     }
@@ -193,7 +193,7 @@ describe('SoundSystem Unit Tests', () => {
       AudioContext: MockAudioContext,
       webkitAudioContext: undefined
     };
-    
+
     soundSystem = new SoundSystem();
     mockAudioContext = soundSystem.audioContext;
   });
@@ -222,7 +222,7 @@ describe('SoundSystem Unit Tests', () => {
   describe('ミュート機能', () => {
     test('setMuted(true)で音がミュートされる', () => {
       soundSystem.setMuted(true);
-      
+
       expect(soundSystem.soundEnabled).toBe(false);
       expect(soundSystem.masterGainNode.gain.value).toBe(0);
     });
@@ -230,17 +230,17 @@ describe('SoundSystem Unit Tests', () => {
     test('setMuted(false)でミュートが解除される', () => {
       soundSystem.setMuted(true);
       soundSystem.setMuted(false);
-      
+
       expect(soundSystem.soundEnabled).toBe(true);
       expect(soundSystem.masterGainNode.gain.value).toBe(0.5);
     });
 
     test('mutedゲッターが正しい状態を返す', () => {
       expect(soundSystem.muted).toBe(false);
-      
+
       soundSystem.setMuted(true);
       expect(soundSystem.muted).toBe(true);
-      
+
       soundSystem.setMuted(false);
       expect(soundSystem.muted).toBe(false);
     });
@@ -255,7 +255,7 @@ describe('SoundSystem Unit Tests', () => {
         volume: 0.3,
         waveform: 'sine'
       });
-      
+
       const gameOverConfig = soundSystem.getSoundConfig('gameOver');
       expect(gameOverConfig).toEqual({
         frequency: 146.83,
@@ -268,7 +268,7 @@ describe('SoundSystem Unit Tests', () => {
     test('未知のサウンドタイプでデフォルト設定を返す', () => {
       const unknownConfig = soundSystem.getSoundConfig('unknown');
       const defaultConfig = soundSystem.getSoundConfig('ballHit');
-      
+
       expect(unknownConfig).toEqual(defaultConfig);
     });
   });
@@ -276,9 +276,9 @@ describe('SoundSystem Unit Tests', () => {
   describe('サウンド再生', () => {
     test('playSound()が正しくオシレーターを作成する', async () => {
       mockAudioContext.createCalls = [];
-      
+
       await soundSystem.playSound('ballHit');
-      
+
       expect(mockAudioContext.createCalls).toContain('oscillator');
       expect(mockAudioContext.createCalls).toContain('gain');
     });
@@ -292,9 +292,9 @@ describe('SoundSystem Unit Tests', () => {
     test('ミュート時はサウンドが再生されない', async () => {
       soundSystem.setMuted(true);
       mockAudioContext.createCalls = [];
-      
+
       await soundSystem.playSound('ballHit');
-      
+
       expect(mockAudioContext.createCalls).toHaveLength(0);
     });
 
@@ -305,9 +305,9 @@ describe('SoundSystem Unit Tests', () => {
         resumed = true;
         mockAudioContext.state = 'running';
       };
-      
+
       await soundSystem.playSound('ballHit');
-      
+
       expect(resumed).toBe(true);
     });
   });
@@ -315,43 +315,43 @@ describe('SoundSystem Unit Tests', () => {
   describe('イベント処理', () => {
     test('processSoundEventsがballHitイベントを処理する', () => {
       const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
-      
+
       soundSystem.processSoundEvents({
         ballHit: true,
         ballVelocityX: 3,
         ballVelocityY: 4
       });
-      
+
       expect(playSoundSpy).toHaveBeenCalledWith('ballHit', expect.any(Number));
     });
 
     test('processSoundEventsがscoreChangedイベントを処理する', () => {
       const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
-      
+
       soundSystem.processSoundEvents({
         scoreChanged: true
       });
-      
+
       expect(playSoundSpy).toHaveBeenCalledWith('scoreUp');
     });
 
     test('processSoundEventsがgameOverイベントを処理する', () => {
       const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
-      
+
       soundSystem.processSoundEvents({
         gameOver: true
       });
-      
+
       expect(playSoundSpy).toHaveBeenCalledWith('gameOver');
     });
 
     test('processSoundEventsがpowerUpCollectedイベントを処理する', () => {
       const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
-      
+
       soundSystem.processSoundEvents({
         powerUpCollected: true
       });
-      
+
       expect(playSoundSpy).toHaveBeenCalledWith('powerUp');
     });
 
@@ -367,35 +367,35 @@ describe('SoundSystem Unit Tests', () => {
     test('ミュート時はイベントが処理されない', () => {
       soundSystem.setMuted(true);
       const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
-      
+
       soundSystem.processSoundEvents({
         ballHit: true,
         scoreChanged: true,
         gameOver: true
       });
-      
+
       expect(playSoundSpy).not.toHaveBeenCalled();
     });
 
     test('ボール速度に応じたピッチ調整が適用される', () => {
       const playSoundSpy = jest.spyOn(soundSystem, 'playSound');
-      
+
       // 速度5のボール
       soundSystem.processSoundEvents({
         ballHit: true,
         ballVelocityX: 3,
         ballVelocityY: 4  // 速度 = sqrt(9 + 16) = 5
       });
-      
+
       expect(playSoundSpy).toHaveBeenCalledWith('ballHit', 1.5);
-      
+
       // 速度が非常に速い場合は最大2.0に制限
       soundSystem.processSoundEvents({
         ballHit: true,
         ballVelocityX: 20,
         ballVelocityY: 20
       });
-      
+
       expect(playSoundSpy).toHaveBeenCalledWith('ballHit', 2.0);
     });
   });
@@ -405,9 +405,9 @@ describe('SoundSystem Unit Tests', () => {
       global.window.AudioContext = function() {
         throw new Error('AudioContext not supported');
       };
-      
+
       const errorSystem = new SoundSystem();
-      
+
       expect(errorSystem.soundEnabled).toBe(false);
       expect(errorSystem.initialized).toBe(false);
     });
@@ -416,7 +416,7 @@ describe('SoundSystem Unit Tests', () => {
       soundSystem.audioContext.createOscillator = () => {
         throw new Error('Failed to create oscillator');
       };
-      
+
       // エラーがスローされないことを確認
       await expect(soundSystem.playSound('ballHit')).resolves.not.toThrow();
     });

@@ -1,23 +1,23 @@
 export class RankingUI {
-    constructor(container) {
-        this.container = container;
-        this.container.style.display = 'none';
-        this.container.classList.add('ranking-container');
+  constructor(container) {
+    this.container = container;
+    this.container.style.display = 'none';
+    this.container.classList.add('ranking-container');
 
-        this._createUI();
-        this._addStyles();
-        this._setupEventListeners();
+    this._createUI();
+    this._addStyles();
+    this._setupEventListeners();
 
-        this.callbacks = {
-            onPeriodChange: null,
-            onGameModeChange: null,
-            onRefresh: null,
-            onClose: null,
-        };
-    }
+    this.callbacks = {
+      onPeriodChange: null,
+      onGameModeChange: null,
+      onRefresh: null,
+      onClose: null
+    };
+  }
 
-    _createUI() {
-        this.container.innerHTML = `
+  _createUI() {
+    this.container.innerHTML = `
             <div class="ranking-header">
                 <h2>🏆 オンラインランキング</h2>
                 <button class="close-button">✖</button>
@@ -51,22 +51,22 @@ export class RankingUI {
                 </button>
             </div>
         `;
-        
-        this.rankingList = this.container.querySelector('.ranking-list');
-        this.periodButtons = this.container.querySelectorAll('.period-btn');
-        this.gameModeSelect = this.container.querySelector('.game-mode-select');
-        this.refreshButton = this.container.querySelector('.refresh-button');
-        this.closeButton = this.container.querySelector('.close-button');
-    }
 
-    _addStyles() {
-        const styleId = 'ranking-ui-styles';
-        if (document.getElementById(styleId)) {
-            return;
-        }
-        const style = document.createElement('style');
-        style.id = styleId;
-        style.textContent = `
+    this.rankingList = this.container.querySelector('.ranking-list');
+    this.periodButtons = this.container.querySelectorAll('.period-btn');
+    this.gameModeSelect = this.container.querySelector('.game-mode-select');
+    this.refreshButton = this.container.querySelector('.refresh-button');
+    this.closeButton = this.container.querySelector('.close-button');
+  }
+
+  _addStyles() {
+    const styleId = 'ranking-ui-styles';
+    if (document.getElementById(styleId)) {
+      return;
+    }
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
             .ranking-container {
                 position: fixed;
                 top: 50%;
@@ -251,60 +251,60 @@ export class RankingUI {
                 }
             }
         `;
-        document.head.appendChild(style);
-    }
+    document.head.appendChild(style);
+  }
 
-    _setupEventListeners() {
-        this.periodButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (this.callbacks.onPeriodChange) {
-                    this.callbacks.onPeriodChange(e.target.dataset.period);
-                }
-            });
-        });
-
-        this.gameModeSelect.addEventListener('change', (e) => {
-            if (this.callbacks.onGameModeChange) {
-                this.callbacks.onGameModeChange(e.target.value);
-            }
-        });
-
-        this.refreshButton.addEventListener('click', () => {
-            if (this.callbacks.onRefresh) {
-                this.callbacks.onRefresh();
-            }
-        });
-
-        this.closeButton.addEventListener('click', () => {
-            if (this.callbacks.onClose) {
-                this.callbacks.onClose();
-            }
-        });
-    }
-
-    show() {
-        this.container.style.display = 'block';
-    }
-
-    hide() {
-        this.container.style.display = 'none';
-    }
-
-    showLoading() {
-        this.rankingList.innerHTML = '<div class="loading">読み込み中...</div>';
-    }
-
-    hideLoading() {
-        // It's assumed that displayRankings or displayError will replace the loading indicator.
-    }
-
-    displayRankings(rankings) {
-        if (!rankings || rankings.length === 0) {
-            this.rankingList.innerHTML = '<div class="no-data">ランキングデータがありません</div>';
-            return;
+  _setupEventListeners() {
+    this.periodButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (this.callbacks.onPeriodChange) {
+          this.callbacks.onPeriodChange(e.target.dataset.period);
         }
+      });
+    });
 
-        this.rankingList.innerHTML = rankings.map(item => `
+    this.gameModeSelect.addEventListener('change', (e) => {
+      if (this.callbacks.onGameModeChange) {
+        this.callbacks.onGameModeChange(e.target.value);
+      }
+    });
+
+    this.refreshButton.addEventListener('click', () => {
+      if (this.callbacks.onRefresh) {
+        this.callbacks.onRefresh();
+      }
+    });
+
+    this.closeButton.addEventListener('click', () => {
+      if (this.callbacks.onClose) {
+        this.callbacks.onClose();
+      }
+    });
+  }
+
+  show() {
+    this.container.style.display = 'block';
+  }
+
+  hide() {
+    this.container.style.display = 'none';
+  }
+
+  showLoading() {
+    this.rankingList.innerHTML = '<div class="loading">読み込み中...</div>';
+  }
+
+  hideLoading() {
+    // It's assumed that displayRankings or displayError will replace the loading indicator.
+  }
+
+  displayRankings(rankings) {
+    if (!rankings || rankings.length === 0) {
+      this.rankingList.innerHTML = '<div class="no-data">ランキングデータがありません</div>';
+      return;
+    }
+
+    this.rankingList.innerHTML = rankings.map(item => `
             <div class="ranking-item">
                 <div class="rank-number rank-${item.rank || ''}">${item.rank ? `#${item.rank}` : '-'}</div>
                 <div class="player-name">${this._escapeHtml(item.playerName)}</div>
@@ -312,62 +312,62 @@ export class RankingUI {
                 <div class="player-mode">${this._getGameModeLabel(item.gameMode)}</div>
             </div>
         `).join('');
-    }
+  }
 
-    displayError(message) {
-        this.rankingList.innerHTML = `<div class="error-message">${this._escapeHtml(message)}</div>`;
-    }
+  displayError(message) {
+    this.rankingList.innerHTML = `<div class="error-message">${this._escapeHtml(message)}</div>`;
+  }
 
-    setPeriod(period) {
-        this.periodButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.period === period);
-        });
-    }
+  setPeriod(period) {
+    this.periodButtons.forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.period === period);
+    });
+  }
 
-    setGameMode(gameMode) {
-        this.gameModeSelect.value = gameMode;
-    }
+  setGameMode(gameMode) {
+    this.gameModeSelect.value = gameMode;
+  }
 
-    onPeriodChange(callback) {
-        this.callbacks.onPeriodChange = callback;
-    }
+  onPeriodChange(callback) {
+    this.callbacks.onPeriodChange = callback;
+  }
 
-    onGameModeChange(callback) {
-        this.callbacks.onGameModeChange = callback;
-    }
+  onGameModeChange(callback) {
+    this.callbacks.onGameModeChange = callback;
+  }
 
-    onRefresh(callback) {
-        this.callbacks.onRefresh = callback;
-    }
+  onRefresh(callback) {
+    this.callbacks.onRefresh = callback;
+  }
 
-    onClose(callback) {
-        this.callbacks.onClose = callback;
-    }
+  onClose(callback) {
+    this.callbacks.onClose = callback;
+  }
 
-    _escapeHtml(text) {
-        if (typeof text !== 'string') return '';
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
+  _escapeHtml(text) {
+    if (typeof text !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
 
-    _getGameModeLabel(mode) {
-        const labels = {
-            'normal': 'ノーマル',
-            'hard': 'ハード',
-            'expert': 'エキスパート'
-        };
-        return labels[mode] || mode;
-    }
+  _getGameModeLabel(mode) {
+    const labels = {
+      'normal': 'ノーマル',
+      'hard': 'ハード',
+      'expert': 'エキスパート'
+    };
+    return labels[mode] || mode;
+  }
 
-    // テストで使用する現在の期間を取得
-    getCurrentPeriod() {
-        const activeBtn = this.container.querySelector('.period-btn.active');
-        return activeBtn ? activeBtn.dataset.period : 'daily';
-    }
+  // テストで使用する現在の期間を取得
+  getCurrentPeriod() {
+    const activeBtn = this.container.querySelector('.period-btn.active');
+    return activeBtn ? activeBtn.dataset.period : 'daily';
+  }
 
-    // テストで使用する現在のゲームモードを取得
-    getCurrentGameMode() {
-        return this.gameModeSelect.value;
-    }
+  // テストで使用する現在のゲームモードを取得
+  getCurrentGameMode() {
+    return this.gameModeSelect.value;
+  }
 }

@@ -1,7 +1,7 @@
 {
   "name": "ultimate_squash_game",
   "version": "1.0.0",
-  "description": "AI パワーアップ機能を搭載したクラシックなスカッシュゲーム。WebSocket統合でブラウザ版対応。",
+  "description": "ブラウザで動作するスカッシュゲーム - JavaScript実装",
   "main": "index.js",
   "directories": {
     "doc": "docs",
@@ -31,7 +31,9 @@
     "coverage:integration": "node scripts/test-coverage.js integration",
     "coverage:e2e": "node scripts/test-coverage.js e2e",
     "coverage:performance": "node scripts/test-coverage.js performance",
-    "coverage:report": "open coverage-reports/coverage-report.html"
+    "coverage:report": "open coverage-reports/coverage-report.html",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "repository": {
     "type": "git",
@@ -57,6 +59,7 @@
     "@babel/preset-env": "^7.28.0",
     "@jest/types": "^29.6.3",
     "@playwright/test": "^1.54.1",
+    "eslint": "^8.57.0",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "license-checker": "^25.0.1",

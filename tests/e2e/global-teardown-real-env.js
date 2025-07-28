@@ -12,15 +12,15 @@ async function globalTeardown() {
   try {
     // テスト結果の集計
     await generateTestSummary();
-    
+
     // 一時ファイルのクリーンアップ
     await cleanupTempFiles();
-    
+
     // パフォーマンスレポートの生成
     await generatePerformanceReport();
-    
+
     console.log('✅ 実環境E2Eテスト終了処理完了');
-    
+
   } catch (error) {
     console.error('❌ 終了処理中にエラー:', error.message);
   }
@@ -31,17 +31,17 @@ async function globalTeardown() {
  */
 async function generateTestSummary() {
   console.log('📊 テスト結果サマリーを生成中...');
-  
+
   const resultsDir = 'test-results';
   const summaryFile = path.join(resultsDir, 'real-environment-summary.json');
-  
+
   try {
     // 結果ファイルが存在するか確認
     const resultsFile = path.join(resultsDir, 'real-environment-results.json');
-    
+
     if (fs.existsSync(resultsFile)) {
       const resultsData = JSON.parse(fs.readFileSync(resultsFile, 'utf8'));
-      
+
       const summary = {
         timestamp: new Date().toISOString(),
         testType: 'real_environment',
@@ -91,7 +91,7 @@ async function generateTestSummary() {
               }
             });
           }
-          
+
           // 機能別テスト結果の記録
           if (suite.title.includes('WebSocket')) {
             summary.features.webSocket = true;
@@ -115,18 +115,18 @@ async function generateTestSummary() {
 
       // サマリーファイルの保存
       fs.writeFileSync(summaryFile, JSON.stringify(summary, null, 2));
-      
+
       console.log('✅ テストサマリー生成完了:');
       console.log(`  📈 総テスト数: ${summary.summary.totalTests}`);
       console.log(`  ✅ 成功: ${summary.summary.passedTests}`);
       console.log(`  ❌ 失敗: ${summary.summary.failedTests}`);
       console.log(`  ⏭️ スキップ: ${summary.summary.skippedTests}`);
       console.log(`  ⏱️ 総実行時間: ${(summary.summary.duration / 1000).toFixed(2)}秒`);
-      
+
     } else {
       console.log('⚠️ テスト結果ファイルが見つかりません');
     }
-    
+
   } catch (error) {
     console.error('❌ テストサマリー生成エラー:', error.message);
   }
@@ -137,22 +137,22 @@ async function generateTestSummary() {
  */
 async function cleanupTempFiles() {
   console.log('🗂️ 一時ファイルをクリーンアップ中...');
-  
+
   const tempPatterns = [
     'test-results/temp-*',
     'test-results/*.tmp',
     'playwright-report/temp-*'
   ];
-  
+
   try {
     for (const pattern of tempPatterns) {
       // Glob パターンに一致するファイルを削除
       // 注意: 実際の実装では適切なglobライブラリを使用
       console.log(`  🗑️ クリーンアップパターン: ${pattern}`);
     }
-    
+
     console.log('✅ 一時ファイルクリーンアップ完了');
-    
+
   } catch (error) {
     console.error('❌ クリーンアップエラー:', error.message);
   }
@@ -163,9 +163,9 @@ async function cleanupTempFiles() {
  */
 async function generatePerformanceReport() {
   console.log('📊 パフォーマンスレポートを生成中...');
-  
+
   const performanceFile = 'test-results/performance-report.json';
-  
+
   try {
     const performanceData = {
       timestamp: new Date().toISOString(),
@@ -202,13 +202,13 @@ async function generatePerformanceReport() {
         ]
       }
     };
-    
+
     fs.writeFileSync(performanceFile, JSON.stringify(performanceData, null, 2));
-    
+
     console.log('✅ パフォーマンスレポート生成完了');
     console.log('📁 生成されたファイル:');
     console.log(`  📄 ${performanceFile}`);
-    
+
   } catch (error) {
     console.error('❌ パフォーマンスレポート生成エラー:', error.message);
   }
