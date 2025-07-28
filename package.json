@@ -31,7 +31,9 @@
     "coverage:integration": "node scripts/test-coverage.js integration",
     "coverage:e2e": "node scripts/test-coverage.js e2e",
     "coverage:performance": "node scripts/test-coverage.js performance",
-    "coverage:report": "open coverage-reports/coverage-report.html"
+    "coverage:report": "open coverage-reports/coverage-report.html",
+    "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
+    "lint:fix": "eslint . --ext .js,.jsx,.ts,.tsx --fix"
   },
   "repository": {
     "type": "git",
