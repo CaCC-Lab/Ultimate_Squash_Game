@@ -1,7 +1,7 @@
 {
   "name": "ultimate_squash_game",
   "version": "1.0.0",
-  "description": "AI パワーアップ機能を搭載したクラシックなスカッシュゲーム。WebSocket統合でブラウザ版対応。",
+  "description": "ブラウザで動作するスカッシュゲーム - JavaScript実装",
   "main": "index.js",
   "directories": {
     "doc": "docs",

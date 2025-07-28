@@ -4,143 +4,205 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-This is a Python-based Ultimate Squash Game with AI-powered enhancements. The project features a classic squash game built with tkinter, enhanced with AI commentary and dynamic challenges using Ollama integration.
+This is a browser-based Ultimate Squash Game implemented in JavaScript. The project features a classic squash/pong game with AI enhancements, WebSocket support for real-time multiplayer, and comprehensive testing infrastructure.
 
 ## Essential Commands
 
-### Setup and Installation
+### Development Server
 
 ```bash
-# Install dependencies (basic)
-pip install -r requirements.txt
+# Start local development server (Python)
+python -m http.server 8000
 
-# Install with SSL workaround (recommended)
-./run.sh
+# Or using Node.js
+npx http-server docs -p 8000
 
-# Install Ollama model for AI features
-ollama pull mistral
+# Then open in browser
+open http://localhost:8000
 ```
 
-### Running the Game
+### Testing Commands
 
 ```bash
-# Standard execution
-python main.py
+# Run all E2E tests
+npm test
 
-# Alternative using convenience script
-./run.sh
+# Run specific test suites
+npm run test:e2e:websocket
+npm run test:e2e:challenge
+npm run test:e2e:integration
+
+# Run with UI mode for debugging
+npm run test:ui
+
+# Run unit tests
+npm run test:unit
+npm run test:unit:watch
+npm run test:unit:coverage
 ```
 
-### Development Commands
+### Code Quality Commands
 
 ```bash
-# Test Ollama connectivity
-ollama list
+# Linting
+npm run lint
+npm run lint:fix
 
-# Check Python version (requires 3.8+)
-python --version
+# Formatting
+npm run format
+npm run format:check
 
-# Install specific package for debugging
-pip install --trusted-host pypi.org --trusted-host files.pythonhosted.org <package>
+# Type checking
+npm run type-check
+npm run type-check:watch
 ```
 
 ## Architecture Overview
 
-### Core Components
+### Core Game Engine (`docs/js/game.js`)
+- Self-contained game logic using Canvas API
+- Handles physics, collision detection, and rendering
+- Event-driven architecture for user input
+- AI opponent with difficulty levels
 
-The codebase follows a **loosely coupled design** with three main components:
+### AI System (`docs/js/ai/`)
+- **OllamaGameEnhancer**: LLM integration for dynamic commentary
+- **AIGameModeManager**: Manages AI-powered game challenges
+- **GameEventBridge**: Connects game events to AI system
+- Response caching for performance optimization
 
-1. **GameEngine** (`game_engine.py`): Self-contained game logic and tkinter-based UI
-   - Manages game state, ball physics, racket controls, and scoring
-   - Can run independently without AI features
-   - Uses tkinter Canvas for rendering and event handling
+### WebSocket Integration (`docs/js/websocket/`)
+- Real-time multiplayer support
+- Authentication and security features
+- Automatic reconnection with exponential backoff
+- Message queuing and retry mechanisms
 
-2. **AI Enhancer** (`ai_enhancer.py`): AI-powered game enhancements via Ollama
-   - `OllamaGameEnhancer`: Handles LLM communication and response caching
-   - `AIGameModeManager`: Manages dynamic challenges and game modifications
-   - Designed for async operation to prevent UI blocking
+### Challenge System (`docs/js/challenge/`)
+- Dynamic challenge generation
+- Progress tracking and rewards
+- Weekly challenges with leaderboards
+- Integration with game mechanics
 
-3. **Main Entry Point** (`main.py`): Minimal orchestrator
-   - Currently only instantiates GameEngine
-   - **Integration Point**: This is where AI components should be connected
+### Analytics & Monitoring (`docs/js/analytics/`)
+- Performance tracking
+- Network monitoring
+- User behavior analytics
+- Error tracking and reporting
 
-### Current Integration Status
+### Security Features (`docs/js/security/`)
+- Content Security Policy (CSP) implementation
+- XSS protection mechanisms
+- Secure WebSocket authentication
+- Input validation and sanitization
 
-**Important**: The AI components (`ai_enhancer.py`) are currently **not integrated** with the main game engine. The game runs without AI features by default.
+## Key Technical Features
 
-### Recommended Integration Patterns
+### Performance Optimizations
+- Web Worker integration for heavy computations
+- Response caching for AI interactions
+- Lazy loading of non-critical resources
+- Memory efficiency monitoring
 
-When integrating AI features, consider these architectural patterns:
+### Testing Infrastructure
+- Playwright for E2E testing
+- Jest for unit testing
+- Coverage reporting
+- Performance benchmarking
 
-#### Observer Pattern (Recommended)
-- Make `GameEngine` emit events for key game moments (ball hits, misses, score changes)
-- Have `AIGameModeManager` observe these events to trigger commentary or challenges
-- Maintains loose coupling while enabling reactive AI behavior
+### Browser Compatibility
+- Modern browsers (Chrome, Firefox, Safari, Edge)
+- Mobile responsive design
+- Progressive enhancement approach
+- Fallback for missing features
 
-#### Dependency Injection
-- Pass AI components to `GameEngine` constructor in `main.py`
-- Allows GameEngine to use AI features when available without hard dependencies
+## Development Guidelines
 
-#### Decorator/Wrapper Pattern
-- Wrap `GameEngine` methods with AI enhancements
-- Useful for adding AI behavior to existing game methods without modifying core logic
+### Code Style
+- ES6+ JavaScript with modules
+- JSDoc annotations for type safety
+- Consistent naming conventions
+- Comprehensive error handling
 
-## Key Technical Considerations
+### Testing Requirements
+- Write tests for new features
+- Maintain >80% code coverage
+- E2E tests for critical user flows
+- Performance regression tests
 
-### Performance and Threading
+### Security Best Practices
+- Never expose API keys in client code
+- Validate all user inputs
+- Use CSP headers appropriately
+- Regular security audits
 
-- **UI Thread Safety**: tkinter is single-threaded; AI processing must not block the main thread
-- **Async Operations**: `ai_enhancer.py` uses `asyncio` for non-blocking Ollama calls
-- **Response Caching**: AI responses are cached to improve performance
+## Configuration
 
-### Platform Compatibility
+### Environment Setup
+Create a `docs/js/config.js` file (not committed) for local configuration:
 
-- **Sound System**: Current sound implementation only works on Windows (`winsound`)
-- **Cross-platform**: Consider `pygame.mixer` for broader OS support
-- **Python Version**: Requires Python 3.8+ for modern async features
+```javascript
+window.APP_CONFIG = {
+    rankingSecretKey: 'your-secret-key',
+    apiBaseUrl: 'http://localhost:3000',
+    debug: true
+};
+```
 
-### External Dependencies
+### ESLint Configuration
+The project uses ESLint with a gradual adoption strategy. Configuration is in `eslint.config.js`.
 
-- **Ollama Server**: Must be running locally for AI features to work
-- **Model Availability**: Default model is "mistral" - verify availability before AI calls
-- **Network Latency**: AI commentary may introduce delays; design accordingly
+### TypeScript Support
+TypeScript checking is enabled via JSDoc annotations. Use `npm run type-check` to validate types.
 
-### Configuration Management
+## Common Tasks
 
-- AI model name is hardcoded as "mistral" in `OllamaGameEnhancer`
-- Consider externalizing configuration to JSON file for flexibility
-- Graceful degradation when AI services are unavailable
+### Adding a New Feature
+1. Create feature branch
+2. Implement with TDD approach
+3. Add E2E tests
+4. Update documentation
+5. Submit PR with tests passing
 
-## Development Workflow
+### Debugging
+1. Use browser DevTools
+2. Enable debug mode in config
+3. Check console for detailed logs
+4. Use Playwright UI mode for E2E debugging
 
-### Basic Game Development
-1. Modify `game_engine.py` for core game mechanics
-2. Test with `python main.py` (AI-free mode)
-3. Debug using tkinter's built-in event system
+### Performance Optimization
+1. Use Performance Dashboard (`Shift+P`)
+2. Monitor memory usage
+3. Check network requests
+4. Profile with Chrome DevTools
 
-### AI Feature Development
-1. Implement new AI logic in `ai_enhancer.py`
-2. Modify `main.py` to instantiate and connect AI components
-3. Test integration with Ollama running locally
-4. Use logging/console output to debug AI responses
+## Troubleshooting
 
-### Integration Development
-1. Add event emission to `GameEngine` for key game moments
-2. Create observer methods in `AIGameModeManager`
-3. Update `main.py` to wire components together
-4. Test full integration with AI commentary and challenges
+### Common Issues
+- **Game not loading**: Check browser console for errors
+- **WebSocket connection failed**: Verify server is running
+- **AI features not working**: Ensure Ollama is installed and running
+- **Tests failing**: Update Playwright browsers with `npx playwright install`
 
-## Common Issues and Gotchas
+### Debug Mode
+Enable debug mode by adding `?debug=true` to the URL or setting `debug: true` in config.js.
 
-- **tkinter Import**: `requirements.txt` lists `tkinter` but it's included with Python - not needed for pip install
-- **SSL Certificates**: Use `run.sh` if encountering pip SSL issues
-- **Ollama Connectivity**: Always verify Ollama is running before testing AI features
-- **Model Dependencies**: Ensure required Ollama models are downloaded (`ollama pull mistral`)
-- **UI Freezing**: Long AI operations will freeze the game UI - use async patterns
+## Project Structure
+```
+docs/
+├── index.html          # Main game page
+├── js/
+│   ├── game.js        # Core game engine
+│   ├── ai/            # AI system components
+│   ├── analytics/     # Analytics and monitoring
+│   ├── challenge/     # Challenge system
+│   ├── ranking/       # Leaderboard system
+│   ├── security/      # Security features
+│   ├── utils/         # Utility functions
+│   └── websocket/     # WebSocket integration
+└── assets/            # Game assets
 
-## File Structure Notes
-
-- **Single Game Loop**: All game state management happens in `GameEngine.update()`
-- **Event Binding**: User input handled via tkinter event binding in `bind_events()`
-- **Modular AI**: AI components are completely separate and can be developed independently
-- **Minimal Main**: `main.py` is intentionally simple - complexity should remain in component classes
+tests/
+├── e2e/              # End-to-end tests
+├── unit/             # Unit tests
+└── integration/      # Integration tests
+```
