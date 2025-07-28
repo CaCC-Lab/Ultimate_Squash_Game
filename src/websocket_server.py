@@ -13,7 +13,7 @@ import secrets
 import os
 from typing import Set, Dict, Any, Optional
 from dataclasses import dataclass, asdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 
 # ログ設定
@@ -32,6 +32,7 @@ class ClientSession:
     websocket: websockets.WebSocketServerProtocol
     auth_status: AuthStatus = AuthStatus.PENDING
     auth_token: Optional[str] = None
+    auth_challenge: Optional[str] = None
     connected_at: datetime = None
     last_activity: datetime = None
     
@@ -70,10 +71,15 @@ class GameWebSocketServer:
         logger.info(f"Client connected. Total clients: {len(self.sessions)}")
         
         if self.auth_enabled:
-            # 認証要求を送信
+            # チャレンジを生成
+            challenge = secrets.token_hex(32)
+            session.auth_challenge = challenge
+            
+            # 認証要求を送信（チャレンジ付き）
             await self.send_to_client(websocket, "auth:required", {
                 "message": "Authentication required",
-                "timeout": self.auth_timeout
+                "timeout": self.auth_timeout,
+                "challenge": challenge
             })
             # 認証タイムアウトを設定
             asyncio.create_task(self._auth_timeout_handler(websocket))
@@ -136,7 +142,7 @@ class GameWebSocketServer:
             logger.info(f"Received message: {event_type}")
             
             # 認証処理
-            if event_type == "auth:token":
+            if event_type in ["auth:token", "auth:response"]:
                 await self._handle_auth(websocket, payload)
                 return
             
@@ -219,16 +225,17 @@ class GameWebSocketServer:
             await asyncio.sleep(0.1)  # 100msごとに更新
     
     async def _handle_auth(self, websocket, auth_data: Dict[str, Any]):
-        """認証処理"""
+        """チャレンジレスポンス認証処理"""
         session = self.sessions.get(websocket)
         if not session:
             return
         
         token = auth_data.get("token")
         timestamp = auth_data.get("timestamp")
-        signature = auth_data.get("signature")
+        nonce = auth_data.get("nonce")
+        challenge_response = auth_data.get("challenge")
         
-        if not all([token, timestamp, signature]):
+        if not all([token, timestamp, nonce]):
             session.auth_status = AuthStatus.FAILED
             await self.send_to_client(websocket, "auth:failed", {
                 "message": "Missing authentication data"
@@ -237,36 +244,41 @@ class GameWebSocketServer:
         
         # タイムスタンプの検証（5分以内）
         try:
-            auth_time = datetime.fromisoformat(timestamp)
-            if abs((datetime.now() - auth_time).total_seconds()) > 300:
-                raise ValueError("Timestamp too old")
-        except (ValueError, TypeError):
+            auth_time = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            time_diff = abs((datetime.now(timezone.utc) - auth_time).total_seconds())
+            if time_diff > 300:
+                raise ValueError(f"Timestamp too old: {time_diff} seconds")
+        except (ValueError, TypeError) as e:
             session.auth_status = AuthStatus.FAILED
             await self.send_to_client(websocket, "auth:failed", {
-                "message": "Invalid timestamp"
+                "message": f"Invalid timestamp: {str(e)}"
             })
             return
         
-        # 署名の検証
-        expected_signature = hmac.new(
-            self.server_secret.encode(),
-            f"{token}:{timestamp}".encode(),
-            hashlib.sha256
-        ).hexdigest()
-        
-        if hmac.compare_digest(signature, expected_signature):
-            session.auth_status = AuthStatus.AUTHENTICATED
-            session.auth_token = token
-            await self.send_to_client(websocket, "auth:success", {
-                "message": "Authentication successful"
-            })
-            # 認証成功後、ゲーム状態を送信
-            await self.send_to_client(websocket, "game:state", self.game_state.to_dict())
-        else:
+        # チャレンジの検証
+        if session.auth_challenge and challenge_response != session.auth_challenge:
             session.auth_status = AuthStatus.FAILED
             await self.send_to_client(websocket, "auth:failed", {
-                "message": "Invalid signature"
+                "message": "Invalid challenge response"
             })
+            return
+        
+        # トークンの検証（シンプルな長さチェック）
+        if len(token) < 32:
+            session.auth_status = AuthStatus.FAILED
+            await self.send_to_client(websocket, "auth:failed", {
+                "message": "Invalid token format"
+            })
+            return
+        
+        # 認証成功
+        session.auth_status = AuthStatus.AUTHENTICATED
+        session.auth_token = token
+        await self.send_to_client(websocket, "auth:success", {
+            "message": "Authentication successful"
+        })
+        # 認証成功後、ゲーム状態を送信
+        await self.send_to_client(websocket, "game:state", self.game_state.to_dict())
     
     async def _auth_timeout_handler(self, websocket):
         """認証タイムアウト処理"""

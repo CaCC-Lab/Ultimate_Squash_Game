@@ -6,6 +6,7 @@ bundled_game.pyから抽出・整理
 from typing import Dict, Any, Tuple, List, Optional, Callable
 from dataclasses import dataclass
 import math
+from abc import ABC, abstractmethod
 
 
 class Ball:
@@ -127,11 +128,24 @@ class Score:
         }
 
 
-class CollisionDetector:
+class CollisionDetectorBase(ABC):
+    """衝突検出基底クラス"""
+    
+    @abstractmethod
+    def ball_wall_collision(self, ball: Ball, width: int, height: int) -> Optional[str]:
+        """壁との衝突検出を実装"""
+        pass
+    
+    @abstractmethod
+    def ball_racket_collision(self, ball: Ball, racket: Racket) -> bool:
+        """ラケットとの衝突検出を実装"""
+        pass
+
+
+class CollisionDetector(CollisionDetectorBase):
     """衝突検出ユーティリティ"""
     
-    @staticmethod
-    def ball_wall_collision(ball: Ball, width: int, height: int) -> Optional[str]:
+    def ball_wall_collision(self, ball: Ball, width: int, height: int) -> Optional[str]:
         """壁との衝突検出"""
         # 左右の壁
         if ball.x - ball.radius <= 0 or ball.x + ball.radius >= width:
@@ -144,8 +158,7 @@ class CollisionDetector:
             return 'bottom'
         return None
     
-    @staticmethod
-    def ball_racket_collision(ball: Ball, racket: Racket) -> bool:
+    def ball_racket_collision(self, ball: Ball, racket: Racket) -> bool:
         """ラケットとの衝突検出"""
         # Y軸の範囲チェック
         if ball.y + ball.radius < racket.y - 5:
@@ -162,8 +175,7 @@ class CollisionDetector:
         
         return True
     
-    @staticmethod
-    def calculate_bounce_angle(ball: Ball, racket: Racket) -> Tuple[float, float]:
+    def calculate_bounce_angle(self, ball: Ball, racket: Racket) -> Tuple[float, float]:
         """ラケットでの反射角度計算"""
         # ラケット中心からの相対位置
         relative_x = ball.x - racket.x

@@ -25,39 +25,44 @@ class WebSocketAuthenticator {
      * @returns {string} ランダムな16進数トークン
      */
     generateClientToken() {
+        // Crypto APIサポートチェック
+        if (!window.crypto || !window.crypto.getRandomValues) {
+            throw new Error('Crypto API not supported in this browser');
+        }
+        
         const array = new Uint8Array(32);
         crypto.getRandomValues(array);
         return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
     }
 
     /**
-     * HMAC-SHA256署名を生成
-     * @param {string} message - 署名対象メッセージ
-     * @param {string} secret - 秘密鍵
-     * @returns {Promise<string>} 16進数署名
+     * チャレンジレスポンス認証用のデータを準備
+     * @param {string} challenge - サーバーからのチャレンジ
+     * @returns {string} レスポンス文字列
      */
-    async generateSignature(message, secret) {
-        const encoder = new TextEncoder();
-        const keyData = encoder.encode(secret);
-        const messageData = encoder.encode(message);
+    async prepareAuthResponse(challenge) {
+        // Crypto APIサポートチェック
+        if (!window.crypto || !window.crypto.subtle) {
+            throw new Error('SubtleCrypto API not supported in this browser');
+        }
         
-        const key = await crypto.subtle.importKey(
-            'raw',
-            keyData,
-            { name: 'HMAC', hash: 'SHA-256' },
-            false,
-            ['sign']
-        );
+        const timestamp = new Date().toISOString();
+        const nonce = this.generateNonce();
         
-        const signature = await crypto.subtle.sign(
-            'HMAC',
-            key,
-            messageData
-        );
+        // チャレンジレスポンス: challenge:clientToken:timestamp:nonce
+        const responseData = `${challenge}:${this.clientToken}:${timestamp}:${nonce}`;
         
-        return Array.from(new Uint8Array(signature))
-            .map(b => b.toString(16).padStart(2, '0'))
-            .join('');
+        return responseData;
+    }
+    
+    /**
+     * ノンスを生成
+     * @returns {string} ランダムなノンス
+     */
+    generateNonce() {
+        const array = new Uint8Array(16);
+        crypto.getRandomValues(array);
+        return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
     }
 
     /**
@@ -81,8 +86,16 @@ class WebSocketAuthenticator {
                         const data = JSON.parse(event.data);
                         
                         if (data.type === 'auth:required') {
-                            // 認証要求を受信
-                            await this.authenticate();
+                            // 認証要求を受信（チャレンジ付き）
+                            const challenge = data.payload?.challenge;
+                            await this.authenticate(challenge);
+                        } else if (data.type === 'auth:challenge') {
+                            // チャレンジ認証要求
+                            const challenge = data.payload?.challenge;
+                            if (!challenge) {
+                                throw new Error('No challenge provided by server');
+                            }
+                            await this.authenticate(challenge);
                         } else if (data.type === 'auth:success') {
                             // 認証成功
                             this.authenticated = true;
@@ -131,29 +144,32 @@ class WebSocketAuthenticator {
     /**
      * 認証を実行
      */
-    async authenticate() {
+    async authenticate(challenge) {
         if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
             throw new Error('WebSocket is not connected');
         }
         
-        const timestamp = new Date().toISOString();
-        const message = `${this.clientToken}:${timestamp}`;
-        
-        // サーバー秘密鍵は実際の実装では環境変数や設定から取得
-        const serverSecret = window.WS_SERVER_SECRET || 'default_secret_key_for_development';
-        const signature = await this.generateSignature(message, serverSecret);
-        
-        const authMessage = {
-            type: 'auth:token',
-            payload: {
-                token: this.clientToken,
-                timestamp: timestamp,
-                signature: signature
-            }
-        };
-        
-        this.ws.send(JSON.stringify(authMessage));
-        console.log('[WebSocketAuth] Authentication request sent');
+        try {
+            const timestamp = new Date().toISOString();
+            const nonce = this.generateNonce();
+            
+            // チャレンジレスポンス認証データ
+            const authMessage = {
+                type: 'auth:response',
+                payload: {
+                    token: this.clientToken,
+                    timestamp: timestamp,
+                    nonce: nonce,
+                    challenge: challenge || 'initial'
+                }
+            };
+            
+            this.ws.send(JSON.stringify(authMessage));
+            console.log('[WebSocketAuth] Authentication response sent');
+        } catch (error) {
+            console.error('[WebSocketAuth] Authentication failed:', error);
+            throw error;
+        }
     }
 
     /**

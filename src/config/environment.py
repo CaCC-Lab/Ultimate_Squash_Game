@@ -73,7 +73,11 @@ class EnvironmentConfig:
         if 'WS_HOST' in os.environ:
             config['websocket_host'] = os.environ['WS_HOST']
         if 'WS_PORT' in os.environ:
-            config['websocket_port'] = int(os.environ['WS_PORT'])
+            try:
+                config['websocket_port'] = int(os.environ['WS_PORT'])
+            except ValueError:
+                # 無効な値の場合はデフォルト値を使用
+                pass
         
         # GCデバッグ
         if 'GC_DEBUG' in os.environ:
