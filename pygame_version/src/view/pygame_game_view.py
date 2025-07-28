@@ -14,7 +14,7 @@ Pygame-CE対応ゲーム表示View（View層）
 
 import pygame
 from typing import Tuple, Optional, List
-from model.pygame_game_state import PygameGameState, PygameGameStateObserver
+from src.model.pygame_game_state import PygameGameState, PygameGameStateObserver
 
 
 class PygameGameView(PygameGameStateObserver):

@@ -20,7 +20,8 @@ class ParallelInitializer {
         };
         
         this.eventListeners = new Map();
-        this.loadingStages = [
+        // 設定から読み込みステージを取得
+        this.loadingStages = window.configLoader?.get('initialization.parallel.stages') || [
             { name: 'pyodide', priority: 1, parallel: false },
             { name: 'pygame-ce', priority: 2, parallel: true },
             { name: 'game-code', priority: 2, parallel: true },
@@ -69,7 +70,7 @@ class ParallelInitializer {
      */
     async loadPythonBundleLoader() {
         try {
-            const { PythonBundleLoader } = await import('./optimization/python-bundle-loader.js');
+            const { PythonBundleLoader } = await import('../optimization/python-bundle-loader.js');
             this.pythonBundleLoader = new PythonBundleLoader();
             console.log('[Parallel Initializer] Python Bundle Loader integrated');
         } catch (error) {
@@ -82,7 +83,7 @@ class ParallelInitializer {
      */
     getDefaultOptimizations() {
         return {
-            webWorkerPoolSize: 2,
+            webWorkerPoolSize: window.configLoader?.get('initialization.parallel.webWorkerPoolSize.default', 2) || 2,
             enableServiceWorker: true,
             useRequestIdleCallback: false,
             priorityHints: false
@@ -153,7 +154,7 @@ class ParallelInitializer {
     }
     
     /**
-     * Pyodide初期化（適応的タイムアウト対応）
+     * Pyodide初期化（適応的タイムアウト対応＋リトライ制限）
      */
     async initializePyodide() {
         const startTime = Date.now();
@@ -161,19 +162,55 @@ class ParallelInitializer {
         this.emit('stageStarted', { stage: 'pyodide', message: 'Pyodide初期化中...' });
         
         try {
-            // 適応的タイムアウトを使用した初期化
-            if (this.adaptiveTimeout) {
-                return await this.adaptiveTimeout.waitWithProgressiveTimeout(
-                    'pyodideInit',
-                    async () => await this.performPyodideInitialization(startTime),
-                    3 // 最大3回リトライ
+            // RetryHandlerが利用可能か確認
+            if (window.RetryHandler) {
+                await RetryHandler.execute(
+                    async () => {
+                        // 適応的タイムアウトを使用した初期化
+                        if (this.adaptiveTimeout) {
+                            return await this.adaptiveTimeout.waitWithProgressiveTimeout(
+                                'pyodideInit',
+                                async () => await this.performPyodideInitialization(startTime),
+                                window.configLoader?.getRetryConfig('pyodideInit').maxRetries || 3
+                            );
+                        } else {
+                            return await this.performPyodideInitialization(startTime);
+                        }
+                    },
+                    {
+                        ...window.configLoader?.getRetryConfig('pyodideInit') || {
+                            maxRetries: 3,
+                            initialDelay: 2000,
+                            maxDelay: 10000
+                        },
+                        onRetry: (error, attempt, delay) => {
+                            console.warn(`[Parallel Initializer] Pyodide init retry ${attempt}/3, waiting ${delay}ms...`, error.message);
+                            this.emit('stageProgress', { 
+                                stage: 'pyodide', 
+                                progress: 10 * attempt, 
+                                message: `初期化リトライ中... (${attempt}/3)` 
+                            });
+                        },
+                        shouldRetry: (error) => {
+                            // ネットワークエラーまたは一時的なエラーの場合のみリトライ
+                            return RetryHandler.isTransientError(error);
+                        }
+                    }
                 );
             } else {
-                return await this.performPyodideInitialization(startTime);
+                // RetryHandlerが利用できない場合は従来の処理
+                if (this.adaptiveTimeout) {
+                    await this.adaptiveTimeout.waitWithProgressiveTimeout(
+                        'pyodideInit',
+                        async () => await this.performPyodideInitialization(startTime),
+                        3
+                    );
+                } else {
+                    await this.performPyodideInitialization(startTime);
+                }
             }
-            
         } catch (error) {
-            console.error('[Parallel Initializer] Pyodide initialization failed:', error);
+            console.error('[Parallel Initializer] Pyodide initialization failed after all retries:', error);
             this.initializationStatus.stages.pyodide = {
                 completed: false,
                 duration: Date.now() - startTime,
@@ -213,8 +250,10 @@ class ParallelInitializer {
         }
         
         // Pyodideインスタンスの作成（ブラウザ固有設定を考慮）
+        // 設定からPyodide設定を取得
+        const pyodideConfigData = window.configLoader?.getPyodideConfig() || {};
         const pyodideConfig = {
-            indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
+            indexURL: pyodideConfigData.indexURL || 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/'
         };
         
         // WebKit環境での最適化
@@ -232,9 +271,11 @@ class ParallelInitializer {
         
         this.emit('stageProgress', { stage: 'pyodide', progress: 75, message: 'Pyodide初期化完了...' });
         
-        // 基本的なPythonライブラリの準備（必要最小限に制限）
+        // 設定からパッケージリストを取得
+        const packagesConfig = window.configLoader?.get('initialization.pyodide.packages') || {};
         const packages = this.browserOptimizations.webWorkerPoolSize > 1 ? 
-            ['numpy', 'micropip'] : ['micropip']; // 低性能環境では最小限
+            (packagesConfig.standard || ['numpy', 'micropip']) : 
+            (packagesConfig.minimal || ['micropip']); // 低性能環境では最小限
         
         await window.pyodide.loadPackage(packages);
         
@@ -288,7 +329,8 @@ class ParallelInitializer {
     async loadPyodideScript() {
         return new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js';
+            const pyodideVersion = window.configLoader?.get('initialization.pyodide.version', '0.26.4') || '0.26.4';
+            script.src = `https://cdn.jsdelivr.net/pyodide/v${pyodideVersion}/full/pyodide.js`;
             script.onload = () => {
                 console.log('[Parallel Initializer] pyodide.js loaded');
                 resolve();
@@ -343,7 +385,10 @@ class ParallelInitializer {
                 import sys
                 if 'pyodide' in sys.modules:
                     # Pyodide環境でのpygame設定
-                    pygame.display.set_mode((800, 600))
+                    # 設定からキャンバスサイズを取得
+                    canvas_width = ${window.configLoader?.getCanvasConfig().width || 800}
+                    canvas_height = ${window.configLoader?.getCanvasConfig().height || 600}
+                    pygame.display.set_mode((canvas_width, canvas_height))
                     print("pygame-ce initialized for web environment")
             `);
             
@@ -352,14 +397,16 @@ class ParallelInitializer {
             // 基本的なサーフェスとレンダラーの準備
             window.pyodide.runPython(`
                 # ゲーム用のサーフェス準備
-                screen = pygame.display.set_mode((800, 600))
+                canvas_width = ${window.configLoader?.getCanvasConfig().width || 800}
+                canvas_height = ${window.configLoader?.getCanvasConfig().height || 600}
+                screen = pygame.display.set_mode((canvas_width, canvas_height))
                 clock = pygame.time.Clock()
                 
                 # 基本的な描画テスト
                 screen.fill((0, 0, 0))
                 pygame.display.flip()
                 
-                print("pygame-ce screen initialized: 800x600")
+                print(f"pygame-ce screen initialized: {canvas_width}x{canvas_height}")
             `);
             
             // パフォーマンストラッカーにpygame初期化完了を記録
@@ -401,8 +448,8 @@ class ParallelInitializer {
         this.emit('stageStarted', { stage: 'game-code', message: 'ゲームコード読み込み中...' });
         
         try {
-            // メインゲームファイルの読み込み
-            const gameFiles = [
+            // 設定からゲームファイルリストを取得
+            const gameFiles = window.configLoader?.get('initialization.gameFiles') || [
                 'main.py',
                 'game_engine.py',
                 'ai_enhancer.py'
@@ -412,6 +459,14 @@ class ParallelInitializer {
             
             for (const filename of gameFiles) {
                 try {
+                    // ファイル存在確認（HEADリクエスト）
+                    const checkResponse = await fetch(filename, { method: 'HEAD' });
+                    if (!checkResponse.ok) {
+                        console.warn(`[Parallel Initializer] File not found: ${filename} (${checkResponse.status})`);
+                        continue;
+                    }
+                    
+                    // ファイルの実際の読み込み
                     const response = await fetch(filename);
                     if (response.ok) {
                         const code = await response.text();
@@ -526,7 +581,14 @@ class ParallelInitializer {
                     
                     # pygame mixerの初期化
                     try:
-                        pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+                        # 設定からオーディオ設定を取得
+                        import js
+                        audio_config = js.window.configLoader.get('game.audio') if hasattr(js.window, 'configLoader') else {}
+                        frequency = audio_config.get('frequency', 22050) if audio_config else 22050
+                        size = audio_config.get('size', -16) if audio_config else -16
+                        channels = audio_config.get('channels', 2) if audio_config else 2
+                        buffer = audio_config.get('buffer', 512) if audio_config else 512
+                        pygame.mixer.init(frequency=frequency, size=size, channels=channels, buffer=buffer)
                         print("pygame mixer initialized")
                     except Exception as e:
                         print(f"pygame mixer init error: {e}")
@@ -579,11 +641,14 @@ class ParallelInitializer {
      * 効果音の事前読み込み
      */
     async preloadSoundEffects() {
-        const sounds = [
-            'hit.wav',
-            'score.wav',
-            'wall.wav'
-        ];
+        // 設定からサウンドファイルを取得
+        const soundsConfig = window.configLoader?.get('game.audio.sounds', {}) || {};
+        const sounds = Object.values(soundsConfig).map(path => path.split('/').pop());
+        
+        // デフォルトのサウンドリストを使用
+        if (sounds.length === 0) {
+            sounds.push('hit.wav', 'score.wav', 'wall.wav');
+        }
         
         let loadedSounds = 0;
         
@@ -623,18 +688,36 @@ class ParallelInitializer {
             // メインのcanvas要素を取得または作成
             let gameCanvas = document.getElementById('gameCanvas');
             if (!gameCanvas) {
+                // 設定からキャンバス設定を取得
+                const canvasConfig = window.configLoader?.getCanvasConfig() || { width: 800, height: 600 };
+                
                 gameCanvas = document.createElement('canvas');
                 gameCanvas.id = 'gameCanvas';
-                gameCanvas.width = 800;
-                gameCanvas.height = 600;
-                gameCanvas.style.cssText = `
-                    border: 2px solid #333;
-                    border-radius: 10px;
-                    background: #000;
-                    display: block;
-                    margin: 20px auto;
-                    box-shadow: 0 0 20px rgba(0,0,0,0.5);
-                `;
+                gameCanvas.width = canvasConfig.width;
+                gameCanvas.height = canvasConfig.height;
+                
+                // スタイル設定を適用
+                if (canvasConfig.style) {
+                    const style = canvasConfig.style;
+                    gameCanvas.style.cssText = `
+                        border: ${style.border || '2px solid #333'};
+                        border-radius: ${style.borderRadius || '10px'};
+                        background: ${style.background || '#000'};
+                        display: ${style.display || 'block'};
+                        margin: ${style.margin || '20px auto'};
+                        box-shadow: ${style.boxShadow || '0 0 20px rgba(0,0,0,0.5)'};
+                    `;
+                } else {
+                    // デフォルトスタイル
+                    gameCanvas.style.cssText = `
+                        border: 2px solid #333;
+                        border-radius: 10px;
+                        background: #000;
+                        display: block;
+                        margin: 20px auto;
+                        box-shadow: 0 0 20px rgba(0,0,0,0.5);
+                    `;
+                }
                 document.body.appendChild(gameCanvas);
             }
             
@@ -658,7 +741,10 @@ class ParallelInitializer {
                     print("pygame display connected to canvas")
                 else:
                     print("Canvas not found, using default display")
-                    pygame.display.set_mode((800, 600))
+                    # 設定からキャンバスサイズを取得
+                    default_width = ${window.configLoader?.getCanvasConfig().width || 800}
+                    default_height = ${window.configLoader?.getCanvasConfig().height || 600}
+                    pygame.display.set_mode((default_width, default_height))
             `);
             
             this.emit('stageProgress', { stage: 'canvas-setup', progress: 50, message: 'pygame-canvas連携完了...' });

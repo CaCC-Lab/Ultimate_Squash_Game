@@ -8,6 +8,9 @@
     <meta name="author" content="Ultimate Squash Game Team">
     <meta name="theme-color" content="#004274">
     
+    <!-- Content Security Policy (Report-Only Mode) -->
+    <meta http-equiv="Content-Security-Policy-Report-Only" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://www.google-analytics.com; connect-src 'self' https://cdn.jsdelivr.net https://www.google-analytics.com https://pyodide-cdn2.iodide.io; worker-src 'self' blob:; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; report-uri /csp-report">
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Ultimate Squash Game - WebAssembly版">
@@ -23,6 +26,11 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    
+    <!-- CSP Reporter (開発環境用) -->
+    <script src="js/security/csp-reporter.js"></script>
+    <!-- CSP Enforcing Migration Tool -->
+    <script src="js/security/csp-enforcing-migration.js" type="module"></script>
     
     <!-- Google Analytics 4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
@@ -1119,12 +1127,23 @@
     <script src="js/optimization/pyodide-performance-tracker.js" type="module"></script>
     <script src="js/optimization/performance-dashboard.js" type="module"></script>
     <script src="js/optimization/python-bundle-loader.js" type="module"></script>
+    <script src="js/optimization/memory-efficiency-monitor.js" type="module"></script>
+    <script src="js/optimization/memory-dashboard-integration.js" type="module"></script>
     <!-- Performance metrics collector is loaded dynamically below -->
     <script src="js/core/parallel-initializer.js"></script>
     
     <!-- アナリティクスシステム -->
     <script src="js/analytics/analytics.js"></script>
     <script src="js/ui/beta-test.js"></script>
+    
+    <!-- Utilities -->
+    <script src="js/utils/config-loader.js"></script>
+    <script src="js/utils/ui-helper.js"></script>
+    <script src="js/utils/retry-handler.js"></script>
+    
+    <!-- AI System -->
+    <script src="js/ai/game-ai-system.js"></script>
+    <script src="js/ai/game-event-bridge.js"></script>
     
     <!-- Google Analytics 4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
@@ -1216,8 +1235,43 @@
             setTimeout(() => {
                 window.checkScriptAvailability();
                 
-                // ウィークリーチャレンジシステムを初期化
-                initializeChallengeSystem();
+                // ウィークリーチャレンジシステムを初期化（リトライ制限付き）
+                if (window.RetryHandler) {
+                    RetryHandler.execute(
+                        () => {
+                            if (typeof initializeChallengeSystem === 'function') {
+                                return initializeChallengeSystem();
+                            } else {
+                                throw new Error('initializeChallengeSystem function not available');
+                            }
+                        },
+                        {
+                            maxRetries: 3,
+                            initialDelay: 1000,
+                            maxDelay: 5000,
+                            onRetry: (error, attempt, delay) => {
+                                console.warn(`[Game] Challenge system init retry ${attempt}/3, waiting ${delay}ms...`, error.message);
+                            },
+                            shouldRetry: (error) => {
+                                // 関数が存在しない場合はリトライしない
+                                if (error.message.includes('not available')) {
+                                    console.log('[Game] Challenge system not available, skipping initialization');
+                                    return false;
+                                }
+                                return RetryHandler.isTransientError(error);
+                            }
+                        }
+                    ).catch(error => {
+                        console.warn('[Game] Challenge system initialization failed after all retries:', error.message);
+                    });
+                } else {
+                    // フォールバック: RetryHandlerが利用できない場合
+                    try {
+                        initializeChallengeSystem();
+                    } catch (error) {
+                        console.warn('[Game] Challenge system initialization failed:', error.message);
+                    }
+                }
                 
                 // 保存された進捗を復元
                 loadChallengeProgress();
@@ -3800,7 +3854,11 @@ def restart_game():
                         font-size: 12px;
                     `;
                     touchHelp.textContent = 'タッチ: ラケット移動 | ダブルタップ: 一時停止';
-                    canvas.parentElement.appendChild(touchHelp);
+                    if (canvas && canvas.parentElement) {
+                        canvas.parentElement.appendChild(touchHelp);
+                    } else {
+                        console.warn('Canvas or canvas.parentElement is not available for touchHelp');
+                    }
                 }
             }
         }
@@ -3823,7 +3881,7 @@ def restart_game():
         
         // ウィークリーチャレンジシステム統合
         let weeklyChallenge = null;
-        let challengeManager = null;
+        // challengeManager は既に上で宣言済み
         let currentChallengeMode = false;
         let challengeProgress = {
             target: 0,
@@ -3844,8 +3902,15 @@ def restart_game():
                     
                     // ベータテスターの場合は自動的にチャレンジボタンを表示
                     if (window.betaTester && window.betaTester.betaEnabled) {
-                        document.getElementById('challengeButton').style.display = 'block';
+                        const challengeButton = document.getElementById('challengeButton');
+                        if (challengeButton) {
+                            challengeButton.style.display = 'block';
+                        }
                     }
+                } else {
+                    console.warn('ChallengeGenerator is not available yet');
+                    // 1秒後に再試行
+                    setTimeout(initializeChallengeSystem, 1000);
                 }
             } catch (error) {
                 console.error('Failed to initialize challenge system:', error);

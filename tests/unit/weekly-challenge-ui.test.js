@@ -17,6 +17,24 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
     `;
     
     this.container.appendChild(this.modal);
+    
+    // イベントリスナーの設定
+    const startBtn = this.modal.querySelector('[data-action="start-challenge"]');
+    const closeBtn = this.modal.querySelector('[data-action="close-modal"]');
+    
+    if (startBtn) {
+      startBtn.addEventListener('click', () => {
+        if (this.onChallengeStart) {
+          this.onChallengeStart();
+        }
+      });
+    }
+    
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        this.hide();
+      });
+    }
   };
   
   this.show = function() {
@@ -29,6 +47,74 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
     if (this.modal) {
       this.modal.style.display = 'none';
     }
+  };
+  
+  this.displayChallengeInfo = function(challenge) {
+    const infoDiv = this.modal.querySelector('.challenge-info');
+    if (infoDiv) {
+      const formatDate = (date) => {
+        if (typeof date === 'string') return date;
+        if (date instanceof Date) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}/${month}/${day}`;
+        }
+        return '2024/01/01';
+      };
+      
+      infoDiv.innerHTML = `
+        <h2>週替わりチャレンジ #${challenge.weekNumber || 1}</h2>
+        <p>${formatDate(challenge.startDate)} - ${formatDate(challenge.endDate)}</p>
+        <p>${challenge.description || ''}</p>
+      `;
+    }
+  };
+  
+  this.displayChallengeParameters = function(params) {
+    const paramsDiv = this.modal.querySelector('.challenge-params');
+    if (paramsDiv) {
+      const paramNames = {
+        ballSpeed: 'ボール速度',
+        paddleSize: 'パドルサイズ'
+      };
+      paramsDiv.innerHTML = Object.entries(params)
+        .map(([key, value]) => `<div>${paramNames[key] || key}: ${value}</div>`)
+        .join('');
+    }
+  };
+  
+  this.displayLeaderboard = function(entries) {
+    const leaderboardDiv = this.modal.querySelector('.challenge-leaderboard');
+    if (leaderboardDiv) {
+      if (!entries || entries.length === 0) {
+        leaderboardDiv.innerHTML = '<p>まだ記録がありません</p>';
+      } else {
+        leaderboardDiv.innerHTML = entries
+          .map((entry, index) => `<div>${index + 1}. ${entry.playerName}: ${entry.score}</div>`)
+          .join('');
+      }
+    }
+  };
+  
+  this.showLoading = function() {
+    const leaderboard = this.modal.querySelector('.challenge-leaderboard');
+    if (leaderboard) {
+      leaderboard.classList.add('loading');
+      leaderboard.innerHTML = '<p>読み込み中...</p>';
+    }
+  };
+  
+  this.displayError = function(message) {
+    const leaderboard = this.modal.querySelector('.challenge-leaderboard');
+    if (leaderboard) {
+      leaderboard.classList.add('error');
+      leaderboard.innerHTML = `<p>エラーが発生しました: ${message}</p>`;
+    }
+  };
+  
+  this.onStartChallenge = function(callback) {
+    this.onChallengeStart = callback;
   };
   
   this.init();

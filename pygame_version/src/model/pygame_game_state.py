@@ -83,6 +83,7 @@ class PygameRacket:
         self.color = (255, 255, 0)  # Yellow RGB
         
         # Pygame描画用の追加属性
+        self.width = int(size)  # 互換性のため追加
         self.height = 10
         self.rect = None  # pygame.Rectは後で設定
     
@@ -144,7 +145,11 @@ class PygameGameState:
     SCREEN_WIDTH = 640
     SCREEN_HEIGHT = 480
     
-    def __init__(self):
+    def __init__(self, screen_width: int = 640, screen_height: int = 480):
+        # 画面サイズ設定
+        self.width = screen_width
+        self.height = screen_height
+        
         # ゲーム状態
         self.is_gameover = False
         self.paused = False

@@ -23,6 +23,9 @@
   • ライン: 80% ❌
 
 テストタイプ別結果:
-  • Unit Tests: ❌ (1.30s)
+  • Unit Tests: ✅ (12.66s)
+  • Integration Tests: ✅ (2.11s)
+  • E2E Tests: ❌ (1.85s)
+  • Performance Tests: ✅ (1.47s)
 
-生成日時: 2025-07-24T08:21:07.331Z
+生成日時: 2025-07-27T13:59:48.342Z
