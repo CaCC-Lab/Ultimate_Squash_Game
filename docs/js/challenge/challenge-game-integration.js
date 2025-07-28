@@ -10,12 +10,12 @@ class ChallengeGameIntegration {
     this.isChallengeModeActive = false;
     this.currentChallengeSession = null;
     this.challengeProgress = null;
-    
+
     // イベントハンドラのバインド
     this.handleGameScore = this.handleGameScore.bind(this);
     this.handleGameEnd = this.handleGameEnd.bind(this);
     this.handleGameMistake = this.handleGameMistake.bind(this);
-    
+
     this.setupEventListeners();
   }
 
@@ -40,24 +40,24 @@ class ChallengeGameIntegration {
       console.warn('Challenge mode is already active');
       return;
     }
-    
+
     try {
       // チャレンジセッションを開始
       this.currentChallengeSession = await this.challengeSystem.startChallenge(challenge.id);
       this.isChallengeModeActive = true;
-      
+
       // 進捗追跡を初期化
       if (this.challengeSystem.challengeProgress) {
         this.challengeProgress = this.challengeSystem.challengeProgress;
         this.challengeProgress.startChallenge(challenge.id);
       }
-      
+
       // ゲーム設定を調整
       this.applyChallengeModeSettings(challenge);
-      
+
       // UIを更新
       this.updateUI('challengeStart', challenge);
-      
+
       return this.currentChallengeSession;
     } catch (error) {
       console.error('Failed to start challenge mode:', error);
@@ -72,7 +72,7 @@ class ChallengeGameIntegration {
    */
   applyChallengeModeSettings(challenge) {
     if (!this.gameEngine) return;
-    
+
     // 難易度に応じてゲーム設定を調整
     switch (challenge.difficulty) {
       case 'easy':
@@ -82,7 +82,7 @@ class ChallengeGameIntegration {
           scoreMultiplier: 1.0
         });
         break;
-      
+
       case 'medium':
         this.gameEngine.setDifficulty({
           ballSpeed: 1.0,
@@ -90,7 +90,7 @@ class ChallengeGameIntegration {
           scoreMultiplier: 1.2
         });
         break;
-      
+
       case 'hard':
         this.gameEngine.setDifficulty({
           ballSpeed: 1.2,
@@ -98,7 +98,7 @@ class ChallengeGameIntegration {
           scoreMultiplier: 1.5
         });
         break;
-      
+
       case 'extreme':
         this.gameEngine.setDifficulty({
           ballSpeed: 1.5,
@@ -107,7 +107,7 @@ class ChallengeGameIntegration {
         });
         break;
     }
-    
+
     // チャレンジ固有の設定
     if (challenge.gameSettings) {
       this.gameEngine.applySettings(challenge.gameSettings);
@@ -120,10 +120,10 @@ class ChallengeGameIntegration {
    */
   handleGameScore(scoreData) {
     if (!this.isChallengeModeActive || !this.challengeProgress) return;
-    
+
     // 進捗を更新
     this.challengeProgress.updateScore(scoreData.points, scoreData.isCombo);
-    
+
     // UIを更新
     this.updateUI('scoreUpdate', {
       currentScore: this.challengeProgress.getCurrentProgress().currentScore,
@@ -137,7 +137,7 @@ class ChallengeGameIntegration {
    */
   async handleGameEnd(gameResult) {
     if (!this.isChallengeModeActive) return;
-    
+
     try {
       // チャレンジ結果を作成
       const challengeResult = {
@@ -146,19 +146,19 @@ class ChallengeGameIntegration {
         mistakes: gameResult.mistakes || 0,
         maxCombo: this.challengeProgress?.getCurrentProgress().maxCombo || 0
       };
-      
+
       // チャレンジを終了
       const submission = await this.challengeSystem.submitChallengeResult(
         this.currentChallengeSession.challengeId,
         challengeResult
       );
-      
+
       // UIを更新
       this.updateUI('challengeEnd', submission);
-      
+
       // チャレンジモードを終了
       this.endChallengeMode();
-      
+
       return submission;
     } catch (error) {
       console.error('Failed to submit challenge result:', error);
@@ -173,9 +173,9 @@ class ChallengeGameIntegration {
    */
   handleGameMistake(mistakeData) {
     if (!this.isChallengeModeActive || !this.challengeProgress) return;
-    
+
     this.challengeProgress.recordMistake();
-    
+
     // UIを更新
     this.updateUI('mistake', {
       mistakes: this.challengeProgress.getCurrentProgress().mistakes
@@ -188,17 +188,17 @@ class ChallengeGameIntegration {
   endChallengeMode() {
     this.isChallengeModeActive = false;
     this.currentChallengeSession = null;
-    
+
     // ゲーム設定をリセット
     if (this.gameEngine) {
       this.gameEngine.resetDifficulty();
     }
-    
+
     // 進捗をリセット
     if (this.challengeProgress) {
       this.challengeProgress.reset();
     }
-    
+
     // UIを更新
     this.updateUI('challengeModeEnd', {});
   }
@@ -216,17 +216,17 @@ class ChallengeGameIntegration {
       });
       window.dispatchEvent(customEvent);
     }
-    
+
     // 基本的なUI更新
     switch (event) {
       case 'challengeStart':
         this.showChallengeStartUI(data);
         break;
-      
+
       case 'scoreUpdate':
         this.updateScoreUI(data);
         break;
-      
+
       case 'challengeEnd':
         this.showChallengeResultUI(data);
         break;
@@ -248,7 +248,7 @@ class ChallengeGameIntegration {
         </div>
       `;
       notification.classList.add('show');
-      
+
       setTimeout(() => {
         notification.classList.remove('show');
       }, 3000);
@@ -266,7 +266,7 @@ class ChallengeGameIntegration {
       progressBar.style.width = `${percentage}%`;
       progressBar.setAttribute('data-progress', `${Math.round(percentage)}%`);
     }
-    
+
     const scoreDisplay = document.getElementById('challenge-score');
     if (scoreDisplay) {
       scoreDisplay.textContent = `${scoreData.currentScore} / ${scoreData.targetScore}`;
@@ -281,7 +281,7 @@ class ChallengeGameIntegration {
     const resultModal = document.getElementById('challenge-result-modal');
     if (resultModal) {
       const { evaluation, rewards } = submission;
-      
+
       resultModal.innerHTML = `
         <div class="challenge-result">
           <h2>${evaluation.success ? '成功！' : '失敗...'}</h2>
@@ -300,7 +300,7 @@ class ChallengeGameIntegration {
           <button onclick="this.parentElement.parentElement.style.display='none'">閉じる</button>
         </div>
       `;
-      
+
       resultModal.style.display = 'block';
     }
   }
@@ -327,7 +327,7 @@ class ChallengeGameIntegration {
       this.gameEngine.off('gameEnd', this.handleGameEnd);
       this.gameEngine.off('mistake', this.handleGameMistake);
     }
-    
+
     // チャレンジモードを終了
     if (this.isChallengeModeActive) {
       this.endChallengeMode();

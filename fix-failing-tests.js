@@ -149,7 +149,7 @@ export class WeeklyChallengeAPI {
   async submitChallengeResult(result) {
     return { success: true };
   }
-}`,
+}`
   }
 };
 
@@ -199,10 +199,10 @@ module.exports = { IntegratedTestCoverage };
 function fixTestFile(filePath) {
   const fileName = path.basename(filePath);
   const fullPath = path.join(__dirname, filePath);
-  
+
   try {
     let content = fs.readFileSync(fullPath, 'utf8');
-    
+
     // ES6 import形式のファイル
     if (content.includes('import {')) {
       const pattern = fileFixPatterns[fileName];
@@ -226,15 +226,15 @@ function fixTestFile(filePath) {
         }
       }
     }
-    
+
     // Playwright形式のテストをJest形式に変換
     if (fileName === 'challenge-generator.test.js') {
       content = convertPlaywrightToJest(content);
     }
-    
+
     fs.writeFileSync(fullPath, content);
     console.log(`✅ Fixed: ${filePath}`);
-    
+
   } catch (error) {
     console.error(`❌ Error fixing ${filePath}: ${error.message}`);
   }
@@ -244,11 +244,11 @@ function fixTestFile(filePath) {
 function convertPlaywrightToJest(content) {
   // Playwrightのインポートを削除
   content = content.replace(/const\s+{\s*test,\s*expect\s*}\s*=\s*require\(['"]@playwright\/test['"]\);?/g, '');
-  
+
   // test.beforeAllをbeforeAllに変換
   content = content.replace(/test\.beforeAll/g, 'beforeAll');
   content = content.replace(/test\.describe/g, 'describe');
-  
+
   // ChallengeGeneratorのモック実装を追加
   const mockImpl = `
 // Mock implementation
@@ -273,17 +273,17 @@ class ChallengeGenerator {
 }
 
 `;
-  
+
   // vmモジュール関連のコードを削除してモックに置き換え
   const vmSectionStart = content.indexOf('// ChallengeGeneratorクラスを非同期で読み込む');
   const vmSectionEnd = content.indexOf('});', content.indexOf('vm.runInContext'));
-  
+
   if (vmSectionStart !== -1 && vmSectionEnd !== -1) {
-    content = content.substring(0, vmSectionStart) + 
-              mockImpl + 
+    content = content.substring(0, vmSectionStart) +
+              mockImpl +
               content.substring(vmSectionEnd + 3);
   }
-  
+
   return content;
 }
 

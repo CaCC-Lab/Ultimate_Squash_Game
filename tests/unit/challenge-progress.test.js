@@ -1,10 +1,10 @@
 
 // localStorageのモック
 global.localStorage = {
-    getItem: jest.fn(),
-    setItem: jest.fn(),
-    removeItem: jest.fn(),
-    clear: jest.fn()
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn()
 };
 // CommonJS形式に変換
 /* Mock Implementation - Original file does not exist */
@@ -15,7 +15,7 @@ const createMockClass = (className, defaultMethods = {}) => {
     constructor(...args) {
       this.constructorArgs = args;
       this.className = className;
-      
+
       // Default methodsを設定
       Object.entries(defaultMethods).forEach(([method, impl]) => {
         if (typeof impl === 'function') {
@@ -27,7 +27,6 @@ const createMockClass = (className, defaultMethods = {}) => {
     }
   };
 };
-
 
 class ChallengeProgress {
   constructor(config = {}) {
@@ -41,7 +40,7 @@ class ChallengeProgress {
     this.highScore = 0;
     this.bestTime = null;
   }
-  
+
   updateScore(score) {
     this.currentScore = score;
     this.attempts++;
@@ -50,11 +49,11 @@ class ChallengeProgress {
       this.completedAt = new Date();
     }
   }
-  
+
   getPercentage() {
     return Math.min(100, Math.floor((this.currentScore / this.targetScore) * 100));
   }
-  
+
   recordAttempt(attemptData) {
     this.attempts++;
     if (attemptData.score > this.highScore) {
@@ -62,14 +61,14 @@ class ChallengeProgress {
       this.bestTime = attemptData.duration;
     }
   }
-  
+
   reset() {
     this.currentScore = 0;
     this.isCompleted = false;
     this.attempts = 0;
     this.completedAt = null;
   }
-  
+
   getTimeElapsed() {
     const end = this.completedAt || new Date();
     return end - this.startedAt;
@@ -82,7 +81,7 @@ class ProgressTracker {
     this.currentSession = null;
     this.history = [];
   }
-  
+
   startChallenge(config) {
     const session = {
       sessionId: 'session-' + Date.now(),
@@ -101,7 +100,7 @@ class ProgressTracker {
     }
     return session;
   }
-  
+
   getCurrentSession() {
     // localStorageからも読み込みを試みる
     if (!this.currentSession && typeof Storage !== 'undefined' && Storage.prototype.getItem) {
@@ -112,7 +111,7 @@ class ProgressTracker {
     }
     return this.currentSession;
   }
-  
+
   endChallenge(result) {
     if (this.currentSession) {
       this.currentSession.status = result.completed ? 'COMPLETED' : 'FAILED';
@@ -125,7 +124,7 @@ class ProgressTracker {
     }
     return this.currentSession;
   }
-  
+
   updateProgress(progressData) {
     if (this.currentSession) {
       this.currentSession.currentScore = progressData.currentScore;
@@ -133,7 +132,7 @@ class ProgressTracker {
       this.currentSession.stats = progressData;
     }
   }
-  
+
   getCurrentProgress() {
     if (!this.currentSession) return null;
     return {
@@ -142,7 +141,7 @@ class ProgressTracker {
       stats: this.currentSession.stats || {}
     };
   }
-  
+
   checkViolation(action) {
     if (this.currentSession) {
       const restrictions = this.currentSession.restrictions || [];
@@ -154,7 +153,7 @@ class ProgressTracker {
     }
     return false;
   }
-  
+
   getChallengeHistory() {
     // localStorageから読み込み
     if (typeof Storage !== 'undefined' && Storage.prototype.getItem) {
@@ -165,7 +164,7 @@ class ProgressTracker {
     }
     return this.history;
   }
-  
+
   getWeeklySummary(weekNumber) {
     // localStorageから読み込み
     if (typeof Storage !== 'undefined' && Storage.prototype.getItem) {
@@ -174,13 +173,13 @@ class ProgressTracker {
         this.history = JSON.parse(saved);
       }
     }
-    
+
     const weekChallenges = this.history.filter(h => {
       // challengeIdのフォーマットが違う場合も考慮
-      return h.challengeId === `weekly-challenge-${weekNumber}` || 
+      return h.challengeId === `weekly-challenge-${weekNumber}` ||
              (h.challengeId && h.challengeId.includes(`challenge-${weekNumber}`));
     });
-    
+
     if (weekChallenges.length === 0) {
       // モックデータがない場合のフォールバック
       return {
@@ -192,12 +191,12 @@ class ProgressTracker {
         averagePlayTime: 0
       };
     }
-    
+
     const completed = weekChallenges.some(c => c.status === 'COMPLETED' || c.completed);
     const attempts = weekChallenges.length;
     const highScore = Math.max(...weekChallenges.map(c => c.finalScore || c.highScore || 0));
     const totalPlayTime = weekChallenges.reduce((sum, c) => sum + (c.duration || c.totalPlayTime || 0), 0);
-    
+
     return {
       weekNumber,
       attempts,
@@ -207,7 +206,7 @@ class ProgressTracker {
       averagePlayTime: attempts > 0 ? totalPlayTime / attempts : 0
     };
   }
-  
+
   getOverallStats() {
     // localStorageから読み込み
     if (typeof Storage !== 'undefined' && Storage.prototype.getItem) {
@@ -216,11 +215,11 @@ class ProgressTracker {
         this.history = JSON.parse(saved);
       }
     }
-    
+
     const totalChallenges = this.history.length;
     const completedChallenges = this.history.filter(h => h.status === 'COMPLETED' || h.completed).length;
     const totalScore = this.history.reduce((sum, h) => sum + (h.finalScore || h.score || 0), 0);
-    
+
     return {
       totalChallenges,
       completedChallenges,
@@ -228,7 +227,7 @@ class ProgressTracker {
       averageScore: totalChallenges > 0 ? totalScore / totalChallenges : 0
     };
   }
-  
+
   enableAutoSave(interval) {
     this.autoSaveInterval = setInterval(() => {
       if (this.currentSession && typeof Storage !== 'undefined' && Storage.prototype.setItem) {
@@ -236,7 +235,7 @@ class ProgressTracker {
       }
     }, interval);
   }
-  
+
   recoverSession() {
     // localStorageから復元
     if (typeof Storage !== 'undefined' && Storage.prototype.getItem) {
@@ -481,7 +480,7 @@ describe('ProgressTracker', () => {
   describe('進捗の永続化', () => {
     test('進捗を自動保存できる', () => {
       jest.useFakeTimers();
-      
+
       tracker.startChallenge({
         challengeId: 'weekly-challenge-1',
         targetScore: 1000
@@ -490,9 +489,9 @@ describe('ProgressTracker', () => {
       tracker.enableAutoSave(5000); // 5秒ごと
 
       tracker.updateProgress({ currentScore: 500 });
-      
+
       jest.advanceTimersByTime(5000);
-      
+
       expect(Storage.prototype.setItem).toHaveBeenCalledWith(
         expect.stringContaining('progress'),
         expect.any(String)

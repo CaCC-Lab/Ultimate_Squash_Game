@@ -57,4 +57,497 @@ export class CSPEnforcingMigration {
         
         console.log('🛡️ [CSP Migration] Evaluation system initialized');
     }
-    \n    /**\n     * 既存のCSPレポーターとの統合\n     */\n    integrateWithExistingReporter() {\n        // window.cspViolationsが存在する場合、それを活用\n        if (window.cspViolations) {\n            // 既存の違反データを取り込み\n            Object.entries(window.cspViolations).forEach(([key, count]) => {\n                const [directive, uri] = key.split('|');\n                this.state.violationHistory.push({\n                    timestamp: Date.now(),\n                    directive: directive,\n                    blockedURI: uri,\n                    count: count,\n                    source: 'existing'\n                });\n            });\n            \n            console.log(`🛡️ [CSP Migration] Imported ${this.state.violationHistory.length} existing violations`);\n        }\n    }\n    \n    /**\n     * 評価開始\n     */\n    startEvaluation() {\n        if (this.state.isEvaluating) {\n            console.warn('[CSP Migration] Evaluation already in progress');\n            return;\n        }\n        \n        this.state.isEvaluating = true;\n        this.state.evaluationStartTime = Date.now();\n        this.state.violationHistory = [];\n        \n        console.log('🔍 [CSP Migration] Starting CSP violation evaluation');\n        \n        // 評価期間終了後の自動評価\n        setTimeout(() => {\n            this.completeEvaluation();\n        }, this.config.evaluationPeriod);\n    }\n    \n    /**\n     * CSP違反イベントハンドラー\n     */\n    onCSPViolation(event) {\n        if (!this.state.isEvaluating) return;\n        \n        const violation = {\n            timestamp: Date.now(),\n            directive: event.violatedDirective,\n            blockedURI: event.blockedURI,\n            sourceFile: event.sourceFile,\n            lineNumber: event.lineNumber,\n            originalPolicy: event.originalPolicy,\n            isCritical: this.isCriticalViolation(event.violatedDirective)\n        };\n        \n        this.state.violationHistory.push(violation);\n        \n        console.log('🚨 [CSP Migration] Violation recorded:', {\n            directive: violation.directive,\n            blockedURI: violation.blockedURI,\n            isCritical: violation.isCritical\n        });\n        \n        // リアルタイム評価更新\n        this.updateMigrationReadiness();\n    }\n    \n    /**\n     * 重要な違反かどうかを判定\n     */\n    isCriticalViolation(directive) {\n        return this.criticalDirectives.some(critical => \n            directive.includes(critical)\n        );\n    }\n    \n    /**\n     * 移行準備状況の更新\n     */\n    updateMigrationReadiness() {\n        const violations = this.state.violationHistory;\n        const criticalViolations = violations.filter(v => v.isCritical);\n        const totalViolations = violations.length;\n        \n        this.state.migrationReadiness = {\n            totalViolations: totalViolations,\n            criticalViolations: criticalViolations.length,\n            isReady: (\n                totalViolations <= this.config.maxAllowedViolations &&\n                criticalViolations.length <= this.config.criticalViolationThreshold\n            ),\n            riskLevel: this.calculateRiskLevel(totalViolations, criticalViolations.length),\n            evaluatedAt: Date.now()\n        };\n    }\n    \n    /**\n     * リスクレベル計算\n     */\n    calculateRiskLevel(totalViolations, criticalViolations) {\n        if (criticalViolations > 0) return 'HIGH';\n        if (totalViolations > this.config.maxAllowedViolations) return 'MEDIUM';\n        if (totalViolations > 0) return 'LOW';\n        return 'MINIMAL';\n    }\n    \n    /**\n     * 評価完了\n     */\n    completeEvaluation() {\n        if (!this.state.isEvaluating) return;\n        \n        this.state.isEvaluating = false;\n        this.updateMigrationReadiness();\n        \n        const readiness = this.state.migrationReadiness;\n        \n        console.group('📊 [CSP Migration] Evaluation Complete');\n        console.log('Total Violations:', readiness.totalViolations);\n        console.log('Critical Violations:', readiness.criticalViolations);\n        console.log('Risk Level:', readiness.riskLevel);\n        console.log('Ready for Enforcing Mode:', readiness.isReady);\n        console.groupEnd();\n        \n        // 自動移行の実行\n        if (readiness.isReady && this.config.autoMigrationEnabled) {\n            this.migrateToEnforcingMode();\n        } else {\n            this.generateMigrationReport();\n        }\n    }\n    \n    /**\n     * Enforcingモードへの移行実行\n     */\n    async migrateToEnforcingMode() {\n        if (this.state.enforcingModeActive) {\n            console.warn('[CSP Migration] Enforcing mode already active');\n            return;\n        }\n        \n        try {\n            console.log('🔒 [CSP Migration] Migrating to Enforcing Mode...');\n            \n            // 設定ファイルの更新\n            await this.updateCSPConfiguration();\n            \n            // ページのリロード（新しいCSPを適用）\n            this.applyEnforcingCSP();\n            \n            this.state.enforcingModeActive = true;\n            \n            console.log('✅ [CSP Migration] Migration to Enforcing Mode completed');\n            \n            // 移行完了通知\n            this.notifyMigrationComplete();\n            \n        } catch (error) {\n            console.error('❌ [CSP Migration] Migration failed:', error);\n            this.handleMigrationFailure(error);\n        }\n    }\n    \n    /**\n     * CSP設定の更新\n     */\n    async updateCSPConfiguration() {\n        // ConfigLoaderを使用して設定を更新\n        if (window.configLoader && window.configLoader.config) {\n            const config = window.configLoader.config;\n            \n            if (config.security && config.security.csp) {\n                // Report-OnlyをEnforcingに変更\n                config.security.csp.reportOnly = false;\n                \n                console.log('🔧 [CSP Migration] Configuration updated');\n            }\n        }\n    }\n    \n    /**\n     * Enforcing CSPをページに適用\n     */\n    applyEnforcingCSP() {\n        // 新しいメタタグでEnforcing CSPを設定\n        const existingMeta = document.querySelector('meta[http-equiv=\"Content-Security-Policy\"]');\n        if (existingMeta) {\n            existingMeta.remove();\n        }\n        \n        const meta = document.createElement('meta');\n        meta.setAttribute('http-equiv', 'Content-Security-Policy');\n        meta.setAttribute('content', this.generateEnforcingCSPContent());\n        \n        document.head.appendChild(meta);\n        \n        console.log('🛡️ [CSP Migration] Enforcing CSP applied');\n    }\n    \n    /**\n     * Enforcing CSPコンテンツ生成\n     */\n    generateEnforcingCSPContent() {\n        const directives = [\n            \"default-src 'self'\",\n            \"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net\",\n            \"style-src 'self' 'unsafe-inline'\",\n            \"img-src 'self' data: blob:\",\n            \"connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:*\",\n            \"worker-src 'self' blob:\",\n            \"child-src 'self' blob:\",\n            \"object-src 'none'\",\n            \"font-src 'self'\",\n            \"base-uri 'self'\",\n            \"form-action 'self'\"\n        ];\n        \n        return directives.join('; ');\n    }\n    \n    /**\n     * 移行レポート生成\n     */\n    generateMigrationReport() {\n        const readiness = this.state.migrationReadiness;\n        const violations = this.state.violationHistory;\n        \n        const report = {\n            evaluationPeriod: {\n                start: this.state.evaluationStartTime,\n                end: Date.now(),\n                duration: Date.now() - this.state.evaluationStartTime\n            },\n            violationSummary: {\n                total: readiness.totalViolations,\n                critical: readiness.criticalViolations,\n                riskLevel: readiness.riskLevel\n            },\n            readiness: {\n                isReady: readiness.isReady,\n                recommendation: this.generateRecommendation(readiness)\n            },\n            violationDetails: this.groupViolationsByDirective(violations),\n            nextSteps: this.generateNextSteps(readiness)\n        };\n        \n        console.group('📋 [CSP Migration] Report');\n        console.log('Migration Readiness:', report.readiness);\n        console.log('Violation Summary:', report.violationSummary);\n        console.log('Violation Details:', report.violationDetails);\n        console.log('Next Steps:', report.nextSteps);\n        console.groupEnd();\n        \n        // IndexedDBに保存\n        this.saveMigrationReport(report);\n        \n        return report;\n    }\n    \n    /**\n     * 違反をディレクティブ別にグループ化\n     */\n    groupViolationsByDirective(violations) {\n        const grouped = {};\n        \n        violations.forEach(violation => {\n            const directive = violation.directive;\n            \n            if (!grouped[directive]) {\n                grouped[directive] = {\n                    count: 0,\n                    examples: [],\n                    isCritical: violation.isCritical\n                };\n            }\n            \n            grouped[directive].count += violation.count || 1;\n            \n            if (grouped[directive].examples.length < 3) {\n                grouped[directive].examples.push({\n                    blockedURI: violation.blockedURI,\n                    sourceFile: violation.sourceFile,\n                    lineNumber: violation.lineNumber\n                });\n            }\n        });\n        \n        return grouped;\n    }\n    \n    /**\n     * 推奨事項生成\n     */\n    generateRecommendation(readiness) {\n        if (readiness.isReady) {\n            return 'CSP Enforcing mode can be safely enabled. No critical violations detected.';\n        }\n        \n        if (readiness.criticalViolations > 0) {\n            return 'Critical violations detected. Review and fix security issues before enabling Enforcing mode.';\n        }\n        \n        if (readiness.totalViolations > this.config.maxAllowedViolations) {\n            return 'Too many violations detected. Review and optimize CSP directives or fix violations.';\n        }\n        \n        return 'Continue monitoring. Consider extending evaluation period.';\n    }\n    \n    /**\n     * 次のステップ生成\n     */\n    generateNextSteps(readiness) {\n        const steps = [];\n        \n        if (readiness.isReady) {\n            steps.push('Enable CSP Enforcing mode');\n            steps.push('Monitor for any new violations');\n            steps.push('Consider implementing CSP nonces for enhanced security');\n        } else {\n            if (readiness.criticalViolations > 0) {\n                steps.push('Fix critical security violations immediately');\n            }\n            \n            if (readiness.totalViolations > this.config.maxAllowedViolations) {\n                steps.push('Review and update CSP directives');\n                steps.push('Fix non-critical violations');\n            }\n            \n            steps.push('Continue evaluation period');\n            steps.push('Re-evaluate after fixes are implemented');\n        }\n        \n        return steps;\n    }\n    \n    /**\n     * 移行完了通知\n     */\n    notifyMigrationComplete() {\n        // ダッシュボードに通知\n        if (window.performanceDashboard && window.performanceDashboard.isVisible) {\n            this.addNotificationToDashboard('CSP Enforcing Mode Activated', 'success');\n        }\n        \n        // コンソール通知\n        console.log('🎉 [CSP Migration] Migration completed successfully!');\n        \n        // カスタムイベント発火\n        const event = new CustomEvent('csp:enforcingModeActivated', {\n            detail: {\n                timestamp: Date.now(),\n                migrationReadiness: this.state.migrationReadiness\n            }\n        });\n        \n        window.dispatchEvent(event);\n    }\n    \n    /**\n     * 移行失敗処理\n     */\n    handleMigrationFailure(error) {\n        console.error('🚨 [CSP Migration] Migration failed:', error);\n        \n        // Report-Onlyモードに戻す\n        this.revertToReportOnly();\n        \n        // エラー通知\n        if (window.performanceDashboard && window.performanceDashboard.isVisible) {\n            this.addNotificationToDashboard('CSP Migration Failed', 'error');\n        }\n    }\n    \n    /**\n     * Report-Onlyモードへの復帰\n     */\n    revertToReportOnly() {\n        const enforcingMeta = document.querySelector('meta[http-equiv=\"Content-Security-Policy\"]');\n        if (enforcingMeta) {\n            enforcingMeta.remove();\n        }\n        \n        this.state.enforcingModeActive = false;\n        \n        console.log('🔄 [CSP Migration] Reverted to Report-Only mode');\n    }\n    \n    /**\n     * ダッシュボードに通知追加\n     */\n    addNotificationToDashboard(message, type) {\n        // パフォーマンスダッシュボードに通知を追加\n        // この実装は既存のダッシュボード構造に依存\n        console.log(`📢 [CSP Migration] Dashboard notification: ${message} (${type})`);\n    }\n    \n    /**\n     * 移行レポートをIndexedDBに保存\n     */\n    async saveMigrationReport(report) {\n        try {\n            if (!window.indexedDB) return;\n            \n            const request = indexedDB.open('CSPMigrationReports', 1);\n            \n            request.onupgradeneeded = (event) => {\n                const db = event.target.result;\n                if (!db.objectStoreNames.contains('reports')) {\n                    const store = db.createObjectStore('reports', { keyPath: 'timestamp' });\n                    store.createIndex('riskLevel', 'violationSummary.riskLevel', { unique: false });\n                }\n            };\n            \n            request.onsuccess = (event) => {\n                const db = event.target.result;\n                const transaction = db.transaction(['reports'], 'readwrite');\n                const store = transaction.objectStore('reports');\n                \n                const reportWithTimestamp = {\n                    ...report,\n                    timestamp: Date.now()\n                };\n                \n                store.add(reportWithTimestamp);\n                \n                console.log('💾 [CSP Migration] Report saved to IndexedDB');\n            };\n            \n        } catch (error) {\n            console.warn('[CSP Migration] Failed to save report:', error);\n        }\n    }\n    \n    /**\n     * 手動移行トリガー\n     */\n    forceMigration() {\n        console.log('🔧 [CSP Migration] Force migration triggered');\n        this.migrateToEnforcingMode();\n    }\n    \n    /**\n     * 評価状況取得\n     */\n    getEvaluationStatus() {\n        return {\n            isEvaluating: this.state.isEvaluating,\n            evaluationStartTime: this.state.evaluationStartTime,\n            violationCount: this.state.violationHistory.length,\n            migrationReadiness: this.state.migrationReadiness,\n            enforcingModeActive: this.state.enforcingModeActive\n        };\n    }\n    \n    /**\n     * 設定更新\n     */\n    updateConfig(newConfig) {\n        this.config = { ...this.config, ...newConfig };\n        console.log('⚙️ [CSP Migration] Configuration updated:', this.config);\n    }\n    \n    /**\n     * リソースクリーンアップ\n     */\n    destroy() {\n        document.removeEventListener('securitypolicyviolation', this.onCSPViolation);\n        this.state.isEvaluating = false;\n        this.state.violationHistory = [];\n        \n        console.log('🧹 [CSP Migration] Cleanup completed');\n    }\n}\n\n// グローバルインスタンス作成\nwindow.cspMigration = new CSPEnforcingMigration();\n\n// 開発環境では自動移行を有効化\nif (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {\n    window.cspMigration.updateConfig({\n        evaluationPeriod: 10000, // 10秒\n        autoMigrationEnabled: true\n    });\n    \n    console.log('🛡️ [CSP Migration] Development mode: Auto-migration enabled');\n}\n\nexport default CSPEnforcingMigration;"
+    
+    /**
+     * 既存のCSPレポーターとの統合
+     */
+    integrateWithExistingReporter() {
+        // window.cspViolationsが存在する場合、それを活用
+        if (window.cspViolations) {
+            // 既存の違反データを取り込み
+            Object.entries(window.cspViolations).forEach(([key, count]) => {
+                const [directive, uri] = key.split('|');
+                this.state.violationHistory.push({
+                    timestamp: Date.now(),
+                    directive: directive,
+                    blockedURI: uri,
+                    count: count,
+                    source: 'existing'
+                });
+            });
+            
+            console.log(`🛡️ [CSP Migration] Imported ${this.state.violationHistory.length} existing violations`);
+        }
+    }
+    
+    /**
+     * 評価開始
+     */
+    startEvaluation() {
+        if (this.state.isEvaluating) {
+            console.warn('[CSP Migration] Evaluation already in progress');
+            return;
+        }
+        
+        this.state.isEvaluating = true;
+        this.state.evaluationStartTime = Date.now();
+        this.state.violationHistory = [];
+        
+        console.log('🔍 [CSP Migration] Starting CSP violation evaluation');
+        
+        // 評価期間終了後の自動評価
+        setTimeout(() => {
+            this.completeEvaluation();
+        }, this.config.evaluationPeriod);
+    }
+    
+    /**
+     * CSP違反イベントハンドラー
+     */
+    onCSPViolation(event) {
+        if (!this.state.isEvaluating) return;
+        
+        const violation = {
+            timestamp: Date.now(),
+            directive: event.violatedDirective,
+            blockedURI: event.blockedURI,
+            sourceFile: event.sourceFile,
+            lineNumber: event.lineNumber,
+            originalPolicy: event.originalPolicy,
+            isCritical: this.isCriticalViolation(event.violatedDirective)
+        };
+        
+        this.state.violationHistory.push(violation);
+        
+        console.log('🚨 [CSP Migration] Violation recorded:', {
+            directive: violation.directive,
+            blockedURI: violation.blockedURI,
+            isCritical: violation.isCritical
+        });
+        
+        // リアルタイム評価更新
+        this.updateMigrationReadiness();
+    }
+    
+    /**
+     * 重要な違反かどうかを判定
+     */
+    isCriticalViolation(directive) {
+        return this.criticalDirectives.some(critical => 
+            directive.includes(critical)
+        );
+    }
+    
+    /**
+     * 移行準備状況の更新
+     */
+    updateMigrationReadiness() {
+        const violations = this.state.violationHistory;
+        const criticalViolations = violations.filter(v => v.isCritical);
+        const totalViolations = violations.length;
+        
+        this.state.migrationReadiness = {
+            totalViolations: totalViolations,
+            criticalViolations: criticalViolations.length,
+            isReady: (
+                totalViolations <= this.config.maxAllowedViolations &&
+                criticalViolations.length <= this.config.criticalViolationThreshold
+            ),
+            riskLevel: this.calculateRiskLevel(totalViolations, criticalViolations.length),
+            evaluatedAt: Date.now()
+        };
+    }
+    
+    /**
+     * リスクレベル計算
+     */
+    calculateRiskLevel(totalViolations, criticalViolations) {
+        if (criticalViolations > 0) return 'HIGH';
+        if (totalViolations > this.config.maxAllowedViolations) return 'MEDIUM';
+        if (totalViolations > 0) return 'LOW';
+        return 'MINIMAL';
+    }
+    
+    /**
+     * 評価完了
+     */
+    completeEvaluation() {
+        if (!this.state.isEvaluating) return;
+        
+        this.state.isEvaluating = false;
+        this.updateMigrationReadiness();
+        
+        const readiness = this.state.migrationReadiness;
+        
+        console.group('📊 [CSP Migration] Evaluation Complete');
+        console.log('Total Violations:', readiness.totalViolations);
+        console.log('Critical Violations:', readiness.criticalViolations);
+        console.log('Risk Level:', readiness.riskLevel);
+        console.log('Ready for Enforcing Mode:', readiness.isReady);
+        console.groupEnd();
+        
+        // 自動移行の実行
+        if (readiness.isReady && this.config.autoMigrationEnabled) {
+            this.migrateToEnforcingMode();
+        } else {
+            this.generateMigrationReport();
+        }
+    }
+    
+    /**
+     * Enforcingモードへの移行実行
+     */
+    async migrateToEnforcingMode() {
+        if (this.state.enforcingModeActive) {
+            console.warn('[CSP Migration] Enforcing mode already active');
+            return;
+        }
+        
+        try {
+            console.log('🔒 [CSP Migration] Migrating to Enforcing Mode...');
+            
+            // 設定ファイルの更新
+            await this.updateCSPConfiguration();
+            
+            // ページのリロード（新しいCSPを適用）
+            this.applyEnforcingCSP();
+            
+            this.state.enforcingModeActive = true;
+            
+            console.log('✅ [CSP Migration] Migration to Enforcing Mode completed');
+            
+            // 移行完了通知
+            this.notifyMigrationComplete();
+            
+        } catch (error) {
+            console.error('❌ [CSP Migration] Migration failed:', error);
+            this.handleMigrationFailure(error);
+        }
+    }
+    
+    /**
+     * CSP設定の更新
+     */
+    async updateCSPConfiguration() {
+        // ConfigLoaderを使用して設定を更新
+        if (window.configLoader && window.configLoader.config) {
+            const config = window.configLoader.config;
+            
+            if (config.security && config.security.csp) {
+                // Report-OnlyをEnforcingに変更
+                config.security.csp.reportOnly = false;
+                
+                console.log('🔧 [CSP Migration] Configuration updated');
+            }
+        }
+    }
+    
+    /**
+     * Enforcing CSPをページに適用
+     */
+    applyEnforcingCSP() {
+        // 新しいメタタグでEnforcing CSPを設定
+        const existingMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (existingMeta) {
+            existingMeta.remove();
+        }
+        
+        const meta = document.createElement('meta');
+        meta.setAttribute('http-equiv', 'Content-Security-Policy');
+        meta.setAttribute('content', this.generateEnforcingCSPContent());
+        
+        document.head.appendChild(meta);
+        
+        console.log('🛡️ [CSP Migration] Enforcing CSP applied');
+    }
+    
+    /**
+     * Enforcing CSPコンテンツ生成
+     */
+    generateEnforcingCSPContent() {
+        const directives = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdn.jsdelivr.net",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob:",
+            "connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:*",
+            "worker-src 'self' blob:",
+            "child-src 'self' blob:",
+            "object-src 'none'",
+            "font-src 'self'",
+            "base-uri 'self'",
+            "form-action 'self'"
+        ];
+        
+        return directives.join('; ');
+    }
+    
+    /**
+     * 移行レポート生成
+     */
+    generateMigrationReport() {
+        const readiness = this.state.migrationReadiness;
+        const violations = this.state.violationHistory;
+        
+        const report = {
+            evaluationPeriod: {
+                start: this.state.evaluationStartTime,
+                end: Date.now(),
+                duration: Date.now() - this.state.evaluationStartTime
+            },
+            violationSummary: {
+                total: readiness.totalViolations,
+                critical: readiness.criticalViolations,
+                riskLevel: readiness.riskLevel
+            },
+            readiness: {
+                isReady: readiness.isReady,
+                recommendation: this.generateRecommendation(readiness)
+            },
+            violationDetails: this.groupViolationsByDirective(violations),
+            nextSteps: this.generateNextSteps(readiness)
+        };
+        
+        console.group('📋 [CSP Migration] Report');
+        console.log('Migration Readiness:', report.readiness);
+        console.log('Violation Summary:', report.violationSummary);
+        console.log('Violation Details:', report.violationDetails);
+        console.log('Next Steps:', report.nextSteps);
+        console.groupEnd();
+        
+        // IndexedDBに保存
+        this.saveMigrationReport(report);
+        
+        return report;
+    }
+    
+    /**
+     * 違反をディレクティブ別にグループ化
+     */
+    groupViolationsByDirective(violations) {
+        const grouped = {};
+        
+        violations.forEach(violation => {
+            const directive = violation.directive;
+            
+            if (!grouped[directive]) {
+                grouped[directive] = {
+                    count: 0,
+                    examples: [],
+                    isCritical: violation.isCritical
+                };
+            }
+            
+            grouped[directive].count += violation.count || 1;
+            
+            if (grouped[directive].examples.length < 3) {
+                grouped[directive].examples.push({
+                    blockedURI: violation.blockedURI,
+                    sourceFile: violation.sourceFile,
+                    lineNumber: violation.lineNumber
+                });
+            }
+        });
+        
+        return grouped;
+    }
+    
+    /**
+     * 推奨事項生成
+     */
+    generateRecommendation(readiness) {
+        if (readiness.isReady) {
+            return 'CSP Enforcing mode can be safely enabled. No critical violations detected.';
+        }
+        
+        if (readiness.criticalViolations > 0) {
+            return 'Critical violations detected. Review and fix security issues before enabling Enforcing mode.';
+        }
+        
+        if (readiness.totalViolations > this.config.maxAllowedViolations) {
+            return 'Too many violations detected. Review and optimize CSP directives or fix violations.';
+        }
+        
+        return 'Continue monitoring. Consider extending evaluation period.';
+    }
+    
+    /**
+     * 次のステップ生成
+     */
+    generateNextSteps(readiness) {
+        const steps = [];
+        
+        if (readiness.isReady) {
+            steps.push('Enable CSP Enforcing mode');
+            steps.push('Monitor for any new violations');
+            steps.push('Consider implementing CSP nonces for enhanced security');
+        } else {
+            if (readiness.criticalViolations > 0) {
+                steps.push('Fix critical security violations immediately');
+            }
+            
+            if (readiness.totalViolations > this.config.maxAllowedViolations) {
+                steps.push('Review and update CSP directives');
+                steps.push('Fix non-critical violations');
+            }
+            
+            steps.push('Continue evaluation period');
+            steps.push('Re-evaluate after fixes are implemented');
+        }
+        
+        return steps;
+    }
+    
+    /**
+     * 移行完了通知
+     */
+    notifyMigrationComplete() {
+        // ダッシュボードに通知
+        if (window.performanceDashboard && window.performanceDashboard.isVisible) {
+            this.addNotificationToDashboard('CSP Enforcing Mode Activated', 'success');
+        }
+        
+        // コンソール通知
+        console.log('🎉 [CSP Migration] Migration completed successfully!');
+        
+        // カスタムイベント発火
+        const event = new CustomEvent('csp:enforcingModeActivated', {
+            detail: {
+                timestamp: Date.now(),
+                migrationReadiness: this.state.migrationReadiness
+            }
+        });
+        
+        window.dispatchEvent(event);
+    }
+    
+    /**
+     * 移行失敗処理
+     */
+    handleMigrationFailure(error) {
+        console.error('🚨 [CSP Migration] Migration failed:', error);
+        
+        // Report-Onlyモードに戻す
+        this.revertToReportOnly();
+        
+        // エラー通知
+        if (window.performanceDashboard && window.performanceDashboard.isVisible) {
+            this.addNotificationToDashboard('CSP Migration Failed', 'error');
+        }
+    }
+    
+    /**
+     * Report-Onlyモードへの復帰
+     */
+    revertToReportOnly() {
+        const enforcingMeta = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+        if (enforcingMeta) {
+            enforcingMeta.remove();
+        }
+        
+        this.state.enforcingModeActive = false;
+        
+        console.log('🔄 [CSP Migration] Reverted to Report-Only mode');
+    }
+    
+    /**
+     * ダッシュボードに通知追加
+     */
+    addNotificationToDashboard(message, type) {
+        // パフォーマンスダッシュボードに通知を追加
+        // この実装は既存のダッシュボード構造に依存
+        console.log(`📢 [CSP Migration] Dashboard notification: ${message} (${type})`);
+    }
+    
+    /**
+     * 移行レポートをIndexedDBに保存
+     */
+    async saveMigrationReport(report) {
+        try {
+            if (!window.indexedDB) return;
+            
+            const request = indexedDB.open('CSPMigrationReports', 1);
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains('reports')) {
+                    const store = db.createObjectStore('reports', { keyPath: 'timestamp' });
+                    store.createIndex('riskLevel', 'violationSummary.riskLevel', { unique: false });
+                }
+            };
+            
+            request.onsuccess = (event) => {
+                const db = event.target.result;
+                const transaction = db.transaction(['reports'], 'readwrite');
+                const store = transaction.objectStore('reports');
+                
+                const reportWithTimestamp = {
+                    ...report,
+                    timestamp: Date.now()
+                };
+                
+                store.add(reportWithTimestamp);
+                
+                console.log('💾 [CSP Migration] Report saved to IndexedDB');
+            };
+            
+        } catch (error) {
+            console.warn('[CSP Migration] Failed to save report:', error);
+        }
+    }
+    
+    /**
+     * 手動移行トリガー
+     */
+    forceMigration() {
+        console.log('🔧 [CSP Migration] Force migration triggered');
+        this.migrateToEnforcingMode();
+    }
+    
+    /**
+     * 評価状況取得
+     */
+    getEvaluationStatus() {
+        return {
+            isEvaluating: this.state.isEvaluating,
+            evaluationStartTime: this.state.evaluationStartTime,
+            violationCount: this.state.violationHistory.length,
+            migrationReadiness: this.state.migrationReadiness,
+            enforcingModeActive: this.state.enforcingModeActive
+        };
+    }
+    
+    /**
+     * 設定更新
+     */
+    updateConfig(newConfig) {
+        this.config = { ...this.config, ...newConfig };
+        console.log('⚙️ [CSP Migration] Configuration updated:', this.config);
+    }
+    
+    /**
+     * リソースクリーンアップ
+     */
+    destroy() {
+        document.removeEventListener('securitypolicyviolation', this.onCSPViolation);
+        this.state.isEvaluating = false;
+        this.state.violationHistory = [];
+        
+        console.log('🧹 [CSP Migration] Cleanup completed');
+    }
+}
+
+// グローバルインスタンス作成
+window.cspMigration = new CSPEnforcingMigration();
+
+// 開発環境では自動移行を有効化
+if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    window.cspMigration.updateConfig({
+        evaluationPeriod: 10000, // 10秒
+        autoMigrationEnabled: true
+    });
+    
+    console.log('🛡️ [CSP Migration] Development mode: Auto-migration enabled');
+}
+
+export default CSPEnforcingMigration;"

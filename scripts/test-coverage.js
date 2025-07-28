@@ -15,408 +15,408 @@ const __dirname = dirname(__filename);
 const projectRoot = join(__dirname, '..');
 
 class IntegratedTestCoverage {
-    constructor() {
-        this.config = {
-            outputDir: join(projectRoot, 'coverage-reports'),
-            tempDir: join(projectRoot, 'temp-coverage'),
-            testTypes: {
-                unit: {
-                    name: 'Unit Tests',
-                    command: 'npx jest --coverage --coverageDirectory=temp-coverage/unit',
-                    enabled: true,
-                    timeout: 30000
-                },
-                integration: {
-                    name: 'Integration Tests',
-                    command: 'npx jest --testPathPattern=tests/integration --coverage --coverageDirectory=temp-coverage/integration',
-                    enabled: true,
-                    timeout: 60000
-                },
-                e2e: {
-                    name: 'E2E Tests',
-                    command: 'npx playwright test --reporter=html --output-dir=temp-coverage/e2e',
-                    enabled: true,
-                    timeout: 120000,
-                    coverageCommand: 'npx playwright test --reporter=json --output-dir=temp-coverage/e2e-json'
-                },
-                performance: {
-                    name: 'Performance Tests',
-                    command: 'npx jest --testPathPattern=tests/performance --coverage --coverageDirectory=temp-coverage/performance',
-                    enabled: true,
-                    timeout: 90000
-                }
-            },
-            targets: {
-                statements: 80,
-                branches: 75,
-                functions: 80,
-                lines: 80
-            }
-        };
-        
-        this.results = {
-            overall: {},
-            byType: {},
-            coverage: {},
-            summary: {
-                startTime: null,
-                endTime: null,
-                duration: 0,
-                totalTests: 0,
-                passedTests: 0,
-                failedTests: 0,
-                coverageTargetsMet: false
-            }
-        };
-        
-        this.setupDirectories();
-    }
-    
-    /**
+  constructor() {
+    this.config = {
+      outputDir: join(projectRoot, 'coverage-reports'),
+      tempDir: join(projectRoot, 'temp-coverage'),
+      testTypes: {
+        unit: {
+          name: 'Unit Tests',
+          command: 'npx jest --coverage --coverageDirectory=temp-coverage/unit',
+          enabled: true,
+          timeout: 30000
+        },
+        integration: {
+          name: 'Integration Tests',
+          command: 'npx jest --testPathPattern=tests/integration --coverage --coverageDirectory=temp-coverage/integration',
+          enabled: true,
+          timeout: 60000
+        },
+        e2e: {
+          name: 'E2E Tests',
+          command: 'npx playwright test --reporter=html --output-dir=temp-coverage/e2e',
+          enabled: true,
+          timeout: 120000,
+          coverageCommand: 'npx playwright test --reporter=json --output-dir=temp-coverage/e2e-json'
+        },
+        performance: {
+          name: 'Performance Tests',
+          command: 'npx jest --testPathPattern=tests/performance --coverage --coverageDirectory=temp-coverage/performance',
+          enabled: true,
+          timeout: 90000
+        }
+      },
+      targets: {
+        statements: 80,
+        branches: 75,
+        functions: 80,
+        lines: 80
+      }
+    };
+
+    this.results = {
+      overall: {},
+      byType: {},
+      coverage: {},
+      summary: {
+        startTime: null,
+        endTime: null,
+        duration: 0,
+        totalTests: 0,
+        passedTests: 0,
+        failedTests: 0,
+        coverageTargetsMet: false
+      }
+    };
+
+    this.setupDirectories();
+  }
+
+  /**
      * 必要なディレクトリを作成
      */
-    setupDirectories() {
-        const dirs = [this.config.outputDir, this.config.tempDir];
-        
-        for (const dir of dirs) {
-            if (existsSync(dir)) {
-                rmSync(dir, { recursive: true, force: true });
-            }
-            mkdirSync(dir, { recursive: true });
-        }
-        
-        // テストタイプ別のディレクトリを作成
-        for (const type of Object.keys(this.config.testTypes)) {
-            mkdirSync(join(this.config.tempDir, type), { recursive: true });
-        }
+  setupDirectories() {
+    const dirs = [this.config.outputDir, this.config.tempDir];
+
+    for (const dir of dirs) {
+      if (existsSync(dir)) {
+        rmSync(dir, { recursive: true, force: true });
+      }
+      mkdirSync(dir, { recursive: true });
     }
-    
-    /**
+
+    // テストタイプ別のディレクトリを作成
+    for (const type of Object.keys(this.config.testTypes)) {
+      mkdirSync(join(this.config.tempDir, type), { recursive: true });
+    }
+  }
+
+  /**
      * 全テストスイートを実行
      */
-    async runAllTests() {
-        console.log('🚀 統合テストカバレッジシステム開始');
-        console.log('=' .repeat(60));
-        
-        this.results.summary.startTime = Date.now();
-        
-        // 各テストタイプを順次実行
-        for (const [type, config] of Object.entries(this.config.testTypes)) {
-            if (!config.enabled) {
-                console.log(`⏭️  ${config.name} - スキップ（無効）`);
-                continue;
-            }
-            
-            console.log(`\n📋 ${config.name} 実行中...`);
-            await this.runTestType(type, config);
-        }
-        
-        // カバレッジデータを統合
-        await this.integrateCoverage();
-        
-        // レポートを生成
-        await this.generateReports();
-        
-        this.results.summary.endTime = Date.now();
-        this.results.summary.duration = this.results.summary.endTime - this.results.summary.startTime;
-        
-        console.log('\n' + '=' .repeat(60));
-        console.log('✅ 統合テストカバレッジ完了');
-        this.printSummary();
-        
-        return this.results;
+  async runAllTests() {
+    console.log('🚀 統合テストカバレッジシステム開始');
+    console.log('=' .repeat(60));
+
+    this.results.summary.startTime = Date.now();
+
+    // 各テストタイプを順次実行
+    for (const [type, config] of Object.entries(this.config.testTypes)) {
+      if (!config.enabled) {
+        console.log(`⏭️  ${config.name} - スキップ（無効）`);
+        continue;
+      }
+
+      console.log(`\n📋 ${config.name} 実行中...`);
+      await this.runTestType(type, config);
     }
-    
-    /**
+
+    // カバレッジデータを統合
+    await this.integrateCoverage();
+
+    // レポートを生成
+    await this.generateReports();
+
+    this.results.summary.endTime = Date.now();
+    this.results.summary.duration = this.results.summary.endTime - this.results.summary.startTime;
+
+    console.log('\n' + '=' .repeat(60));
+    console.log('✅ 統合テストカバレッジ完了');
+    this.printSummary();
+
+    return this.results;
+  }
+
+  /**
      * 特定のテストタイプを実行
      */
-    async runTestType(type, config) {
-        const startTime = Date.now();
-        
-        try {
-            // メインコマンドを実行
-            const result = this.executeCommand(config.command, config.timeout);
-            
-            // E2Eテストの場合、追加でカバレッジコマンドを実行
-            if (config.coverageCommand) {
-                this.executeCommand(config.coverageCommand, config.timeout);
-            }
-            
-            this.results.byType[type] = {
-                success: true,
-                duration: Date.now() - startTime,
-                output: result.stdout || '',
-                error: null
-            };
-            
-            // テスト結果を解析
-            this.parseTestResults(type, result);
-            
-            console.log(`✅ ${config.name} - 成功`);
-            
-        } catch (error) {
-            this.results.byType[type] = {
-                success: false,
-                duration: Date.now() - startTime,
-                output: error.stdout || '',
-                error: error.message
-            };
-            
-            console.log(`❌ ${config.name} - 失敗: ${error.message}`);
-            
-            // エラーでも継続（部分的なカバレッジレポートを作成）
-        }
+  async runTestType(type, config) {
+    const startTime = Date.now();
+
+    try {
+      // メインコマンドを実行
+      const result = this.executeCommand(config.command, config.timeout);
+
+      // E2Eテストの場合、追加でカバレッジコマンドを実行
+      if (config.coverageCommand) {
+        this.executeCommand(config.coverageCommand, config.timeout);
+      }
+
+      this.results.byType[type] = {
+        success: true,
+        duration: Date.now() - startTime,
+        output: result.stdout || '',
+        error: null
+      };
+
+      // テスト結果を解析
+      this.parseTestResults(type, result);
+
+      console.log(`✅ ${config.name} - 成功`);
+
+    } catch (error) {
+      this.results.byType[type] = {
+        success: false,
+        duration: Date.now() - startTime,
+        output: error.stdout || '',
+        error: error.message
+      };
+
+      console.log(`❌ ${config.name} - 失敗: ${error.message}`);
+
+      // エラーでも継続（部分的なカバレッジレポートを作成）
     }
-    
-    /**
+  }
+
+  /**
      * コマンドを実行
      */
-    executeCommand(command, timeout = 30000) {
-        try {
-            console.log(`   実行: ${command}`);
-            
-            const result = execSync(command, {
-                cwd: projectRoot,
-                timeout: timeout,
-                stdio: 'pipe',
-                encoding: 'utf-8',
-                env: {
-                    ...process.env,
-                    NODE_ENV: 'test',
-                    CI: 'true'
-                }
-            });
-            
-            return { stdout: result, stderr: '' };
-            
-        } catch (error) {
-            // 一部のテストツールは失敗時にexitコード1を返すため、
-            // stdoutに有用な情報がある場合は例外として扱わない
-            if (error.stdout && error.stdout.length > 0) {
-                return { 
-                    stdout: error.stdout, 
-                    stderr: error.stderr || '',
-                    exitCode: error.status 
-                };
-            }
-            throw error;
+  executeCommand(command, timeout = 30000) {
+    try {
+      console.log(`   実行: ${command}`);
+
+      const result = execSync(command, {
+        cwd: projectRoot,
+        timeout: timeout,
+        stdio: 'pipe',
+        encoding: 'utf-8',
+        env: {
+          ...process.env,
+          NODE_ENV: 'test',
+          CI: 'true'
         }
+      });
+
+      return { stdout: result, stderr: '' };
+
+    } catch (error) {
+      // 一部のテストツールは失敗時にexitコード1を返すため、
+      // stdoutに有用な情報がある場合は例外として扱わない
+      if (error.stdout && error.stdout.length > 0) {
+        return {
+          stdout: error.stdout,
+          stderr: error.stderr || '',
+          exitCode: error.status
+        };
+      }
+      throw error;
     }
-    
-    /**
+  }
+
+  /**
      * テスト結果を解析
      */
-    parseTestResults(type, result) {
-        const output = result.stdout;
-        
-        // Jest結果の解析
-        if (output.includes('Test Suites:') || output.includes('Tests:')) {
-            const testMatch = output.match(/Tests:\s+(\d+)\s+passed.*?(\d+)\s+total/);
-            if (testMatch) {
-                const passed = parseInt(testMatch[1]);
-                const total = parseInt(testMatch[2]);
-                
-                this.results.summary.totalTests += total;
-                this.results.summary.passedTests += passed;
-                this.results.summary.failedTests += (total - passed);
-            }
-        }
-        
-        // Playwright結果の解析
-        if (output.includes('passed') && type === 'e2e') {
-            const testMatch = output.match(/(\d+)\s+passed/);
-            if (testMatch) {
-                const passed = parseInt(testMatch[1]);
-                this.results.summary.totalTests += passed;
-                this.results.summary.passedTests += passed;
-            }
-        }
+  parseTestResults(type, result) {
+    const output = result.stdout;
+
+    // Jest結果の解析
+    if (output.includes('Test Suites:') || output.includes('Tests:')) {
+      const testMatch = output.match(/Tests:\s+(\d+)\s+passed.*?(\d+)\s+total/);
+      if (testMatch) {
+        const passed = parseInt(testMatch[1]);
+        const total = parseInt(testMatch[2]);
+
+        this.results.summary.totalTests += total;
+        this.results.summary.passedTests += passed;
+        this.results.summary.failedTests += (total - passed);
+      }
     }
-    
-    /**
+
+    // Playwright結果の解析
+    if (output.includes('passed') && type === 'e2e') {
+      const testMatch = output.match(/(\d+)\s+passed/);
+      if (testMatch) {
+        const passed = parseInt(testMatch[1]);
+        this.results.summary.totalTests += passed;
+        this.results.summary.passedTests += passed;
+      }
+    }
+  }
+
+  /**
      * カバレッジデータを統合
      */
-    async integrateCoverage() {
-        console.log('\n📊 カバレッジデータ統合中...');
-        
-        const coverageData = {
-            statements: { total: 0, covered: 0, pct: 0 },
-            branches: { total: 0, covered: 0, pct: 0 },
-            functions: { total: 0, covered: 0, pct: 0 },
-            lines: { total: 0, covered: 0, pct: 0 },
-            byType: {}
-        };
-        
-        // 各テストタイプのカバレッジを収集
-        for (const type of Object.keys(this.config.testTypes)) {
-            const typeCoverage = await this.collectCoverageForType(type);
-            if (typeCoverage) {
-                coverageData.byType[type] = typeCoverage;
-                
-                // 全体統計に加算
-                for (const metric of ['statements', 'branches', 'functions', 'lines']) {
-                    if (typeCoverage[metric]) {
-                        coverageData[metric].total += typeCoverage[metric].total || 0;
-                        coverageData[metric].covered += typeCoverage[metric].covered || 0;
-                    }
-                }
-            }
-        }
-        
-        // パーセンテージを計算
+  async integrateCoverage() {
+    console.log('\n📊 カバレッジデータ統合中...');
+
+    const coverageData = {
+      statements: { total: 0, covered: 0, pct: 0 },
+      branches: { total: 0, covered: 0, pct: 0 },
+      functions: { total: 0, covered: 0, pct: 0 },
+      lines: { total: 0, covered: 0, pct: 0 },
+      byType: {}
+    };
+
+    // 各テストタイプのカバレッジを収集
+    for (const type of Object.keys(this.config.testTypes)) {
+      const typeCoverage = await this.collectCoverageForType(type);
+      if (typeCoverage) {
+        coverageData.byType[type] = typeCoverage;
+
+        // 全体統計に加算
         for (const metric of ['statements', 'branches', 'functions', 'lines']) {
-            if (coverageData[metric].total > 0) {
-                coverageData[metric].pct = 
-                    (coverageData[metric].covered / coverageData[metric].total) * 100;
-            }
+          if (typeCoverage[metric]) {
+            coverageData[metric].total += typeCoverage[metric].total || 0;
+            coverageData[metric].covered += typeCoverage[metric].covered || 0;
+          }
         }
-        
-        this.results.coverage = coverageData;
-        
-        // カバレッジ目標達成チェック
-        this.results.summary.coverageTargetsMet = this.checkCoverageTargets(coverageData);
+      }
     }
-    
-    /**
+
+    // パーセンテージを計算
+    for (const metric of ['statements', 'branches', 'functions', 'lines']) {
+      if (coverageData[metric].total > 0) {
+        coverageData[metric].pct =
+                    (coverageData[metric].covered / coverageData[metric].total) * 100;
+      }
+    }
+
+    this.results.coverage = coverageData;
+
+    // カバレッジ目標達成チェック
+    this.results.summary.coverageTargetsMet = this.checkCoverageTargets(coverageData);
+  }
+
+  /**
      * 特定のテストタイプのカバレッジを収集
      */
-    async collectCoverageForType(type) {
-        const coverageDir = join(this.config.tempDir, type);
-        const lcovFile = join(coverageDir, 'lcov.info');
-        const summaryFile = join(coverageDir, 'coverage-summary.json');
-        
-        try {
-            // coverage-summary.jsonが存在する場合はそれを使用
-            if (existsSync(summaryFile)) {
-                const summaryContent = readFileSync(summaryFile, 'utf-8');
-                const summary = JSON.parse(summaryContent);
-                
-                if (summary.total) {
-                    return {
-                        statements: summary.total.statements,
-                        branches: summary.total.branches,
-                        functions: summary.total.functions,
-                        lines: summary.total.lines
-                    };
-                }
-            }
-            
-            // lcov.infoが存在する場合は解析
-            if (existsSync(lcovFile)) {
-                return this.parseLcovFile(lcovFile);
-            }
-            
-            return null;
-            
-        } catch (error) {
-            console.warn(`⚠️  ${type}のカバレッジデータ収集に失敗: ${error.message}`);
-            return null;
+  async collectCoverageForType(type) {
+    const coverageDir = join(this.config.tempDir, type);
+    const lcovFile = join(coverageDir, 'lcov.info');
+    const summaryFile = join(coverageDir, 'coverage-summary.json');
+
+    try {
+      // coverage-summary.jsonが存在する場合はそれを使用
+      if (existsSync(summaryFile)) {
+        const summaryContent = readFileSync(summaryFile, 'utf-8');
+        const summary = JSON.parse(summaryContent);
+
+        if (summary.total) {
+          return {
+            statements: summary.total.statements,
+            branches: summary.total.branches,
+            functions: summary.total.functions,
+            lines: summary.total.lines
+          };
         }
+      }
+
+      // lcov.infoが存在する場合は解析
+      if (existsSync(lcovFile)) {
+        return this.parseLcovFile(lcovFile);
+      }
+
+      return null;
+
+    } catch (error) {
+      console.warn(`⚠️  ${type}のカバレッジデータ収集に失敗: ${error.message}`);
+      return null;
     }
-    
-    /**
+  }
+
+  /**
      * LCOVファイルを解析
      */
-    parseLcovFile(lcovFile) {
-        const content = readFileSync(lcovFile, 'utf-8');
-        const lines = content.split('\n');
-        
-        const coverage = {
-            statements: { total: 0, covered: 0 },
-            branches: { total: 0, covered: 0 },
-            functions: { total: 0, covered: 0 },
-            lines: { total: 0, covered: 0 }
-        };
-        
-        for (const line of lines) {
-            if (line.startsWith('LH:')) {
-                coverage.lines.covered += parseInt(line.split(':')[1]);
-            } else if (line.startsWith('LF:')) {
-                coverage.lines.total += parseInt(line.split(':')[1]);
-            } else if (line.startsWith('BRH:')) {
-                coverage.branches.covered += parseInt(line.split(':')[1]);
-            } else if (line.startsWith('BRF:')) {
-                coverage.branches.total += parseInt(line.split(':')[1]);
-            } else if (line.startsWith('FNH:')) {
-                coverage.functions.covered += parseInt(line.split(':')[1]);
-            } else if (line.startsWith('FNF:')) {
-                coverage.functions.total += parseInt(line.split(':')[1]);
-            }
-        }
-        
-        // ステートメントカバレッジはラインカバレッジと同等として扱う
-        coverage.statements = { ...coverage.lines };
-        
-        return coverage;
+  parseLcovFile(lcovFile) {
+    const content = readFileSync(lcovFile, 'utf-8');
+    const lines = content.split('\n');
+
+    const coverage = {
+      statements: { total: 0, covered: 0 },
+      branches: { total: 0, covered: 0 },
+      functions: { total: 0, covered: 0 },
+      lines: { total: 0, covered: 0 }
+    };
+
+    for (const line of lines) {
+      if (line.startsWith('LH:')) {
+        coverage.lines.covered += parseInt(line.split(':')[1]);
+      } else if (line.startsWith('LF:')) {
+        coverage.lines.total += parseInt(line.split(':')[1]);
+      } else if (line.startsWith('BRH:')) {
+        coverage.branches.covered += parseInt(line.split(':')[1]);
+      } else if (line.startsWith('BRF:')) {
+        coverage.branches.total += parseInt(line.split(':')[1]);
+      } else if (line.startsWith('FNH:')) {
+        coverage.functions.covered += parseInt(line.split(':')[1]);
+      } else if (line.startsWith('FNF:')) {
+        coverage.functions.total += parseInt(line.split(':')[1]);
+      }
     }
-    
-    /**
+
+    // ステートメントカバレッジはラインカバレッジと同等として扱う
+    coverage.statements = { ...coverage.lines };
+
+    return coverage;
+  }
+
+  /**
      * カバレッジ目標達成をチェック
      */
-    checkCoverageTargets(coverageData) {
-        const targets = this.config.targets;
-        
-        return (
-            coverageData.statements.pct >= targets.statements &&
+  checkCoverageTargets(coverageData) {
+    const targets = this.config.targets;
+
+    return (
+      coverageData.statements.pct >= targets.statements &&
             coverageData.branches.pct >= targets.branches &&
             coverageData.functions.pct >= targets.functions &&
             coverageData.lines.pct >= targets.lines
-        );
-    }
-    
-    /**
+    );
+  }
+
+  /**
      * 各種レポートを生成
      */
-    async generateReports() {
-        console.log('\n📄 レポート生成中...');
-        
-        // JSON詳細レポート
-        await this.generateJSONReport();
-        
-        // HTML統合レポート
-        await this.generateHTMLReport();
-        
-        // テキストサマリー
-        await this.generateTextReport();
-        
-        // JUnit XML（CI統合用）
-        await this.generateJUnitReport();
-        
-        console.log(`📁 レポート出力先: ${this.config.outputDir}`);
-    }
-    
-    /**
+  async generateReports() {
+    console.log('\n📄 レポート生成中...');
+
+    // JSON詳細レポート
+    await this.generateJSONReport();
+
+    // HTML統合レポート
+    await this.generateHTMLReport();
+
+    // テキストサマリー
+    await this.generateTextReport();
+
+    // JUnit XML（CI統合用）
+    await this.generateJUnitReport();
+
+    console.log(`📁 レポート出力先: ${this.config.outputDir}`);
+  }
+
+  /**
      * JSON詳細レポートを生成
      */
-    async generateJSONReport() {
-        const report = {
-            timestamp: new Date().toISOString(),
-            summary: this.results.summary,
-            coverage: this.results.coverage,
-            testResults: this.results.byType,
-            config: {
-                targets: this.config.targets,
-                testTypes: Object.fromEntries(
-                    Object.entries(this.config.testTypes).map(([key, value]) => [
-                        key, 
-                        { name: value.name, enabled: value.enabled }
-                    ])
-                )
-            }
-        };
-        
-        const outputPath = join(this.config.outputDir, 'coverage-report.json');
-        writeFileSync(outputPath, JSON.stringify(report, null, 2));
-    }
-    
-    /**
+  async generateJSONReport() {
+    const report = {
+      timestamp: new Date().toISOString(),
+      summary: this.results.summary,
+      coverage: this.results.coverage,
+      testResults: this.results.byType,
+      config: {
+        targets: this.config.targets,
+        testTypes: Object.fromEntries(
+          Object.entries(this.config.testTypes).map(([key, value]) => [
+            key,
+            { name: value.name, enabled: value.enabled }
+          ])
+        )
+      }
+    };
+
+    const outputPath = join(this.config.outputDir, 'coverage-report.json');
+    writeFileSync(outputPath, JSON.stringify(report, null, 2));
+  }
+
+  /**
      * HTML統合レポートを生成
      */
-    async generateHTMLReport() {
-        const coverage = this.results.coverage;
-        const summary = this.results.summary;
-        
-        const html = `
+  async generateHTMLReport() {
+    const coverage = this.results.coverage;
+    const summary = this.results.summary;
+
+    const html = `
 <!DOCTYPE html>
 <html lang="ja">
 <head>
@@ -501,17 +501,17 @@ class IntegratedTestCoverage {
             <h2>📊 統合カバレッジメトリクス</h2>
             <div class="coverage-grid">
                 ${['statements', 'branches', 'functions', 'lines'].map(metric => {
-                    const data = coverage[metric];
-                    const pct = data.pct || 0;
-                    const color = pct >= 80 ? '#28a745' : pct >= 60 ? '#ffc107' : '#dc3545';
-                    const circumference = 2 * Math.PI * 54;
-                    const offset = circumference - (pct / 100) * circumference;
-                    
-                    return `
+    const data = coverage[metric];
+    const pct = data.pct || 0;
+    const color = pct >= 80 ? '#28a745' : pct >= 60 ? '#ffc107' : '#dc3545';
+    const circumference = 2 * Math.PI * 54;
+    const offset = circumference - (pct / 100) * circumference;
+
+    return `
                     <div class="coverage-item">
-                        <h4>${metric === 'statements' ? 'ステートメント' : 
-                              metric === 'branches' ? 'ブランチ' :
-                              metric === 'functions' ? '関数' : 'ライン'}</h4>
+                        <h4>${metric === 'statements' ? 'ステートメント' :
+    metric === 'branches' ? 'ブランチ' :
+      metric === 'functions' ? '関数' : 'ライン'}</h4>
                         <div class="progress-circle">
                             <svg class="progress-ring" width="120" height="120">
                                 <circle class="progress-ring-circle" cx="60" cy="60" r="54"></circle>
@@ -524,7 +524,7 @@ class IntegratedTestCoverage {
                         </div>
                         <div class="label">${data.covered || 0}/${data.total || 0}</div>
                     </div>`;
-                }).join('')}
+  }).join('')}
             </div>
         </div>
         
@@ -551,19 +551,19 @@ class IntegratedTestCoverage {
     </div>
 </body>
 </html>`;
-        
-        const outputPath = join(this.config.outputDir, 'coverage-report.html');
-        writeFileSync(outputPath, html);
-    }
-    
-    /**
+
+    const outputPath = join(this.config.outputDir, 'coverage-report.html');
+    writeFileSync(outputPath, html);
+  }
+
+  /**
      * テキストサマリーレポートを生成
      */
-    async generateTextReport() {
-        const coverage = this.results.coverage;
-        const summary = this.results.summary;
-        
-        const report = `
+  async generateTextReport() {
+    const coverage = this.results.coverage;
+    const summary = this.results.summary;
+
+    const report = `
 統合テストカバレッジレポート
 ${'=' .repeat(50)}
 
@@ -588,24 +588,24 @@ ${'=' .repeat(50)}
   • ライン: ${this.config.targets.lines}% ${coverage.lines.pct >= this.config.targets.lines ? '✅' : '❌'}
 
 テストタイプ別結果:
-${Object.entries(this.results.byType).map(([type, result]) => 
+${Object.entries(this.results.byType).map(([type, result]) =>
     `  • ${this.config.testTypes[type]?.name || type}: ${result.success ? '✅' : '❌'} (${(result.duration / 1000).toFixed(2)}s)`
-).join('\n')}
+  ).join('\n')}
 
 生成日時: ${new Date().toISOString()}
 `;
-        
-        const outputPath = join(this.config.outputDir, 'coverage-summary.txt');
-        writeFileSync(outputPath, report);
-    }
-    
-    /**
+
+    const outputPath = join(this.config.outputDir, 'coverage-summary.txt');
+    writeFileSync(outputPath, report);
+  }
+
+  /**
      * JUnit XMLレポートを生成（CI統合用）
      */
-    async generateJUnitReport() {
-        const summary = this.results.summary;
-        
-        const xml = `<?xml version="1.0" encoding="UTF-8"?>
+  async generateJUnitReport() {
+    const summary = this.results.summary;
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <testsuite name="IntegratedTestCoverage" 
            tests="${summary.totalTests}" 
            failures="${summary.failedTests}" 
@@ -618,109 +618,109 @@ ${Object.entries(this.results.byType).map(([type, result]) =>
         ${!result.success ? `<failure message="${result.error || 'Test execution failed'}">${result.output}</failure>` : ''}
     </testcase>`).join('')}
 </testsuite>`;
-        
-        const outputPath = join(this.config.outputDir, 'junit-coverage.xml');
-        writeFileSync(outputPath, xml);
-    }
-    
-    /**
+
+    const outputPath = join(this.config.outputDir, 'junit-coverage.xml');
+    writeFileSync(outputPath, xml);
+  }
+
+  /**
      * サマリーを出力
      */
-    printSummary() {
-        const summary = this.results.summary;
-        const coverage = this.results.coverage;
-        
-        console.log('\n📊 テスト実行サマリー:');
-        console.log(`   総テスト数: ${summary.totalTests}`);
-        console.log(`   成功: ${summary.passedTests} | 失敗: ${summary.failedTests}`);
-        console.log(`   成功率: ${summary.totalTests > 0 ? (summary.passedTests / summary.totalTests * 100).toFixed(1) : '0'}%`);
-        console.log(`   実行時間: ${(summary.duration / 1000).toFixed(1)}秒`);
-        
-        console.log('\n📈 統合カバレッジ:');
-        console.log(`   ステートメント: ${coverage.statements.pct.toFixed(1)}%`);
-        console.log(`   ブランチ: ${coverage.branches.pct.toFixed(1)}%`);
-        console.log(`   関数: ${coverage.functions.pct.toFixed(1)}%`);
-        console.log(`   ライン: ${coverage.lines.pct.toFixed(1)}%`);
-        
-        console.log(`\n🎯 カバレッジ目標達成: ${summary.coverageTargetsMet ? '✅' : '❌'}`);
-        
-        if (!summary.coverageTargetsMet) {
-            console.log('\n⚠️  未達成項目:');
-            if (coverage.statements.pct < this.config.targets.statements) {
-                console.log(`   • ステートメント: ${coverage.statements.pct.toFixed(1)}% < ${this.config.targets.statements}%`);
-            }
-            if (coverage.branches.pct < this.config.targets.branches) {
-                console.log(`   • ブランチ: ${coverage.branches.pct.toFixed(1)}% < ${this.config.targets.branches}%`);
-            }
-            if (coverage.functions.pct < this.config.targets.functions) {
-                console.log(`   • 関数: ${coverage.functions.pct.toFixed(1)}% < ${this.config.targets.functions}%`);
-            }
-            if (coverage.lines.pct < this.config.targets.lines) {
-                console.log(`   • ライン: ${coverage.lines.pct.toFixed(1)}% < ${this.config.targets.lines}%`);
-            }
-        }
+  printSummary() {
+    const summary = this.results.summary;
+    const coverage = this.results.coverage;
+
+    console.log('\n📊 テスト実行サマリー:');
+    console.log(`   総テスト数: ${summary.totalTests}`);
+    console.log(`   成功: ${summary.passedTests} | 失敗: ${summary.failedTests}`);
+    console.log(`   成功率: ${summary.totalTests > 0 ? (summary.passedTests / summary.totalTests * 100).toFixed(1) : '0'}%`);
+    console.log(`   実行時間: ${(summary.duration / 1000).toFixed(1)}秒`);
+
+    console.log('\n📈 統合カバレッジ:');
+    console.log(`   ステートメント: ${coverage.statements.pct.toFixed(1)}%`);
+    console.log(`   ブランチ: ${coverage.branches.pct.toFixed(1)}%`);
+    console.log(`   関数: ${coverage.functions.pct.toFixed(1)}%`);
+    console.log(`   ライン: ${coverage.lines.pct.toFixed(1)}%`);
+
+    console.log(`\n🎯 カバレッジ目標達成: ${summary.coverageTargetsMet ? '✅' : '❌'}`);
+
+    if (!summary.coverageTargetsMet) {
+      console.log('\n⚠️  未達成項目:');
+      if (coverage.statements.pct < this.config.targets.statements) {
+        console.log(`   • ステートメント: ${coverage.statements.pct.toFixed(1)}% < ${this.config.targets.statements}%`);
+      }
+      if (coverage.branches.pct < this.config.targets.branches) {
+        console.log(`   • ブランチ: ${coverage.branches.pct.toFixed(1)}% < ${this.config.targets.branches}%`);
+      }
+      if (coverage.functions.pct < this.config.targets.functions) {
+        console.log(`   • 関数: ${coverage.functions.pct.toFixed(1)}% < ${this.config.targets.functions}%`);
+      }
+      if (coverage.lines.pct < this.config.targets.lines) {
+        console.log(`   • ライン: ${coverage.lines.pct.toFixed(1)}% < ${this.config.targets.lines}%`);
+      }
     }
-    
-    /**
+  }
+
+  /**
      * 特定のテストタイプのみを実行
      */
-    async runSpecificTest(testType) {
-        if (!this.config.testTypes[testType]) {
-            throw new Error(`Unknown test type: ${testType}`);
-        }
-        
-        console.log(`🎯 ${testType}テストのみ実行`);
-        
-        this.results.summary.startTime = Date.now();
-        
-        await this.runTestType(testType, this.config.testTypes[testType]);
-        await this.integrateCoverage();
-        await this.generateReports();
-        
-        this.results.summary.endTime = Date.now();
-        this.results.summary.duration = this.results.summary.endTime - this.results.summary.startTime;
-        
-        this.printSummary();
-        
-        return this.results;
+  async runSpecificTest(testType) {
+    if (!this.config.testTypes[testType]) {
+      throw new Error(`Unknown test type: ${testType}`);
     }
+
+    console.log(`🎯 ${testType}テストのみ実行`);
+
+    this.results.summary.startTime = Date.now();
+
+    await this.runTestType(testType, this.config.testTypes[testType]);
+    await this.integrateCoverage();
+    await this.generateReports();
+
+    this.results.summary.endTime = Date.now();
+    this.results.summary.duration = this.results.summary.endTime - this.results.summary.startTime;
+
+    this.printSummary();
+
+    return this.results;
+  }
 }
 
 // CLI実行
 if (import.meta.url === `file://${process.argv[1]}`) {
-    const coverage = new IntegratedTestCoverage();
-    
-    const args = process.argv.slice(2);
-    const command = args[0];
-    
-    try {
-        if (command === 'run' || !command) {
-            await coverage.runAllTests();
-        } else if (command === 'unit' || command === 'integration' || command === 'e2e' || command === 'performance') {
-            await coverage.runSpecificTest(command);
-        } else {
-            console.log('使用方法:');
-            console.log('  node test-coverage.js [run|unit|integration|e2e|performance]');
-            console.log('');
-            console.log('例:');
-            console.log('  node test-coverage.js         # 全テスト実行');
-            console.log('  node test-coverage.js run     # 全テスト実行');
-            console.log('  node test-coverage.js unit    # ユニットテストのみ');
-            console.log('  node test-coverage.js e2e     # E2Eテストのみ');
-            process.exit(1);
-        }
-        
-        // カバレッジ目標未達成の場合はエラー終了（CI用）
-        if (process.env.CI && !coverage.results.summary.coverageTargetsMet) {
-            console.log('\n❌ CI環境: カバレッジ目標未達成のため終了コード1で終了');
-            process.exit(1);
-        }
-        
-    } catch (error) {
-        console.error('\n❌ 統合テストカバレッジでエラーが発生:', error.message);
-        console.error(error.stack);
-        process.exit(1);
+  const coverage = new IntegratedTestCoverage();
+
+  const args = process.argv.slice(2);
+  const command = args[0];
+
+  try {
+    if (command === 'run' || !command) {
+      await coverage.runAllTests();
+    } else if (command === 'unit' || command === 'integration' || command === 'e2e' || command === 'performance') {
+      await coverage.runSpecificTest(command);
+    } else {
+      console.log('使用方法:');
+      console.log('  node test-coverage.js [run|unit|integration|e2e|performance]');
+      console.log('');
+      console.log('例:');
+      console.log('  node test-coverage.js         # 全テスト実行');
+      console.log('  node test-coverage.js run     # 全テスト実行');
+      console.log('  node test-coverage.js unit    # ユニットテストのみ');
+      console.log('  node test-coverage.js e2e     # E2Eテストのみ');
+      process.exit(1);
     }
+
+    // カバレッジ目標未達成の場合はエラー終了（CI用）
+    if (process.env.CI && !coverage.results.summary.coverageTargetsMet) {
+      console.log('\n❌ CI環境: カバレッジ目標未達成のため終了コード1で終了');
+      process.exit(1);
+    }
+
+  } catch (error) {
+    console.error('\n❌ 統合テストカバレッジでエラーが発生:', error.message);
+    console.error(error.stack);
+    process.exit(1);
+  }
 }
 
 export { IntegratedTestCoverage };

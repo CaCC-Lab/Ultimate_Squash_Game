@@ -4,10 +4,10 @@ export const WeeklyChallenge = {
   loadChallenge: jest.fn().mockResolvedValue({
     id: 'test-challenge',
     title: 'Test Challenge',
-    description: 'Test Description',
+    description: 'Test Description'
   }),
   submitScore: jest.fn().mockResolvedValue({ success: true }),
-  getLeaderboard: jest.fn().mockResolvedValue([]),
+  getLeaderboard: jest.fn().mockResolvedValue([])
 };
 
 export default WeeklyChallenge;

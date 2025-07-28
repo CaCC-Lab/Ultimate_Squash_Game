@@ -1,6 +1,6 @@
 /**
  * チャレンジシステム E2Eテスト
- * 
+ *
  * 個人開発規約遵守:
  * - TDD必須: 実際のブラウザでのチャレンジ機能テスト
  * - モック禁止: 実際のWebSocketサーバーとの通信
@@ -10,7 +10,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('チャレンジシステム', () => {
-  
+
   test.beforeEach(async ({ page }) => {
     // ブラウザコンソールエラーの監視
     page.on('console', msg => {
@@ -18,7 +18,7 @@ test.describe('チャレンジシステム', () => {
         console.log(`❌ ブラウザコンソールエラー: ${msg.text()}`);
       }
     });
-    
+
     // ゲームページを開いてWebSocket接続を確立
     await page.goto('/docs/game.html');
     await expect(page.locator('.connection-status')).toContainText('🟢 接続中', { timeout: 10000 });
@@ -33,9 +33,9 @@ test.describe('チャレンジシステム', () => {
       '.challenge-selector',
       '#challengeMenu'
     ];
-    
+
     let challengeElementFound = false;
-    
+
     for (const selector of challengeElements) {
       try {
         const element = page.locator(selector);
@@ -49,7 +49,7 @@ test.describe('チャレンジシステム', () => {
         continue;
       }
     }
-    
+
     // 何らかのチャレンジ関連要素が存在することを確認
     expect(challengeElementFound).toBe(true);
   });
@@ -60,7 +60,7 @@ test.describe('チャレンジシステム', () => {
       if (!window.websocketClient || !window.websocketClient.connected) {
         return { success: false, error: 'WebSocket not connected' };
       }
-      
+
       try {
         // テストチャレンジデータ
         const testChallenge = {
@@ -75,23 +75,23 @@ test.describe('チャレンジシステム', () => {
           difficulty: 2,
           timeLimit: 30
         };
-        
+
         // WebSocket経由でチャレンジロード
         const message = {
           type: 'challenge:load',
           payload: testChallenge,
           timestamp: new Date().toISOString()
         };
-        
+
         window.websocketClient.ws.send(JSON.stringify(message));
-        
+
         return { success: true, challengeId: testChallenge.id };
-        
+
       } catch (error) {
         return { success: false, error: error.message };
       }
     });
-    
+
     expect(challengeLoadResult.success).toBe(true);
     console.log(`✅ チャレンジロード機能が動作しました: ${challengeLoadResult.challengeId}`);
   });
@@ -102,7 +102,7 @@ test.describe('チャレンジシステム', () => {
       if (!window.websocketClient || !window.websocketClient.connected) {
         return { success: false, error: 'WebSocket not connected' };
       }
-      
+
       try {
         // 難易度更新メッセージ
         const message = {
@@ -113,16 +113,16 @@ test.describe('チャレンジシステム', () => {
           },
           timestamp: new Date().toISOString()
         };
-        
+
         window.websocketClient.ws.send(JSON.stringify(message));
-        
+
         return { success: true, level: 4 };
-        
+
       } catch (error) {
         return { success: false, error: error.message };
       }
     });
-    
+
     expect(difficultyUpdateResult.success).toBe(true);
     console.log(`✅ 難易度調整機能が動作しました: レベル${difficultyUpdateResult.level}`);
   });
@@ -133,7 +133,7 @@ test.describe('チャレンジシステム', () => {
       if (!window.websocketClient || !window.websocketClient.connected) {
         return { success: false, error: 'WebSocket not connected' };
       }
-      
+
       try {
         // ゲーム修飾子適用メッセージ
         const message = {
@@ -145,16 +145,16 @@ test.describe('チャレンジシステム', () => {
           },
           timestamp: new Date().toISOString()
         };
-        
+
         window.websocketClient.ws.send(JSON.stringify(message));
-        
+
         return { success: true, modifier: 'speed_boost' };
-        
+
       } catch (error) {
         return { success: false, error: error.message };
       }
     });
-    
+
     expect(modifierApplyResult.success).toBe(true);
     console.log(`✅ ゲーム修飾子適用が動作しました: ${modifierApplyResult.modifier}`);
   });
@@ -165,7 +165,7 @@ test.describe('チャレンジシステム', () => {
       if (!window.websocketClient || !window.websocketClient.connected) {
         return { success: false, error: 'WebSocket not connected' };
       }
-      
+
       return new Promise((resolve) => {
         let messageReceived = false;
         const timeout = setTimeout(() => {
@@ -173,33 +173,33 @@ test.describe('チャレンジシステム', () => {
             resolve({ success: false, error: 'Response timeout' });
           }
         }, 5000);
-        
+
         // WebSocketメッセージリスナー
         function messageHandler(event) {
           try {
             const data = JSON.parse(event.data);
-            
+
             if (data.type && (
-              data.type.includes('challenge') || 
-              data.type.includes('difficulty') || 
+              data.type.includes('challenge') ||
+              data.type.includes('difficulty') ||
               data.type.includes('modifier')
             )) {
               messageReceived = true;
               clearTimeout(timeout);
               window.websocketClient.ws.removeEventListener('message', messageHandler);
-              resolve({ 
-                success: true, 
-                messageType: data.type, 
-                payload: data.payload 
+              resolve({
+                success: true,
+                messageType: data.type,
+                payload: data.payload
               });
             }
           } catch (error) {
             // JSON解析エラーは無視（他のメッセージの可能性）
           }
         }
-        
+
         window.websocketClient.ws.addEventListener('message', messageHandler);
-        
+
         // テストメッセージを送信
         const testMessage = {
           type: 'challenge:load',
@@ -213,11 +213,11 @@ test.describe('チャレンジシステム', () => {
           },
           timestamp: new Date().toISOString()
         };
-        
+
         window.websocketClient.ws.send(JSON.stringify(testMessage));
       });
     });
-    
+
     expect(responseReceived.success).toBe(true);
     console.log(`✅ チャレンジ応答メッセージを受信しました: ${responseReceived.messageType}`);
   });
@@ -228,7 +228,7 @@ test.describe('チャレンジシステム', () => {
       if (!window.websocketClient || !window.websocketClient.connected) {
         return { success: false, error: 'WebSocket not connected' };
       }
-      
+
       try {
         const messages = [
           {
@@ -255,27 +255,27 @@ test.describe('チャレンジシステム', () => {
             payload: {}
           }
         ];
-        
+
         // 連続送信
         for (let i = 0; i < messages.length; i++) {
           const message = {
             ...messages[i],
             timestamp: new Date().toISOString()
           };
-          
+
           window.websocketClient.ws.send(JSON.stringify(message));
-          
+
           // 少し間隔を空ける
           await new Promise(resolve => setTimeout(resolve, 100));
         }
-        
+
         return { success: true, messageCount: messages.length };
-        
+
       } catch (error) {
         return { success: false, error: error.message };
       }
     });
-    
+
     expect(multipleMessagesResult.success).toBe(true);
     console.log(`✅ 複数メッセージの連続送信が成功しました: ${multipleMessagesResult.messageCount}件`);
   });
@@ -286,7 +286,7 @@ test.describe('チャレンジシステム', () => {
       if (!window.websocketClient || !window.websocketClient.connected) {
         return { success: false, error: 'WebSocket not connected' };
       }
-      
+
       try {
         // 無効なチャレンジデータを送信
         const invalidMessages = [
@@ -306,7 +306,7 @@ test.describe('チャレンジシステム', () => {
             payload: null
           }
         ];
-        
+
         for (const invalidMessage of invalidMessages) {
           try {
             if (typeof invalidMessage === 'string') {
@@ -319,14 +319,14 @@ test.describe('チャレンジシステム', () => {
             // 送信エラーは想定内
           }
         }
-        
+
         return { success: true, note: 'Invalid data handled gracefully' };
-        
+
       } catch (error) {
         return { success: false, error: error.message };
       }
     });
-    
+
     // 無効なデータが適切に処理されることを確認（エラーで落ちない）
     expect(invalidDataResult.success).toBe(true);
     console.log('✅ 無効なチャレンジデータが適切に処理されました');

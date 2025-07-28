@@ -1,7 +1,7 @@
 /**
  * 実ブラウザ環境での包括的E2Eテストスイート
  * CLAUDE.mdの「モック禁止」ガイドラインに準拠
- * 
+ *
  * このテストスイートは以下を実現します：
  * 1. モックの完全排除 - 実際のブラウザAPIを使用
  * 2. 実環境でのWebSocket接続テスト
@@ -14,16 +14,16 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Real Browser Comprehensive Tests', () => {
   let testStartTime;
-  
+
   test.beforeEach(async ({ page }) => {
     testStartTime = Date.now();
-    
+
     // 実際のローカルサーバーに接続（モックサーバーなし）
     await page.goto('/docs/game.html');
-    
+
     // 段階的な初期化待機（実際の読み込み時間を考慮）
     await page.waitForLoadState('networkidle');
-    
+
     // Pyodide初期化の実際の完了を待つ
     try {
       await page.waitForSelector('#loadingOverlay', { state: 'hidden', timeout: 90000 });
@@ -31,16 +31,16 @@ test.describe('Real Browser Comprehensive Tests', () => {
       console.log('Pyodide初期化タイムアウト - ゲーム状態を直接確認');
       // タイムアウトしてもゲームが動作している可能性があるので続行
     }
-    
+
     // ゲームキャンバスの実際の描画確認
     await page.waitForSelector('#gameCanvas', { state: 'visible', timeout: 30000 });
-    
+
     // 実際のJavaScriptエンジンの準備完了を確認
     await page.waitForFunction(() => {
-      return document.readyState === 'complete' && 
+      return document.readyState === 'complete' &&
              window.gameInitialized !== false;
     }, { timeout: 15000 });
-    
+
     // 追加の安定化時間
     await page.waitForTimeout(1000);
   });
@@ -58,19 +58,19 @@ test.describe('Real Browser Comprehensive Tests', () => {
             serverResponse: null,
             connectionTime: null
           };
-          
+
           const startTime = Date.now();
-          
+
           try {
             // 実際のWebSocket接続を試行
             const ws = new WebSocket('ws://localhost:8765');
             results.connectionAttempted = true;
-            
+
             ws.onopen = (event) => {
               results.connectionSuccessful = true;
               results.actualProtocol = ws.protocol;
               results.connectionTime = Date.now() - startTime;
-              
+
               // 実際のメッセージ送信テスト
               ws.send(JSON.stringify({
                 type: 'test_message',
@@ -78,7 +78,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
                 payload: 'real_browser_test'
               }));
             };
-            
+
             ws.onmessage = (event) => {
               try {
                 results.serverResponse = JSON.parse(event.data);
@@ -88,17 +88,17 @@ test.describe('Real Browser Comprehensive Tests', () => {
               ws.close();
               resolve(results);
             };
-            
+
             ws.onerror = (error) => {
               results.errorOccurred = true;
               resolve(results);
             };
-            
+
             ws.onclose = () => {
               // 接続が成功していない場合のタイムアウト処理
               setTimeout(() => resolve(results), 100);
             };
-            
+
             // 5秒でタイムアウト
             setTimeout(() => {
               if (ws.readyState === WebSocket.CONNECTING) {
@@ -106,7 +106,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
               }
               resolve(results);
             }, 5000);
-            
+
           } catch (error) {
             results.errorOccurred = true;
             resolve(results);
@@ -116,11 +116,11 @@ test.describe('Real Browser Comprehensive Tests', () => {
 
       // 実際の接続結果を検証
       expect(websocketResults.connectionAttempted).toBe(true);
-      
+
       if (websocketResults.connectionSuccessful) {
         expect(websocketResults.connectionTime).toBeLessThan(5000);
         console.log(`✅ WebSocket接続成功: ${websocketResults.connectionTime}ms`);
-        
+
         if (websocketResults.serverResponse) {
           console.log('✅ サーバーレスポンス受信:', websocketResults.serverResponse);
         }
@@ -142,12 +142,12 @@ test.describe('Real Browser Comprehensive Tests', () => {
             connectionStable: true,
             errorCount: 0
           };
-          
+
           try {
             const ws = new WebSocket('ws://localhost:8765');
             let messageCounter = 0;
             const maxMessages = 5;
-            
+
             ws.onopen = () => {
               // 複数メッセージの連続送信テスト
               const sendTestMessage = () => {
@@ -155,7 +155,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
                   ws.close();
                   return;
                 }
-                
+
                 const sendTime = Date.now();
                 const message = {
                   type: 'realtime_test',
@@ -163,17 +163,17 @@ test.describe('Real Browser Comprehensive Tests', () => {
                   timestamp: sendTime,
                   payload: `test_message_${messageCounter}`
                 };
-                
+
                 ws.send(JSON.stringify(message));
                 messageCounter++;
-                
+
                 // 次のメッセージを200ms後に送信
                 setTimeout(sendTestMessage, 200);
               };
-              
+
               sendTestMessage();
             };
-            
+
             ws.onmessage = (event) => {
               const receiveTime = Date.now();
               try {
@@ -187,16 +187,16 @@ test.describe('Real Browser Comprehensive Tests', () => {
                 results.errorCount++;
               }
             };
-            
+
             ws.onerror = () => {
               results.connectionStable = false;
               results.errorCount++;
             };
-            
+
             ws.onclose = () => {
               resolve(results);
             };
-            
+
             // 10秒でタイムアウト
             setTimeout(() => {
               if (ws.readyState !== WebSocket.CLOSED) {
@@ -204,7 +204,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
               }
               resolve(results);
             }, 10000);
-            
+
           } catch (error) {
             results.errorCount++;
             resolve(results);
@@ -215,9 +215,9 @@ test.describe('Real Browser Comprehensive Tests', () => {
       if (messageExchangeTest.messagesExchanged > 0) {
         expect(messageExchangeTest.messagesExchanged).toBeGreaterThan(0);
         expect(messageExchangeTest.connectionStable).toBe(true);
-        
+
         if (messageExchangeTest.responseLatencies.length > 0) {
-          const avgLatency = messageExchangeTest.responseLatencies.reduce((a, b) => a + b, 0) / 
+          const avgLatency = messageExchangeTest.responseLatencies.reduce((a, b) => a + b, 0) /
                             messageExchangeTest.responseLatencies.length;
           expect(avgLatency).toBeLessThan(1000); // 1秒以下の平均レスポンス時間
           console.log(`✅ 平均レスポンス時間: ${avgLatency.toFixed(2)}ms`);
@@ -282,32 +282,32 @@ test.describe('Real Browser Comprehensive Tests', () => {
               const oscillator = audioContext.createOscillator();
               const gainNode = audioContext.createGain();
               results.audioNodesCreated += 2; // oscillator + gainNode
-              
+
               oscillator.type = soundDef.type;
               oscillator.frequency.setValueAtTime(soundDef.frequency, audioContext.currentTime);
-              
+
               gainNode.gain.setValueAtTime(0, audioContext.currentTime);
               gainNode.gain.linearRampToValueAtTime(0.1, audioContext.currentTime + 0.01);
               gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + soundDef.duration);
-              
+
               oscillator.connect(gainNode);
               gainNode.connect(audioContext.destination);
-              
+
               const startTime = audioContext.currentTime;
               oscillator.start(startTime);
               oscillator.stop(startTime + soundDef.duration);
-              
+
               results.soundsGenerated.push({
                 name: soundDef.name,
                 duration: soundDef.duration,
                 nodes: 2
               });
-              
+
               results.realAudioPlayback = true;
-              
+
               // 各サウンド間で少し待機
               await new Promise(resolve => setTimeout(resolve, soundDef.duration * 1000 + 50));
-              
+
             } catch (soundError) {
               console.error(`Sound generation error for ${soundDef.name}:`, soundError);
             }
@@ -317,35 +317,35 @@ test.describe('Real Browser Comprehensive Tests', () => {
           const analyser = audioContext.createAnalyser();
           analyser.fftSize = 256;
           const dataArray = new Uint8Array(analyser.frequencyBinCount);
-          
+
           // 最後に白ノイズを生成してanalysisテスト
           const bufferSize = audioContext.sampleRate * 0.1; // 0.1秒
           const buffer = audioContext.createBuffer(1, bufferSize, audioContext.sampleRate);
           const channelData = buffer.getChannelData(0);
-          
+
           // 実際の白ノイズ生成
           for (let i = 0; i < bufferSize; i++) {
             channelData[i] = Math.random() * 2 - 1;
           }
-          
+
           const bufferSource = audioContext.createBufferSource();
           bufferSource.buffer = buffer;
           bufferSource.connect(analyser);
           analyser.connect(audioContext.destination);
-          
+
           bufferSource.start();
-          
+
           // 実際のオーディオ分析データを取得
           await new Promise(resolve => setTimeout(resolve, 150));
           analyser.getByteFrequencyData(dataArray);
-          
+
           const hasAudioData = Array.from(dataArray).some(value => value > 0);
           results.audioAnalysisWorking = hasAudioData;
-          
+
           audioContext.close();
-          
+
           return results;
-          
+
         } catch (error) {
           return { error: error.message };
         }
@@ -359,7 +359,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
         expect(realAudioTest.soundsGenerated.length).toBeGreaterThan(0);
         expect(realAudioTest.audioNodesCreated).toBeGreaterThan(0);
         expect(realAudioTest.realAudioPlayback).toBe(true);
-        
+
         console.log(`✅ 実際のオーディオ生成: ${realAudioTest.soundsGenerated.length}種類のサウンド`);
         console.log(`✅ AudioNodeの作成: ${realAudioTest.audioNodesCreated}個`);
         console.log(`✅ サンプルレート: ${realAudioTest.actualSampleRate}Hz`);
@@ -380,14 +380,14 @@ test.describe('Real Browser Comprehensive Tests', () => {
         try {
           const startTime = performance.now();
           const audioContext = new AudioContextClass();
-          
+
           // 初期状態の記録
           results.stateTransitions.push({
             state: audioContext.state,
             timestamp: performance.now() - startTime,
             operation: 'created'
           });
-          
+
           results.contextProperties = {
             sampleRate: audioContext.sampleRate,
             baseLatency: audioContext.baseLatency || 0,
@@ -416,7 +416,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
           // パフォーマンステスト：短時間での大量ノード作成
           const nodeCreationStart = performance.now();
           const oscillators = [];
-          
+
           for (let i = 0; i < 50; i++) {
             const osc = audioContext.createOscillator();
             const gain = audioContext.createGain();
@@ -425,7 +425,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
             gain.gain.setValueAtTime(0, audioContext.currentTime); // 無音
             oscillators.push({ osc, gain });
           }
-          
+
           const nodeCreationTime = performance.now() - nodeCreationStart;
           results.performanceMetrics.nodeCreationTime = nodeCreationTime;
           results.performanceMetrics.nodesCreated = oscillators.length * 2;
@@ -463,14 +463,14 @@ test.describe('Real Browser Comprehensive Tests', () => {
       } else {
         // 状態遷移の検証
         expect(stateManagementTest.stateTransitions.length).toBeGreaterThan(0);
-        
+
         const finalState = stateManagementTest.stateTransitions[stateManagementTest.stateTransitions.length - 1];
         expect(finalState.state).toBe('closed');
-        
+
         // パフォーマンスの検証
         expect(stateManagementTest.performanceMetrics.nodeCreationTime).toBeLessThan(1000); // 1秒以内
         expect(stateManagementTest.performanceMetrics.nodesCreated).toBe(100); // 50 osc + 50 gain
-        
+
         console.log('✅ AudioContext状態遷移:', stateManagementTest.stateTransitions.length);
         console.log('✅ ノード作成パフォーマンス:', stateManagementTest.performanceMetrics.nodeCreationTime.toFixed(2), 'ms');
       }
@@ -529,7 +529,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
       expect(gameStateAfterInput.canvasUpdated).toBe(true);
       // ゲームが実際に動作していることを確認（スコアまたは時間の変化）
       expect(
-        gameStateAfterInput.score >= 0 && 
+        gameStateAfterInput.score >= 0 &&
         (gameStateAfterInput.gameTime > 0 || gameStateAfterInput.score >= 0)
       ).toBe(true);
 
@@ -655,18 +655,18 @@ test.describe('Real Browser Comprehensive Tests', () => {
           const keys = ['ArrowLeft', 'ArrowRight', 'Space'];
           for (let i = 0; i < duration / 100; i++) {
             const randomKey = keys[Math.floor(Math.random() * keys.length)];
-            
+
             // キーイベントをシミュレート
             const keyEvent = new KeyboardEvent('keydown', {
               key: randomKey,
               code: randomKey,
-              keyCode: randomKey === 'Space' ? 32 : 
-                      randomKey === 'ArrowLeft' ? 37 : 39
+              keyCode: randomKey === 'Space' ? 32 :
+                randomKey === 'ArrowLeft' ? 37 : 39
             });
             document.dispatchEvent(keyEvent);
 
             await new Promise(resolve => setTimeout(resolve, 100));
-            
+
             // 定期的な測定
             if (i % (interval / 100) === 0) {
               measurements.push(measurePerformance());
@@ -690,13 +690,13 @@ test.describe('Real Browser Comprehensive Tests', () => {
 
       // メモリリークの検証
       if (initialMeasurement.memoryUsage && finalMeasurement.memoryUsage) {
-        const memoryIncrease = finalMeasurement.memoryUsage.usedJSHeapSize - 
+        const memoryIncrease = finalMeasurement.memoryUsage.usedJSHeapSize -
                               initialMeasurement.memoryUsage.usedJSHeapSize;
         const memoryIncreasePercent = (memoryIncrease / initialMeasurement.memoryUsage.usedJSHeapSize) * 100;
-        
+
         // メモリ使用量の増加が100%を超えない（メモリリークがない）
         expect(memoryIncreasePercent).toBeLessThan(100);
-        
+
         console.log(`✅ メモリ使用量変化: ${memoryIncreasePercent.toFixed(2)}%`);
       }
 
@@ -766,10 +766,10 @@ test.describe('Real Browser Comprehensive Tests', () => {
               });
               results.errorsTriggered++;
             }
-            
+
             // エラー後の復旧確認
             await new Promise(resolve => setTimeout(resolve, 100));
-            
+
             // ゲームが継続動作しているかチェック
             const canvas = document.querySelector('#gameCanvas');
             if (canvas && canvas.style.display !== 'none') {
@@ -778,7 +778,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
           }
 
           // 全体的な復旧状況の確認
-          results.recoverySuccessful = results.gameStillRunning && 
+          results.recoverySuccessful = results.gameStillRunning &&
                                       results.errorsTriggered > 0;
 
         } finally {
@@ -827,11 +827,11 @@ test.describe('Real Browser Comprehensive Tests', () => {
           for (const testDate of testDates) {
             if (window.ChallengeGenerator) {
               const challenge = window.ChallengeGenerator.generateWeeklyChallenge(testDate);
-              
+
               if (challenge && challenge.title && challenge.description) {
                 results.challengeGenerated = true;
                 results.challengeTypes.push(challenge.type);
-                
+
                 // チャレンジの妥当性検証
                 if (challenge.target > 0 && challenge.timeLimit > 0) {
                   results.challengeValid = true;
@@ -851,9 +851,9 @@ test.describe('Real Browser Comprehensive Tests', () => {
                     completed: evaluation.completed,
                     type: challenge.type,
                     target: challenge.target,
-                    actual: mockGameStats[challenge.type === 'score' ? 'score' : 
-                                          challenge.type === 'consecutive_hits' ? 'consecutiveHits' : 
-                                          'gameDuration']
+                    actual: mockGameStats[challenge.type === 'score' ? 'score' :
+                      challenge.type === 'consecutive_hits' ? 'consecutiveHits' :
+                        'gameDuration']
                   });
                 }
               }
@@ -865,13 +865,13 @@ test.describe('Real Browser Comprehensive Tests', () => {
             const fixedDate = new Date('2024-01-01');
             const challenge1 = window.ChallengeGenerator.generateWeeklyChallenge(fixedDate);
             const challenge2 = window.ChallengeGenerator.generateWeeklyChallenge(fixedDate);
-            
+
             // 時刻情報を除いて比較
             const comp1 = {...challenge1};
             const comp2 = {...challenge2};
             if (comp1.metadata) delete comp1.metadata.generatedAt;
             if (comp2.metadata) delete comp2.metadata.generatedAt;
-            
+
             results.dateCalculationCorrect = JSON.stringify(comp1) === JSON.stringify(comp2);
           }
 
@@ -892,12 +892,12 @@ test.describe('Real Browser Comprehensive Tests', () => {
         expect(challengeResults.challengeValid).toBe(true);
         expect(challengeResults.dateCalculationCorrect).toBe(true);
         expect(challengeResults.performanceAcceptable).toBe(true);
-        
+
         if (challengeResults.challengeTypes.length > 0) {
           expect(challengeResults.challengeTypes.length).toBeGreaterThan(0);
           console.log('✅ 生成されたチャレンジタイプ:', [...new Set(challengeResults.challengeTypes)]);
         }
-        
+
         if (challengeResults.evaluationResults.length > 0) {
           const completedChallenges = challengeResults.evaluationResults.filter(r => r.completed).length;
           console.log(`✅ チャレンジ評価: ${completedChallenges}/${challengeResults.evaluationResults.length} 完了`);
@@ -909,7 +909,7 @@ test.describe('Real Browser Comprehensive Tests', () => {
   test.afterEach(async ({ page }) => {
     const testDuration = Date.now() - testStartTime;
     console.log(`テスト実行時間: ${testDuration}ms`);
-    
+
     // 最終的なゲーム状態を記録
     const finalState = await page.evaluate(() => {
       return {
@@ -921,9 +921,9 @@ test.describe('Real Browser Comprehensive Tests', () => {
         audioContextActive: !!(window.audioContext && window.audioContext.state !== 'closed')
       };
     });
-    
+
     console.log('最終ゲーム状態:', finalState);
-    
+
     // リソースのクリーンアップを確認
     if (finalState.audioContextActive) {
       await page.evaluate(() => {

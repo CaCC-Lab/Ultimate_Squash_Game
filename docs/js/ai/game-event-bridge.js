@@ -4,63 +4,63 @@
  */
 
 class GameEventBridge {
-    constructor() {
-        this.initialized = false;
-        this.eventQueue = [];
-        this.setupPythonBridge();
-    }
-    
-    /**
+  constructor() {
+    this.initialized = false;
+    this.eventQueue = [];
+    this.setupPythonBridge();
+  }
+
+  /**
      * Pythonとの通信を設定
      */
-    async setupPythonBridge() {
-        // 設定を取得
-        const pyodideConfig = window.configLoader ? 
-            window.configLoader.getPyodideConfig() : 
-            { timeout: 30000, checkInterval: 100 };
-        
-        // Pyodideが読み込まれるまで待機（リトライ制限付き）
-        const maxWaitTime = pyodideConfig.timeout;
-        const checkInterval = pyodideConfig.checkInterval;
-        let elapsedTime = 0;
-        
-        const waitForPyodide = async () => {
-            while (elapsedTime < maxWaitTime) {
-                if (window.pyodide && window.pyodide.runPython) {
-                    await this.initializeBridge();
-                    return;
-                }
-                await RetryHandler.sleep(checkInterval);
-                elapsedTime += checkInterval;
-            }
-            
-            console.error('Pyodide initialization timeout after', maxWaitTime, 'ms');
-            this.handleInitializationFailure();
-        };
-        
-        await waitForPyodide();
-    }
-    
-    /**
+  async setupPythonBridge() {
+    // 設定を取得
+    const pyodideConfig = window.configLoader ?
+      window.configLoader.getPyodideConfig() :
+      { timeout: 30000, checkInterval: 100 };
+
+    // Pyodideが読み込まれるまで待機（リトライ制限付き）
+    const maxWaitTime = pyodideConfig.timeout;
+    const checkInterval = pyodideConfig.checkInterval;
+    let elapsedTime = 0;
+
+    const waitForPyodide = async () => {
+      while (elapsedTime < maxWaitTime) {
+        if (window.pyodide && window.pyodide.runPython) {
+          await this.initializeBridge();
+          return;
+        }
+        await RetryHandler.sleep(checkInterval);
+        elapsedTime += checkInterval;
+      }
+
+      console.error('Pyodide initialization timeout after', maxWaitTime, 'ms');
+      this.handleInitializationFailure();
+    };
+
+    await waitForPyodide();
+  }
+
+  /**
      * 初期化失敗を処理
      */
-    handleInitializationFailure() {
-        console.warn('Game Event Bridge: Failed to initialize Pyodide connection');
-        this.initialized = false;
-        
-        // AI機能を縮退モードで動作させる
-        if (window.gameAI) {
-            window.gameAI.setDegradedMode(true);
-        }
+  handleInitializationFailure() {
+    console.warn('Game Event Bridge: Failed to initialize Pyodide connection');
+    this.initialized = false;
+
+    // AI機能を縮退モードで動作させる
+    if (window.gameAI) {
+      window.gameAI.setDegradedMode(true);
     }
-    
-    /**
+  }
+
+  /**
      * ブリッジを初期化
      */
-    async initializeBridge() {
-        try {
-            // Python側にJavaScriptのイベント発火関数を登録
-            window.pyodide.runPython(`
+  async initializeBridge() {
+    try {
+      // Python側にJavaScriptのイベント発火関数を登録
+      window.pyodide.runPython(`
 import js
 
 def fire_game_event(event_type, event_data):
@@ -70,32 +70,32 @@ def fire_game_event(event_type, event_data):
 # グローバルに公開
 __builtins__['fire_game_event'] = fire_game_event
             `);
-            
-            // JavaScript側のイベント発火関数
-            window.fireGameEvent = (eventType, eventData) => {
-                const event = new CustomEvent(`game:${eventType}`, {
-                    detail: eventData || {}
-                });
-                window.dispatchEvent(event);
-            };
-            
-            this.initialized = true;
-            console.log('Game Event Bridge initialized');
-            
-            // イベントをPythonゲームエンジンに注入
-            this.injectEventHandlers();
-            
-        } catch (error) {
-            console.error('Failed to initialize Game Event Bridge:', error);
-        }
+
+      // JavaScript側のイベント発火関数
+      window.fireGameEvent = (eventType, eventData) => {
+        const event = new CustomEvent(`game:${eventType}`, {
+          detail: eventData || {}
+        });
+        window.dispatchEvent(event);
+      };
+
+      this.initialized = true;
+      console.log('Game Event Bridge initialized');
+
+      // イベントをPythonゲームエンジンに注入
+      this.injectEventHandlers();
+
+    } catch (error) {
+      console.error('Failed to initialize Game Event Bridge:', error);
     }
-    
-    /**
+  }
+
+  /**
      * Pythonゲームエンジンにイベントハンドラーを注入
      */
-    injectEventHandlers() {
-        try {
-            window.pyodide.runPython(`
+  injectEventHandlers() {
+    try {
+      window.pyodide.runPython(`
 # ゲームインスタンスが存在する場合、イベントフックを追加
 if 'game' in globals() and hasattr(game, 'game_state'):
     original_update = game.game_state.update_ball_position
@@ -141,20 +141,20 @@ if 'game' in globals() and hasattr(game, 'game_state'):
     
     print("Game event handlers injected")
             `);
-        } catch (error) {
-            console.error('Failed to inject event handlers:', error);
-        }
+    } catch (error) {
+      console.error('Failed to inject event handlers:', error);
     }
-    
-    /**
+  }
+
+  /**
      * より簡単なイベント発火方法（ポーリング）
      */
-    startEventPolling() {
-        setInterval(() => {
-            if (!window.pyodide) return;
-            
-            try {
-                const gameState = window.pyodide.runPython(`
+  startEventPolling() {
+    setInterval(() => {
+      if (!window.pyodide) return;
+
+      try {
+        const gameState = window.pyodide.runPython(`
 import json
 if 'game' in globals() and hasattr(game, 'game_state'):
     state = {
@@ -166,20 +166,20 @@ if 'game' in globals() and hasattr(game, 'game_state'):
 else:
     '{}'
                 `);
-                
-                const state = JSON.parse(gameState);
-                
-                // スコアが変わったらイベント発火
-                if (this.lastScore !== undefined && state.score !== this.lastScore) {
-                    window.fireGameEvent('score', { score: state.score });
-                }
-                this.lastScore = state.score;
-                
-            } catch (error) {
-                // エラーは無視（ゲームがまだ初期化されていない可能性）
-            }
-        }, window.configLoader?.getAIConfig().eventPollingInterval || 500); // 設定可能なポーリング間隔
-    }
+
+        const state = JSON.parse(gameState);
+
+        // スコアが変わったらイベント発火
+        if (this.lastScore !== undefined && state.score !== this.lastScore) {
+          window.fireGameEvent('score', { score: state.score });
+        }
+        this.lastScore = state.score;
+
+      } catch (error) {
+        // エラーは無視（ゲームがまだ初期化されていない可能性）
+      }
+    }, window.configLoader?.getAIConfig().eventPollingInterval || 500); // 設定可能なポーリング間隔
+  }
 }
 
 // ブリッジを初期化
@@ -187,8 +187,8 @@ const gameEventBridge = new GameEventBridge();
 
 // 簡易的なイベント発火（デモ用）
 setTimeout(() => {
-    // ゲームが開始されたらポーリングも開始
-    gameEventBridge.startEventPolling();
+  // ゲームが開始されたらポーリングも開始
+  gameEventBridge.startEventPolling();
 }, 5000);
 
 // エクスポート

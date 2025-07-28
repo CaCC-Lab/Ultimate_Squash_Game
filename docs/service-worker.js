@@ -24,13 +24,13 @@ const GAME_ASSETS = [
 // インストール時にPyodideファイルをプリキャッシュ
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...');
-  
+
   event.waitUntil(
     (async () => {
       // Pyodide専用キャッシュ
       const pyodideCache = await caches.open(PYODIDE_CACHE_NAME);
       console.log('[Service Worker] Caching Pyodide files...');
-      
+
       // Pyodideファイルを個別にキャッシュ（エラーハンドリング付き）
       for (const url of PYODIDE_URLS) {
         try {
@@ -45,11 +45,11 @@ self.addEventListener('install', (event) => {
           console.warn(`[Service Worker] Error caching ${url}:`, error);
         }
       }
-      
+
       // ゲームアセット用キャッシュ
       const gameCache = await caches.open(CACHE_NAME);
       console.log('[Service Worker] Caching game assets...');
-      
+
       for (const asset of GAME_ASSETS) {
         try {
           const response = await fetch(asset);
@@ -61,7 +61,7 @@ self.addEventListener('install', (event) => {
           console.warn(`[Service Worker] Error caching ${asset}:`, error);
         }
       }
-      
+
       // 即座にアクティベート
       await self.skipWaiting();
     })()
@@ -71,7 +71,7 @@ self.addEventListener('install', (event) => {
 // アクティベート時に古いキャッシュを削除
 self.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activating...');
-  
+
   event.waitUntil(
     (async () => {
       // 現在のキャッシュ以外を削除
@@ -81,7 +81,7 @@ self.addEventListener('activate', (event) => {
           .filter(name => name !== CACHE_NAME && name !== PYODIDE_CACHE_NAME)
           .map(name => caches.delete(name))
       );
-      
+
       // すべてのクライアントを即座に制御
       await self.clients.claim();
       console.log('[Service Worker] Active and controlling all clients');
@@ -92,7 +92,7 @@ self.addEventListener('activate', (event) => {
 // フェッチイベントの処理
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  
+
   // Pyodideファイルのリクエスト
   if (url.href.includes('cdn.jsdelivr.net/pyodide')) {
     event.respondWith(
@@ -103,7 +103,7 @@ self.addEventListener('fetch', (event) => {
           console.log(`[Service Worker] Serving from cache: ${url.pathname}`);
           return cachedResponse;
         }
-        
+
         // キャッシュになければネットワークから取得してキャッシュ
         console.log(`[Service Worker] Fetching from network: ${url.pathname}`);
         try {
@@ -121,7 +121,7 @@ self.addEventListener('fetch', (event) => {
     );
     return;
   }
-  
+
   // ゲームアセットのリクエスト
   if (url.pathname.includes('/docs/')) {
     event.respondWith(
@@ -131,14 +131,14 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) {
           return cachedResponse;
         }
-        
+
         // ネットワークフォールバック
         return fetch(event.request);
       })()
     );
     return;
   }
-  
+
   // その他のリクエストは通常通り処理
   return;
 });
@@ -150,10 +150,10 @@ self.addEventListener('message', (event) => {
       (async () => {
         const pyodideCache = await caches.open(PYODIDE_CACHE_NAME);
         const gameCache = await caches.open(CACHE_NAME);
-        
+
         const pyodideKeys = await pyodideCache.keys();
         const gameKeys = await gameCache.keys();
-        
+
         event.ports[0].postMessage({
           type: 'CACHE_STATUS_RESPONSE',
           pyodideFiles: pyodideKeys.length,

@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   expectNoErrors,
   loadGamePage,
-  setupErrorHandlers,
+  setupErrorHandlers
 } from './helpers.js';
 
 test.describe('PWA Features', () => {
@@ -31,10 +31,10 @@ test.describe('PWA Features', () => {
       // manifest.jsonが存在することを確認
       const manifestResponse = await page.goto('./manifest.json');
       expect(manifestResponse.status()).toBe(200);
-      
+
       // JSONとして解析可能か確認
       const manifest = await manifestResponse.json();
-      
+
       // 必須フィールドの確認
       expect(manifest.name).toBe('Ultimate Squash Game');
       expect(manifest.short_name).toBe('UltimateSquash');
@@ -43,13 +43,13 @@ test.describe('PWA Features', () => {
       expect(manifest.orientation).toBe('landscape');
       expect(manifest.theme_color).toBe('#004274');
       expect(manifest.background_color).toBe('#0c0c0c');
-      
+
       // アイコンの確認
       expect(manifest.icons).toBeDefined();
       expect(manifest.icons.length).toBeGreaterThan(0);
       expect(manifest.icons[0].sizes).toBe('192x192');
       expect(manifest.icons[1].sizes).toBe('512x512');
-      
+
       // ショートカットの確認
       expect(manifest.shortcuts).toBeDefined();
       expect(manifest.shortcuts.length).toBe(2);
@@ -67,13 +67,13 @@ test.describe('PWA Features', () => {
       // iOS用のメタタグを確認
       const iosCapable = await page.locator('meta[name="apple-mobile-web-app-capable"]');
       await expect(iosCapable).toHaveAttribute('content', 'yes');
-      
+
       const iosStatusBar = await page.locator('meta[name="apple-mobile-web-app-status-bar-style"]');
       await expect(iosStatusBar).toHaveAttribute('content', 'black-translucent');
-      
+
       const iosTitle = await page.locator('meta[name="apple-mobile-web-app-title"]');
       await expect(iosTitle).toHaveAttribute('content', 'Ultimate Squash');
-      
+
       const iosTouchIcon = await page.locator('link[rel="apple-touch-icon"]');
       await expect(iosTouchIcon).toHaveCount(1);
     });
@@ -83,7 +83,7 @@ test.describe('PWA Features', () => {
     test('should register service worker', async ({ page }) => {
       // Service Workerが登録されることを確認
       await page.waitForTimeout(1000); // 初期化を待つ
-      
+
       const swRegistered = await page.evaluate(async () => {
         if ('serviceWorker' in navigator) {
           const registrations = await navigator.serviceWorker.getRegistrations();
@@ -91,7 +91,7 @@ test.describe('PWA Features', () => {
         }
         return false;
       });
-      
+
       expect(swRegistered).toBe(true);
     });
 
@@ -99,7 +99,7 @@ test.describe('PWA Features', () => {
       // sw.jsファイルが存在することを確認
       const swResponse = await page.goto('./sw.js');
       expect(swResponse.status()).toBe(200);
-      
+
       // JavaScriptファイルとして有効か確認（Content-Typeチェックはスキップ）
       const swContent = await swResponse.text();
       expect(swContent).toContain('Service Worker');
@@ -108,7 +108,7 @@ test.describe('PWA Features', () => {
     test('should cache static assets', async ({ page }) => {
       // Service Workerがアクティブになるまで待つ
       await page.waitForTimeout(1000);
-      
+
       // キャッシュが作成されていることを確認
       const cacheNames = await page.evaluate(async () => {
         if ('caches' in window) {
@@ -116,7 +116,7 @@ test.describe('PWA Features', () => {
         }
         return [];
       });
-      
+
       expect(cacheNames.length).toBeGreaterThan(0);
       expect(cacheNames.some(name => name.includes('ultimate-squash'))).toBe(true);
     });
@@ -127,10 +127,10 @@ test.describe('PWA Features', () => {
       // インストールボタンが存在することを確認
       const installButton = page.locator('#installButton');
       await expect(installButton).toBeAttached();
-      
+
       // 初期状態では非表示
       await expect(installButton).toBeHidden();
-      
+
       // 正しいテキストとクラスを持っているか
       await expect(installButton).toHaveText('📥 インストール');
       await expect(installButton).toHaveClass('install-button');
@@ -141,7 +141,7 @@ test.describe('PWA Features', () => {
       const hasInstallFunction = await page.evaluate(() => {
         return typeof window.installPWA === 'function';
       });
-      
+
       expect(hasInstallFunction).toBe(true);
     });
 
@@ -157,20 +157,20 @@ test.describe('PWA Features', () => {
     test('should work offline after caching', async ({ page, context }) => {
       // ページを一度読み込んでキャッシュさせる
       await page.waitForTimeout(3000); // Service Workerの初期化を待つ
-      
+
       // オフラインモードに切り替え
       await context.setOffline(true);
-      
+
       // ページをリロード
       await page.reload();
-      
+
       // オフラインでもページが表示されることを確認
       const canvas = page.locator('#gameCanvas');
       await expect(canvas).toBeVisible();
-      
+
       // ゲームタイトルが表示されることを確認
       await expect(page.locator('h1')).toHaveText('Ultimate Squash Game');
-      
+
       // オンラインに戻す
       await context.setOffline(false);
     });
@@ -186,7 +186,7 @@ test.describe('PWA Features', () => {
           .join(' ');
         return scriptContent.includes('updatefound');
       });
-      
+
       expect(hasUpdateLogic).toBe(true);
     });
 
@@ -209,13 +209,13 @@ test.describe('PWA Features', () => {
     test('should implement cache strategies', async ({ page }) => {
       // Service Workerがキャッシュ戦略を実装していることを確認
       const swContent = await page.goto('./sw.js').then(r => r.text());
-      
+
       // ネットワークファースト戦略
       expect(swContent).toContain('networkFirstStrategy');
-      
+
       // キャッシュファースト戦略
       expect(swContent).toContain('cacheFirstStrategy');
-      
+
       // フェッチイベントハンドラー
       expect(swContent).toContain("addEventListener('fetch'");
     });

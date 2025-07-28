@@ -7,7 +7,7 @@ import {
   setupErrorHandlers,
   TEST_DATA,
   TIMEOUTS,
-  toggleRankingModal,
+  toggleRankingModal
 } from './helpers.js';
 
 test.describe('Game Interaction Tests', () => {

@@ -38,7 +38,7 @@ test.describe('Performance Tests', () => {
               return callback(timestamp);
             });
           };
-        `,
+        `
       });
 
       // ゲームを開始
@@ -95,7 +95,7 @@ test.describe('Performance Tests', () => {
     test('should not have memory leaks during extended gameplay', async ({ page }) => {
       // タイムアウトを60秒に延長
       test.setTimeout(60000);
-      
+
       await page.goto('/docs/game.html');
       await page.waitForTimeout(3000);
 
@@ -114,7 +114,7 @@ test.describe('Performance Tests', () => {
               });
             }
           }, 1000); // 1秒ごとに記録（高頻度）
-        `,
+        `
       });
 
       // ゲームを開始
@@ -249,7 +249,7 @@ test.describe('Performance Tests', () => {
         resources.push({
           url: response.url(),
           status: response.status(),
-          size: response.headers()['content-length'],
+          size: response.headers()['content-length']
         });
       });
 
@@ -306,7 +306,7 @@ test.describe('Performance Tests', () => {
           setTimeout(() => {
             requestAnimationFrame(recordFrame);
           }, 1000);
-        `,
+        `
       });
 
       // ゲームを開始

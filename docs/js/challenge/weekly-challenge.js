@@ -91,275 +91,275 @@ class WeeklyChallenge {
 
 /**
  * 週替わりチャレンジ生成システム
- * 
+ *
  * 決定論的な週替わりチャレンジを生成する
  */
 class ChallengeGenerator {
-    constructor() {
-        this.challengeTypes = [
-            'score',
-            'consecutive_hits',
-            'time_survival',
-            'special_action'
-        ];
-        
-        this.difficulties = ['basic', 'intermediate', 'advanced', 'expert'];
-        
-        // チャレンジテンプレート
-        this.challengeTemplates = {
-            score: {
-                titles: ['スコアマスター', 'ハイスコアチャレンジ', '得点王への道', 'スコアブレイカー'],
-                descriptions: [
-                    '点以上のスコアを獲得してください',
-                    '点を目指して頑張りましょう',
-                    '点のスコアを達成せよ',
-                    '点以上を獲得してスコアマスターになろう'
-                ],
-                targets: [1000, 1500, 2000, 2500, 3000]
-            },
-            consecutive_hits: {
-                titles: ['連続ヒット王', 'コンボマスター', '連打チャレンジ', 'ヒットストリーク'],
-                descriptions: [
-                    '回連続でボールを打ち返してください',
-                    '回のコンボを達成しよう',
-                    '連続ヒット回数を競おう',
-                    'ミスせずに連続でヒットしよう'
-                ],
-                targets: [10, 15, 20, 25, 30]
-            },
-            time_survival: {
-                titles: ['生存マスター', 'タイムアタック', 'サバイバルモード', '時間との戦い'],
-                descriptions: [
-                    '秒間生き残ってください',
-                    '秒間プレイを続けよう',
-                    '秒間ゲームオーバーにならないようにしよう',
-                    '秒間の持久戦に挑戦'
-                ],
-                targets: [60, 90, 120, 150, 180]
-            },
-            special_action: {
-                titles: ['スペシャルアクション', '特殊技能', '技術の証明', 'エキスパートチャレンジ'],
-                descriptions: [
-                    'を発動してください',
-                    'の技術を使いこなそう',
-                    'を成功させよう',
-                    'を実行してマスターになろう'
-                ],
-                targets: [
-                    'multi_ball_activated',
-                    'powerup_collected',
-                    'ada_difficulty_increased',
-                    'perfect_combo'
-                ]
-            }
-        };
-    }
-    
-    /**
+  constructor() {
+    this.challengeTypes = [
+      'score',
+      'consecutive_hits',
+      'time_survival',
+      'special_action'
+    ];
+
+    this.difficulties = ['basic', 'intermediate', 'advanced', 'expert'];
+
+    // チャレンジテンプレート
+    this.challengeTemplates = {
+      score: {
+        titles: ['スコアマスター', 'ハイスコアチャレンジ', '得点王への道', 'スコアブレイカー'],
+        descriptions: [
+          '点以上のスコアを獲得してください',
+          '点を目指して頑張りましょう',
+          '点のスコアを達成せよ',
+          '点以上を獲得してスコアマスターになろう'
+        ],
+        targets: [1000, 1500, 2000, 2500, 3000]
+      },
+      consecutive_hits: {
+        titles: ['連続ヒット王', 'コンボマスター', '連打チャレンジ', 'ヒットストリーク'],
+        descriptions: [
+          '回連続でボールを打ち返してください',
+          '回のコンボを達成しよう',
+          '連続ヒット回数を競おう',
+          'ミスせずに連続でヒットしよう'
+        ],
+        targets: [10, 15, 20, 25, 30]
+      },
+      time_survival: {
+        titles: ['生存マスター', 'タイムアタック', 'サバイバルモード', '時間との戦い'],
+        descriptions: [
+          '秒間生き残ってください',
+          '秒間プレイを続けよう',
+          '秒間ゲームオーバーにならないようにしよう',
+          '秒間の持久戦に挑戦'
+        ],
+        targets: [60, 90, 120, 150, 180]
+      },
+      special_action: {
+        titles: ['スペシャルアクション', '特殊技能', '技術の証明', 'エキスパートチャレンジ'],
+        descriptions: [
+          'を発動してください',
+          'の技術を使いこなそう',
+          'を成功させよう',
+          'を実行してマスターになろう'
+        ],
+        targets: [
+          'multi_ball_activated',
+          'powerup_collected',
+          'ada_difficulty_increased',
+          'perfect_combo'
+        ]
+      }
+    };
+  }
+
+  /**
      * 週替わりチャレンジを生成
-     * 
+     *
      * @param {Date} date - 対象の日付
      * @returns {Object} 生成されたチャレンジ
      */
-    generateWeeklyChallenge(date) {
-        // 週の開始日を取得（月曜日を週の開始とする）
-        const weekStart = this.getWeekStart(date);
-        
-        // 週番号を計算（2024年1月1日からの週数）
-        const epochDate = new Date('2024-01-01');
-        const weekNumber = Math.floor((weekStart - epochDate) / (7 * 24 * 60 * 60 * 1000));
-        
-        // 決定論的な乱数シード
-        const seed = this.hashCode(`week-${weekNumber}`);
-        const rng = this.createSeededRandom(seed);
-        
-        // チャレンジタイプを選択
-        const challengeType = this.challengeTypes[Math.floor(rng() * this.challengeTypes.length)];
-        
-        // 難易度を選択
-        const difficulty = this.difficulties[Math.floor(rng() * this.difficulties.length)];
-        
-        // チャレンジの詳細を生成
-        const challenge = this.generateChallengeDetails(challengeType, difficulty, rng);
-        
-        return {
-            weekNumber: weekNumber,
-            weekStart: weekStart.toISOString(),
-            type: challengeType,
-            difficulty: difficulty,
-            title: challenge.title,
-            description: challenge.description,
-            target: challenge.target,
-            timeLimit: challenge.timeLimit,
-            condition: challenge.condition,
-            metadata: {
-                seed: seed,
-                generatedAt: new Date().toISOString()
-            }
-        };
-    }
-    
-    /**
+  generateWeeklyChallenge(date) {
+    // 週の開始日を取得（月曜日を週の開始とする）
+    const weekStart = this.getWeekStart(date);
+
+    // 週番号を計算（2024年1月1日からの週数）
+    const epochDate = new Date('2024-01-01');
+    const weekNumber = Math.floor((weekStart - epochDate) / (7 * 24 * 60 * 60 * 1000));
+
+    // 決定論的な乱数シード
+    const seed = this.hashCode(`week-${weekNumber}`);
+    const rng = this.createSeededRandom(seed);
+
+    // チャレンジタイプを選択
+    const challengeType = this.challengeTypes[Math.floor(rng() * this.challengeTypes.length)];
+
+    // 難易度を選択
+    const difficulty = this.difficulties[Math.floor(rng() * this.difficulties.length)];
+
+    // チャレンジの詳細を生成
+    const challenge = this.generateChallengeDetails(challengeType, difficulty, rng);
+
+    return {
+      weekNumber: weekNumber,
+      weekStart: weekStart.toISOString(),
+      type: challengeType,
+      difficulty: difficulty,
+      title: challenge.title,
+      description: challenge.description,
+      target: challenge.target,
+      timeLimit: challenge.timeLimit,
+      condition: challenge.condition,
+      metadata: {
+        seed: seed,
+        generatedAt: new Date().toISOString()
+      }
+    };
+  }
+
+  /**
      * 週の開始日を取得（月曜日）
-     * 
+     *
      * @param {Date} date - 対象の日付
      * @returns {Date} 週の開始日
      */
-    getWeekStart(date) {
-        const d = new Date(date);
-        const day = d.getDay();
-        const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-        return new Date(d.setDate(diff));
-    }
-    
-    /**
+  getWeekStart(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  }
+
+  /**
      * 文字列からハッシュ値を生成
-     * 
+     *
      * @param {string} str - ハッシュ化する文字列
      * @returns {number} ハッシュ値
      */
-    hashCode(str) {
-        let hash = 0;
-        for (let i = 0; i < str.length; i++) {
-            const char = str.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // 32bit整数に変換
-        }
-        return Math.abs(hash);
+  hashCode(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // 32bit整数に変換
     }
-    
-    /**
+    return Math.abs(hash);
+  }
+
+  /**
      * シード値から決定論的な乱数ジェネレータを作成
-     * 
+     *
      * @param {number} seed - シード値
      * @returns {Function} 乱数ジェネレータ
      */
-    createSeededRandom(seed) {
-        return function() {
-            seed = (seed * 9301 + 49297) % 233280;
-            return seed / 233280;
-        };
-    }
-    
-    /**
+  createSeededRandom(seed) {
+    return function() {
+      seed = (seed * 9301 + 49297) % 233280;
+      return seed / 233280;
+    };
+  }
+
+  /**
      * チャレンジの詳細を生成
-     * 
+     *
      * @param {string} type - チャレンジタイプ
      * @param {string} difficulty - 難易度
      * @param {Function} rng - 乱数ジェネレータ
      * @returns {Object} チャレンジの詳細
      */
-    generateChallengeDetails(type, difficulty, rng) {
-        const template = this.challengeTemplates[type];
-        
-        // タイトルと説明を選択
-        const titleIndex = Math.floor(rng() * template.titles.length);
-        const descIndex = Math.floor(rng() * template.descriptions.length);
-        const title = template.titles[titleIndex];
-        const description = template.descriptions[descIndex];
-        
-        // 目標値を選択
-        const targetIndex = Math.floor(rng() * template.targets.length);
-        const target = template.targets[targetIndex];
-        
-        // 難易度による調整
-        const difficultyMultiplier = {
-            basic: 1.0,
-            intermediate: 1.3,
-            advanced: 1.6,
-            expert: 2.0
-        };
-        
-        const multiplier = difficultyMultiplier[difficulty];
-        
-        // 制限時間を設定
-        const baseTimeLimit = this.getBaseTimeLimit(type);
-        const timeLimit = Math.floor(baseTimeLimit / multiplier);
-        
-        // 条件を生成
-        const condition = this.generateCondition(type, target, timeLimit, multiplier);
-        
-        // 説明文の生成
-        let processedDescription = description;
-        if (typeof target === 'number') {
-            processedDescription = `${Math.floor(target * multiplier)}${description}`;
-        } else {
-            // 文字列の場合、targetをそのまま説明に埋め込む
-            processedDescription = description.replace('を発動してください', `(${target})を発動してください`)
-                                            .replace('の技術を使いこなそう', `(${target})の技術を使いこなそう`)
-                                            .replace('を成功させよう', `(${target})を成功させよう`)
-                                            .replace('を実行してマスターになろう', `(${target})を実行してマスターになろう`);
-        }
-        
-        return {
-            title: title,
-            description: processedDescription,
-            target: typeof target === 'number' ? Math.floor(target * multiplier) : target,
-            timeLimit: timeLimit,
-            condition: condition
-        };
+  generateChallengeDetails(type, difficulty, rng) {
+    const template = this.challengeTemplates[type];
+
+    // タイトルと説明を選択
+    const titleIndex = Math.floor(rng() * template.titles.length);
+    const descIndex = Math.floor(rng() * template.descriptions.length);
+    const title = template.titles[titleIndex];
+    const description = template.descriptions[descIndex];
+
+    // 目標値を選択
+    const targetIndex = Math.floor(rng() * template.targets.length);
+    const target = template.targets[targetIndex];
+
+    // 難易度による調整
+    const difficultyMultiplier = {
+      basic: 1.0,
+      intermediate: 1.3,
+      advanced: 1.6,
+      expert: 2.0
+    };
+
+    const multiplier = difficultyMultiplier[difficulty];
+
+    // 制限時間を設定
+    const baseTimeLimit = this.getBaseTimeLimit(type);
+    const timeLimit = Math.floor(baseTimeLimit / multiplier);
+
+    // 条件を生成
+    const condition = this.generateCondition(type, target, timeLimit, multiplier);
+
+    // 説明文の生成
+    let processedDescription = description;
+    if (typeof target === 'number') {
+      processedDescription = `${Math.floor(target * multiplier)}${description}`;
+    } else {
+      // 文字列の場合、targetをそのまま説明に埋め込む
+      processedDescription = description.replace('を発動してください', `(${target})を発動してください`)
+        .replace('の技術を使いこなそう', `(${target})の技術を使いこなそう`)
+        .replace('を成功させよう', `(${target})を成功させよう`)
+        .replace('を実行してマスターになろう', `(${target})を実行してマスターになろう`);
     }
-    
-    /**
+
+    return {
+      title: title,
+      description: processedDescription,
+      target: typeof target === 'number' ? Math.floor(target * multiplier) : target,
+      timeLimit: timeLimit,
+      condition: condition
+    };
+  }
+
+  /**
      * チャレンジタイプに基づく基本制限時間を取得
-     * 
+     *
      * @param {string} type - チャレンジタイプ
      * @returns {number} 基本制限時間（秒）
      */
-    getBaseTimeLimit(type) {
-        const timeLimits = {
-            score: 120,
-            consecutive_hits: 60,
-            time_survival: 300,
-            special_action: 180
-        };
-        
-        return timeLimits[type] || 120;
-    }
-    
-    /**
+  getBaseTimeLimit(type) {
+    const timeLimits = {
+      score: 120,
+      consecutive_hits: 60,
+      time_survival: 300,
+      special_action: 180
+    };
+
+    return timeLimits[type] || 120;
+  }
+
+  /**
      * チャレンジの条件を生成
-     * 
+     *
      * @param {string} type - チャレンジタイプ
      * @param {*} target - 目標値
      * @param {number} timeLimit - 制限時間
      * @param {number} multiplier - 難易度倍率
      * @returns {Object} チャレンジ条件
      */
-    generateCondition(type, target, timeLimit, multiplier) {
-        const conditions = {
-            score: {
-                type: 'score',
-                requirement: `${Math.floor(target * multiplier)}点以上獲得`,
-                timeLimit: `${timeLimit}秒以内`
-            },
-            consecutive_hits: {
-                type: 'consecutive_hits',
-                requirement: `${Math.floor(target * multiplier)}回連続ヒット`,
-                timeLimit: `${timeLimit}秒以内`
-            },
-            time_survival: {
-                type: 'time_survival',
-                requirement: `${Math.floor(target * multiplier)}秒間生存`,
-                timeLimit: `制限時間なし`
-            },
-            special_action: {
-                type: 'special_action',
-                requirement: `${target}を実行`,
-                timeLimit: `${timeLimit}秒以内`
-            }
-        };
-        
-        return conditions[type];
-    }
+  generateCondition(type, target, timeLimit, multiplier) {
+    const conditions = {
+      score: {
+        type: 'score',
+        requirement: `${Math.floor(target * multiplier)}点以上獲得`,
+        timeLimit: `${timeLimit}秒以内`
+      },
+      consecutive_hits: {
+        type: 'consecutive_hits',
+        requirement: `${Math.floor(target * multiplier)}回連続ヒット`,
+        timeLimit: `${timeLimit}秒以内`
+      },
+      time_survival: {
+        type: 'time_survival',
+        requirement: `${Math.floor(target * multiplier)}秒間生存`,
+        timeLimit: '制限時間なし'
+      },
+      special_action: {
+        type: 'special_action',
+        requirement: `${target}を実行`,
+        timeLimit: `${timeLimit}秒以内`
+      }
+    };
+
+    return conditions[type];
+  }
 }
 
 // Node.js環境でのエクスポート（テスト用）
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ChallengeGenerator;
+  module.exports = ChallengeGenerator;
 }
 
 // ブラウザ環境でのグローバル利用
 if (typeof window !== 'undefined') {
-    window.ChallengeGenerator = ChallengeGenerator;
+  window.ChallengeGenerator = ChallengeGenerator;
 }

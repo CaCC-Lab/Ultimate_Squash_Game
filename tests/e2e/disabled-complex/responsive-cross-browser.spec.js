@@ -6,7 +6,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       { name: 'Mobile', width: 375, height: 667 },
       { name: 'Tablet', width: 768, height: 1024 },
       { name: 'Desktop', width: 1920, height: 1080 },
-      { name: 'Ultra-wide', width: 2560, height: 1080 },
+      { name: 'Ultra-wide', width: 2560, height: 1080 }
     ];
 
     for (const viewport of viewports) {
@@ -40,7 +40,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
         // スクリーンショットを撮影（視覚的確認用）
         await page.screenshot({
           path: `test-results/responsive-${viewport.name}-${viewport.width}x${viewport.height}.png`,
-          fullPage: true,
+          fullPage: true
         });
       });
     }
@@ -52,7 +52,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       const context = await browser.newContext({
         ...devices['iPhone 12'],
         hasTouch: true,
-        isMobile: true,
+        isMobile: true
       });
 
       const page = await context.newPage();
@@ -67,8 +67,8 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       await page.tap('#gameCanvas', {
         position: {
           x: canvasBox.width / 2,
-          y: canvasBox.height / 2,
-        },
+          y: canvasBox.height / 2
+        }
       });
       await page.waitForTimeout(1000);
 
@@ -76,8 +76,8 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       await page.tap('#gameCanvas', {
         position: {
           x: canvasBox.width * 0.25,
-          y: canvasBox.height / 2,
-        },
+          y: canvasBox.height / 2
+        }
       });
       await page.waitForTimeout(500);
 
@@ -85,8 +85,8 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       await page.tap('#gameCanvas', {
         position: {
           x: canvasBox.width * 0.75,
-          y: canvasBox.height / 2,
-        },
+          y: canvasBox.height / 2
+        }
       });
       await page.waitForTimeout(500);
 
@@ -114,7 +114,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       // タブレットデバイスのコンテキストを作成
       const context = await browser.newContext({
         ...devices['iPad Pro'],
-        hasTouch: true,
+        hasTouch: true
       });
 
       const page = await context.newPage();
@@ -185,7 +185,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
     test('should adapt to portrait orientation', async ({ browser }) => {
       const context = await browser.newContext({
         viewport: { width: 667, height: 375 }, // 横向き
-        isMobile: true,
+        isMobile: true
       });
 
       const page = await context.newPage();
@@ -220,7 +220,7 @@ test.describe('Responsive and Cross-Browser Tests', () => {
       const context = await browser.newContext({
         ...devices['iPhone 12'],
         // CPU throttling をシミュレート
-        cpuThrottlingRate: 4,
+        cpuThrottlingRate: 4
       });
 
       const page = await context.newPage();

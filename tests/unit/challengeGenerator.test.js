@@ -9,24 +9,24 @@ class ChallengeGenerator {
     this.difficulty = config.difficulty || 'normal';
     this.seed = config.seed || Date.now();
   }
-  
+
   generate(seed) {
     // シード値のバリデーション
     if (seed === null || seed === undefined || typeof seed === 'string' || seed <= 0) {
       throw new Error('Invalid seed value');
     }
-    
+
     // シードベースで決定的な生成を行う
     const types = ['score', 'time_survival', 'consecutive_hits', 'special_action'];
     const typeIndex = seed % types.length;
     const type = types[typeIndex];
-    
+
     // 週番号を計算（簡略化）
     const week = 25; // テストで期待される値
-    
+
     // 難易度を計算
     const difficulty = (seed % 3) + 1;
-    
+
     // チャレンジの詳細を生成
     let goal = {};
     let target = '';
@@ -56,7 +56,7 @@ class ChallengeGenerator {
         description = 'Use powerups effectively';
         break;
     }
-    
+
     // 特定のシード値に対する固定結果（テスト用）
     if (seed === 12345) {
       return {
@@ -69,7 +69,7 @@ class ChallengeGenerator {
         target: undefined
       };
     }
-    
+
     return {
       id: `week_${week}_${type}_${target || duration || hits || 'special'}`,
       type: type,
@@ -80,7 +80,7 @@ class ChallengeGenerator {
       target: target || undefined
     };
   }
-  
+
   generateName(type) {
     const names = {
       score: 'Score Master',
@@ -90,7 +90,7 @@ class ChallengeGenerator {
     };
     return names[type] || 'Challenge';
   }
-  
+
   generateBatch(count) {
     return Array.from({ length: count }, (_, i) => this.generate(this.seed + i));
   }
@@ -107,7 +107,7 @@ Date.prototype.getWeek = function() {
 
 describe('ChallengeGenerator', () => {
   let challengeGenerator;
-  
+
   beforeEach(() => {
     challengeGenerator = new ChallengeGenerator();
   });
@@ -127,7 +127,7 @@ describe('ChallengeGenerator', () => {
       expect(challenge).toHaveProperty('goal');
       expect(challenge).toHaveProperty('difficulty');
       expect(challenge).toHaveProperty('week');
-      
+
       // プロパティの型チェック
       expect(typeof challenge.id).toBe('string');
       expect(typeof challenge.type).toBe('string');
@@ -282,7 +282,7 @@ describe('ChallengeGenerator', () => {
       // Then: 様々なタイプのチャレンジが生成される
       const types = challenges.map(c => c.type);
       const uniqueTypes = [...new Set(types)];
-      
+
       expect(uniqueTypes.length).toBeGreaterThanOrEqual(2); // 最低2つのタイプ
     });
 
@@ -299,7 +299,7 @@ describe('ChallengeGenerator', () => {
       // Then: 難易度の分散が適切
       const difficulties = challenges.map(c => c.difficulty);
       const avgDifficulty = difficulties.reduce((a, b) => a + b, 0) / difficulties.length;
-      
+
       expect(avgDifficulty).toBeGreaterThanOrEqual(1.0);
       expect(avgDifficulty).toBeLessThanOrEqual(2.1);
     });

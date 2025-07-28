@@ -2,12 +2,12 @@
 const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
   this.container = container;
   this.modal = null;
-  
+
   this.init = function() {
     this.modal = document.createElement('div');
     this.modal.className = 'weekly-challenge-modal';
     this.modal.style.display = 'none';
-    
+
     this.modal.innerHTML = `
       <div class="challenge-info"></div>
       <div class="challenge-params"></div>
@@ -15,13 +15,13 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
       <button data-action="start-challenge">開始</button>
       <button data-action="close-modal">閉じる</button>
     `;
-    
+
     this.container.appendChild(this.modal);
-    
+
     // イベントリスナーの設定
     const startBtn = this.modal.querySelector('[data-action="start-challenge"]');
     const closeBtn = this.modal.querySelector('[data-action="close-modal"]');
-    
+
     if (startBtn) {
       startBtn.addEventListener('click', () => {
         if (this.onChallengeStart) {
@@ -29,26 +29,26 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
         }
       });
     }
-    
+
     if (closeBtn) {
       closeBtn.addEventListener('click', () => {
         this.hide();
       });
     }
   };
-  
+
   this.show = function() {
     if (this.modal) {
       this.modal.style.display = 'flex';
     }
   };
-  
+
   this.hide = function() {
     if (this.modal) {
       this.modal.style.display = 'none';
     }
   };
-  
+
   this.displayChallengeInfo = function(challenge) {
     const infoDiv = this.modal.querySelector('.challenge-info');
     if (infoDiv) {
@@ -62,7 +62,7 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
         }
         return '2024/01/01';
       };
-      
+
       infoDiv.innerHTML = `
         <h2>週替わりチャレンジ #${challenge.weekNumber || 1}</h2>
         <p>${formatDate(challenge.startDate)} - ${formatDate(challenge.endDate)}</p>
@@ -70,7 +70,7 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
       `;
     }
   };
-  
+
   this.displayChallengeParameters = function(params) {
     const paramsDiv = this.modal.querySelector('.challenge-params');
     if (paramsDiv) {
@@ -83,7 +83,7 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
         .join('');
     }
   };
-  
+
   this.displayLeaderboard = function(entries) {
     const leaderboardDiv = this.modal.querySelector('.challenge-leaderboard');
     if (leaderboardDiv) {
@@ -96,7 +96,7 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
       }
     }
   };
-  
+
   this.showLoading = function() {
     const leaderboard = this.modal.querySelector('.challenge-leaderboard');
     if (leaderboard) {
@@ -104,7 +104,7 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
       leaderboard.innerHTML = '<p>読み込み中...</p>';
     }
   };
-  
+
   this.displayError = function(message) {
     const leaderboard = this.modal.querySelector('.challenge-leaderboard');
     if (leaderboard) {
@@ -112,11 +112,11 @@ const WeeklyChallengeUI = jest.fn().mockImplementation(function(container) {
       leaderboard.innerHTML = `<p>エラーが発生しました: ${message}</p>`;
     }
   };
-  
+
   this.onStartChallenge = function(callback) {
     this.onChallengeStart = callback;
   };
-  
+
   this.init();
 });
 
@@ -128,7 +128,7 @@ describe('WeeklyChallengeUI', () => {
     // コンテナ要素の作成
     container = document.createElement('div');
     document.body.appendChild(container);
-    
+
     ui = new WeeklyChallengeUI(container);
   });
 

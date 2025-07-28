@@ -33,7 +33,7 @@ class IntegratedTestCoverage {
     this.results = {};
     this.setupDirectories();
   }
-  
+
   setupDirectories() {
     // ディレクトリ作成のモック
     if (!fs.existsSync(this.config.outputDir)) {
@@ -43,7 +43,7 @@ class IntegratedTestCoverage {
       fs.mkdirSync(this.config.tempDir, { recursive: true });
     }
   }
-  
+
   executeCommand(command, type) {
     // コマンド実行のモック
     try {
@@ -56,7 +56,7 @@ class IntegratedTestCoverage {
       throw new Error(`Command failed: ${command}`);
     }
   }
-  
+
   parseTestResults(output, type) {
     // テスト結果解析のモック
     return {
@@ -66,7 +66,7 @@ class IntegratedTestCoverage {
       skipped: 0
     };
   }
-  
+
   collectCoverageForType(type) {
     // カバレッジ収集のモック
     const summaryPath = path.join('coverage', 'coverage-summary.json');
@@ -76,7 +76,7 @@ class IntegratedTestCoverage {
     }
     return null;
   }
-  
+
   checkCoverageTargets(coverage, targets) {
     // カバレッジ目標チェックのモック
     for (const metric of ['statements', 'branches', 'functions', 'lines']) {
@@ -86,7 +86,7 @@ class IntegratedTestCoverage {
     }
     return true;
   }
-  
+
   integrateCoverage(coverageData) {
     // カバレッジ統合のモック
     const integrated = {
@@ -95,7 +95,7 @@ class IntegratedTestCoverage {
       functions: { total: 0, covered: 0, pct: 0 },
       lines: { total: 0, covered: 0, pct: 0 }
     };
-    
+
     for (const [type, data] of Object.entries(coverageData)) {
       if (data && data.total) {
         for (const metric of ['statements', 'branches', 'functions', 'lines']) {
@@ -104,22 +104,22 @@ class IntegratedTestCoverage {
         }
       }
     }
-    
+
     for (const metric of ['statements', 'branches', 'functions', 'lines']) {
       if (integrated[metric].total > 0) {
         integrated[metric].pct = (integrated[metric].covered / integrated[metric].total) * 100;
       }
     }
-    
+
     return integrated;
   }
-  
+
   async runSpecificTest(testType) {
     // 特定テスト実行のモック
     const result = await this.executeCommand(`npm run test:${testType}`, testType);
     return this.parseTestResults(result, testType);
   }
-  
+
   async runAllTests() {
     // 全テスト実行のモック
     const results = {};
@@ -128,18 +128,18 @@ class IntegratedTestCoverage {
     }
     return results;
   }
-  
+
   generateHTMLReport(coverage) {
     // HTMLレポート生成のモック
-    const html = `<html><body>Coverage Report</body></html>`;
+    const html = '<html><body>Coverage Report</body></html>';
     fs.writeFileSync(path.join(this.config.outputDir, 'index.html'), html);
   }
-  
+
   async generateReport() {
     // レポート生成のモック
     return { success: true };
   }
-  
+
   getCoverageStats() {
     // カバレッジ統計のモック
     return {
@@ -159,181 +159,181 @@ jest.mock('child_process');
 const mockExit = jest.spyOn(process, 'exit').mockImplementation(() => {});
 
 describe('IntegratedTestCoverage', () => {
-    let coverage;
-    let mockExecSync;
+  let coverage;
+  let mockExecSync;
 
-    beforeEach(() => {
-        // モックをリセット
-        jest.clearAllMocks();
-        
-        // execSyncモックの設定
-        const childProcess = require('child_process');
-        mockExecSync = childProcess.execSync;
-        
-        // fsモックの設定
-        fs.existsSync = jest.fn().mockReturnValue(false);
-        fs.mkdirSync = jest.fn();
-        fs.writeFileSync = jest.fn();
-        fs.readFileSync = jest.fn();
-        fs.rmSync = jest.fn();
-        
-        // 新しいインスタンスを作成
-        coverage = new IntegratedTestCoverage();
+  beforeEach(() => {
+    // モックをリセット
+    jest.clearAllMocks();
+
+    // execSyncモックの設定
+    const childProcess = require('child_process');
+    mockExecSync = childProcess.execSync;
+
+    // fsモックの設定
+    fs.existsSync = jest.fn().mockReturnValue(false);
+    fs.mkdirSync = jest.fn();
+    fs.writeFileSync = jest.fn();
+    fs.readFileSync = jest.fn();
+    fs.rmSync = jest.fn();
+
+    // 新しいインスタンスを作成
+    coverage = new IntegratedTestCoverage();
+  });
+
+  afterEach(() => {
+    mockExit.mockClear();
+  });
+
+  describe('constructor', () => {
+    test('should initialize with correct default configuration', () => {
+      expect(coverage.config).toBeDefined();
+      expect(coverage.config.testTypes).toBeDefined();
+      expect(coverage.config.targets).toBeDefined();
+      expect(coverage.results).toBeDefined();
+
+      // テストタイプの確認
+      expect(coverage.config.testTypes).toContain('unit');
+      expect(coverage.config.testTypes).toContain('integration');
+      expect(coverage.config.testTypes).toContain('e2e');
+      expect(coverage.config.testTypes).toContain('performance');
     });
 
-    afterEach(() => {
-        mockExit.mockClear();
+    test('should create necessary directories', () => {
+      expect(fs.mkdirSync).toHaveBeenCalled();
+    });
+  });
+
+  describe('setupDirectories', () => {
+    test('should create output and temp directories', () => {
+      fs.existsSync.mockReturnValue(false);
+      coverage.setupDirectories();
+
+      expect(fs.mkdirSync).toHaveBeenCalledWith(
+        coverage.config.outputDir,
+        { recursive: true }
+      );
+      expect(fs.mkdirSync).toHaveBeenCalledWith(
+        coverage.config.tempDir,
+        { recursive: true }
+      );
+    });
+  });
+
+  describe('executeCommand', () => {
+    test('should execute command successfully', () => {
+      const mockOutput = 'Test output';
+      mockExecSync.mockReturnValue(mockOutput);
+
+      const result = coverage.executeCommand('test command');
+
+      expect(mockExecSync).toHaveBeenCalledWith('test command', { encoding: 'utf8' });
+      expect(result).toBe(mockOutput);
     });
 
-    describe('constructor', () => {
-        test('should initialize with correct default configuration', () => {
-            expect(coverage.config).toBeDefined();
-            expect(coverage.config.testTypes).toBeDefined();
-            expect(coverage.config.targets).toBeDefined();
-            expect(coverage.results).toBeDefined();
-            
-            // テストタイプの確認
-            expect(coverage.config.testTypes).toContain('unit');
-            expect(coverage.config.testTypes).toContain('integration');
-            expect(coverage.config.testTypes).toContain('e2e');
-            expect(coverage.config.testTypes).toContain('performance');
-        });
+    test('should handle command execution errors', () => {
+      const mockError = new Error('Command failed');
+      mockError.stdout = 'Error output';
+      mockError.stderr = 'Error details';
 
-        test('should create necessary directories', () => {
-            expect(fs.mkdirSync).toHaveBeenCalled();
-        });
+      mockExecSync.mockImplementation(() => {
+        throw mockError;
+      });
+
+      const result = coverage.executeCommand('failing command');
+
+      expect(result).toBe('Error output');
+    });
+  });
+
+  describe('checkCoverageTargets', () => {
+    test('should return true when all targets are met', () => {
+      const coverageData = {
+        statements: { pct: 85 },
+        branches: { pct: 80 },
+        functions: { pct: 85 },
+        lines: { pct: 85 }
+      };
+
+      const targets = {
+        statements: 80,
+        branches: 70,
+        functions: 80,
+        lines: 80
+      };
+
+      const result = coverage.checkCoverageTargets(coverageData, targets);
+
+      expect(result).toBe(true);
     });
 
-    describe('setupDirectories', () => {
-        test('should create output and temp directories', () => {
-            fs.existsSync.mockReturnValue(false);
-            coverage.setupDirectories();
-            
-            expect(fs.mkdirSync).toHaveBeenCalledWith(
-                coverage.config.outputDir, 
-                { recursive: true }
-            );
-            expect(fs.mkdirSync).toHaveBeenCalledWith(
-                coverage.config.tempDir, 
-                { recursive: true }
-            );
-        });
+    test('should return false when any target is not met', () => {
+      const coverageData = {
+        statements: { pct: 85 },
+        branches: { pct: 65 }, // Below target of 70
+        functions: { pct: 85 },
+        lines: { pct: 85 }
+      };
+
+      const targets = {
+        statements: 80,
+        branches: 70,
+        functions: 80,
+        lines: 80
+      };
+
+      const result = coverage.checkCoverageTargets(coverageData, targets);
+
+      expect(result).toBe(false);
     });
+  });
 
-    describe('executeCommand', () => {
-        test('should execute command successfully', () => {
-            const mockOutput = 'Test output';
-            mockExecSync.mockReturnValue(mockOutput);
-            
-            const result = coverage.executeCommand('test command');
-            
-            expect(mockExecSync).toHaveBeenCalledWith('test command', { encoding: 'utf8' });
-            expect(result).toBe(mockOutput);
-        });
+  describe('integrateCoverage', () => {
+    test('should correctly aggregate coverage from multiple test types', () => {
+      const coverageData = {
+        unit: {
+          total: {
+            statements: { total: 100, covered: 80 },
+            branches: { total: 50, covered: 40 },
+            functions: { total: 30, covered: 25 },
+            lines: { total: 200, covered: 160 }
+          }
+        },
+        integration: {
+          total: {
+            statements: { total: 50, covered: 45 },
+            branches: { total: 25, covered: 20 },
+            functions: { total: 15, covered: 12 },
+            lines: { total: 100, covered: 90 }
+          }
+        }
+      };
 
-        test('should handle command execution errors', () => {
-            const mockError = new Error('Command failed');
-            mockError.stdout = 'Error output';
-            mockError.stderr = 'Error details';
-            
-            mockExecSync.mockImplementation(() => {
-                throw mockError;
-            });
-            
-            const result = coverage.executeCommand('failing command');
-            
-            expect(result).toBe('Error output');
-        });
+      const result = coverage.integrateCoverage(coverageData);
+
+      expect(result.statements.total).toBe(150);
+      expect(result.statements.covered).toBe(125);
+      expect(result.statements.pct).toBeCloseTo(83.33);
+
+      expect(result.lines.total).toBe(300);
+      expect(result.lines.covered).toBe(250);
+      expect(result.lines.pct).toBeCloseTo(83.33);
     });
+  });
 
-    describe('checkCoverageTargets', () => {
-        test('should return true when all targets are met', () => {
-            const coverageData = {
-                statements: { pct: 85 },
-                branches: { pct: 80 },
-                functions: { pct: 85 },
-                lines: { pct: 85 }
-            };
-            
-            const targets = {
-                statements: 80,
-                branches: 70,
-                functions: 80,
-                lines: 80
-            };
-            
-            const result = coverage.checkCoverageTargets(coverageData, targets);
-            
-            expect(result).toBe(true);
-        });
+  describe('error handling', () => {
+    test('should throw error when no useful output from command', () => {
+      const mockError = new Error('Command failed');
+      mockError.stdout = '';
+      mockError.stderr = '';
 
-        test('should return false when any target is not met', () => {
-            const coverageData = {
-                statements: { pct: 85 },
-                branches: { pct: 65 }, // Below target of 70
-                functions: { pct: 85 },
-                lines: { pct: 85 }
-            };
-            
-            const targets = {
-                statements: 80,
-                branches: 70,
-                functions: 80,
-                lines: 80
-            };
-            
-            const result = coverage.checkCoverageTargets(coverageData, targets);
-            
-            expect(result).toBe(false);
-        });
+      mockExecSync.mockImplementation(() => {
+        throw mockError;
+      });
+
+      expect(() => {
+        coverage.executeCommand('failing command');
+      }).toThrow('Command failed');
     });
-
-    describe('integrateCoverage', () => {
-        test('should correctly aggregate coverage from multiple test types', () => {
-            const coverageData = {
-                unit: {
-                    total: {
-                        statements: { total: 100, covered: 80 },
-                        branches: { total: 50, covered: 40 },
-                        functions: { total: 30, covered: 25 },
-                        lines: { total: 200, covered: 160 }
-                    }
-                },
-                integration: {
-                    total: {
-                        statements: { total: 50, covered: 45 },
-                        branches: { total: 25, covered: 20 },
-                        functions: { total: 15, covered: 12 },
-                        lines: { total: 100, covered: 90 }
-                    }
-                }
-            };
-            
-            const result = coverage.integrateCoverage(coverageData);
-            
-            expect(result.statements.total).toBe(150);
-            expect(result.statements.covered).toBe(125);
-            expect(result.statements.pct).toBeCloseTo(83.33);
-            
-            expect(result.lines.total).toBe(300);
-            expect(result.lines.covered).toBe(250);
-            expect(result.lines.pct).toBeCloseTo(83.33);
-        });
-    });
-
-    describe('error handling', () => {
-        test('should throw error when no useful output from command', () => {
-            const mockError = new Error('Command failed');
-            mockError.stdout = '';
-            mockError.stderr = '';
-            
-            mockExecSync.mockImplementation(() => {
-                throw mockError;
-            });
-            
-            expect(() => {
-                coverage.executeCommand('failing command');
-            }).toThrow('Command failed');
-        });
-    });
+  });
 });

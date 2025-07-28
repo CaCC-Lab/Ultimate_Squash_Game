@@ -4,9 +4,9 @@ export class RankingController {
     this.ui = rankingUI;
     this.currentPeriod = 'daily';
     this.currentGameMode = 'all';
-    
+
     this._setupEventHandlers();
-    
+
     // Set UI controller reference
     this.ui.controller = this;
   }
@@ -32,7 +32,7 @@ export class RankingController {
   async loadRankings(period = null, gameMode = null, limit = 10) {
     const selectedPeriod = period || this.currentPeriod;
     const selectedGameMode = gameMode || this.currentGameMode;
-    
+
     try {
       this.ui.showLoading();
       const rankings = await this.api.fetchRankings(selectedPeriod, selectedGameMode, limit);
@@ -55,7 +55,7 @@ export class RankingController {
 
       const gameHash = await this.api.generateGameHash(gameData);
       const result = await this.api.submitScore(gameData, gameHash);
-      
+
       return result;
     } catch (error) {
       console.error('Error submitting score:', error);
@@ -67,7 +67,7 @@ export class RankingController {
     // Update current state from UI
     this.currentPeriod = this.ui.getCurrentPeriod();
     this.currentGameMode = this.ui.getCurrentGameMode();
-    
+
     this.ui.show();
   }
 
