@@ -21,7 +21,7 @@ const createMockClass = (className, defaultMethods = {}) => {
 };
 
 
-export class WeeklyChallengeAPI {
+class WeeklyChallengeAPI {
   constructor(apiBaseUrl) {
     this.apiBaseUrl = apiBaseUrl || 'http://localhost:3000';
   }
@@ -46,6 +46,47 @@ export class WeeklyChallengeAPI {
       percentile: Math.floor(Math.random() * 100),
       rewardEarned: result.completed ? 500 : 0
     });
+  }
+  
+  async submitChallengeScore(challengeData) {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          challengeData: challengeData
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'チャレンジスコア送信に失敗しました');
+      }
+      
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  async getChallengeLeaderboard(challengeId, limit = 10) {
+    try {
+      const response = await fetch(
+        `${this.apiBaseUrl}/leaderboard?challengeId=${challengeId}&limit=${limit}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('リーダーボード取得に失敗しました');
+      }
+      
+      const data = await response.json();
+      return data.leaderboard;
+    } catch (error) {
+      throw error;
+    }
   }
   
   async getWeeklyLeaderboard() {

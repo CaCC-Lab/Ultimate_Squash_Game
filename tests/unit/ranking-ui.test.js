@@ -1,45 +1,196 @@
 // CommonJS形式に変換
-/* Mock Implementation - Original file does not exist */
 
-// Mock factory function
-const createMockClass = (className, defaultMethods = {}) => {
-  return class MockClass {
-    constructor(...args) {
-      this.constructorArgs = args;
-      this.className = className;
+// RankingUIモック実装
+class RankingUI {
+  constructor(container) {
+    this.container = container;
+    this.visible = false;
+    this.currentPeriod = 'daily';
+    this.currentGameMode = 'all';
+    this.periodChangeCallback = null;
+    this.gameModeChangeCallback = null;
+    this.refreshCallback = null;
+    this.closeCallback = null;
+    
+    // DOM構造の作成
+    if (container) {
+      container.classList.add('ranking-container');
+      container.style.display = 'none';
       
-      // Default methodsを設定
-      Object.entries(defaultMethods).forEach(([method, impl]) => {
-        if (typeof impl === 'function') {
-          this[method] = jest.fn(impl);
-        } else {
-          this[method] = jest.fn(() => impl);
+      // コントロール部分
+      const controls = document.createElement('div');
+      controls.className = 'ranking-controls';
+      
+      // 期間ボタン
+      const periods = ['daily', 'weekly', 'monthly', 'all'];
+      const periodTexts = ['日間', '週間', '月間', '全期間'];
+      periods.forEach((period, index) => {
+        const btn = document.createElement('button');
+        btn.className = 'period-btn';
+        btn.setAttribute('data-period', period);
+        btn.textContent = periodTexts[index];
+        if (period === 'daily') btn.classList.add('active');
+        controls.appendChild(btn);
+      });
+      
+      // ゲームモード選択
+      const select = document.createElement('select');
+      select.className = 'game-mode-select';
+      const modes = [
+        { value: 'all', text: '全モード' },
+        { value: 'normal', text: 'ノーマル' },
+        { value: 'hard', text: 'ハード' },
+        { value: 'expert', text: 'エキスパート' }
+      ];
+      modes.forEach(mode => {
+        const option = document.createElement('option');
+        option.value = mode.value;
+        option.textContent = mode.text;
+        select.appendChild(option);
+      });
+      controls.appendChild(select);
+      
+      // リフレッシュボタン
+      const refreshBtn = document.createElement('button');
+      refreshBtn.className = 'refresh-button';
+      refreshBtn.textContent = '更新';
+      controls.appendChild(refreshBtn);
+      
+      // クローズボタン
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'close-button';
+      closeBtn.textContent = '閉じる';
+      controls.appendChild(closeBtn);
+      
+      container.appendChild(controls);
+      
+      // ランキングリスト
+      const list = document.createElement('div');
+      list.className = 'ranking-list';
+      container.appendChild(list);
+    }
+  }
+  
+  show() {
+    this.visible = true;
+    if (this.container) {
+      this.container.style.display = 'block';
+    }
+  }
+  
+  hide() {
+    this.visible = false;
+    if (this.container) {
+      this.container.style.display = 'none';
+    }
+  }
+  
+  displayRankings(rankings) {
+    const list = this.container.querySelector('.ranking-list');
+    if (!list) return;
+    
+    // 既存のコンテンツをクリア
+    list.innerHTML = '';
+    
+    if (!rankings || rankings.length === 0) {
+      const empty = document.createElement('div');
+      empty.textContent = 'ランキングデータがありません';
+      list.appendChild(empty);
+      return;
+    }
+    
+    rankings.forEach(ranking => {
+      const item = document.createElement('div');
+      item.className = 'ranking-item';
+      item.textContent = `#${ranking.rank} ${ranking.playerName} ${ranking.score.toLocaleString()}`;
+      list.appendChild(item);
+    });
+  }
+  
+  displayError(message) {
+    const list = this.container.querySelector('.ranking-list');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    const error = document.createElement('div');
+    error.className = 'error-message';
+    error.textContent = message;
+    list.appendChild(error);
+  }
+  
+  showLoading() {
+    const list = this.container.querySelector('.ranking-list');
+    if (!list) return;
+    
+    list.innerHTML = '';
+    const loading = document.createElement('div');
+    loading.className = 'loading';
+    loading.textContent = '読み込み中...';
+    list.appendChild(loading);
+  }
+  
+  onPeriodChange(callback) {
+    this.periodChangeCallback = callback;
+    const buttons = this.container.querySelectorAll('.period-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        this.currentPeriod = btn.getAttribute('data-period');
+        if (this.periodChangeCallback) {
+          this.periodChangeCallback(this.currentPeriod);
+        }
+      });
+    });
+  }
+  
+  onGameModeChange(callback) {
+    this.gameModeChangeCallback = callback;
+    const select = this.container.querySelector('.game-mode-select');
+    if (select) {
+      select.addEventListener('change', (e) => {
+        this.currentGameMode = e.target.value;
+        if (this.gameModeChangeCallback) {
+          this.gameModeChangeCallback(this.currentGameMode);
         }
       });
     }
-  };
-};
-
-
-export const RankingUI = createMockClass('RankingUI', {
-  render: function(container) { 
-    this.container = container; 
-  },
-  updateRankings: function(rankings) { 
-    this.rankings = rankings; 
-  },
-  showUserRank: function(rank) { 
-    this.userRank = rank; 
-  },
-  toggleVisibility: function() { 
-    this.visible = !this.visible; 
-  },
-  destroy: function() { 
-    this.destroyed = true; 
   }
-});
-
-// // import { RankingUI } from '../../docs/js/ranking-ui.js'; - Using mock - Using mock
+  
+  onRefresh(callback) {
+    this.refreshCallback = callback;
+    const btn = this.container.querySelector('.refresh-button');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (this.refreshCallback) {
+          this.refreshCallback();
+        }
+      });
+    }
+  }
+  
+  onClose(callback) {
+    this.closeCallback = callback;
+    const btn = this.container.querySelector('.close-button');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (this.closeCallback) {
+          this.closeCallback();
+        }
+      });
+    }
+  }
+  
+  getCurrentPeriod() {
+    const activeBtn = this.container.querySelector('.period-btn.active');
+    return activeBtn ? activeBtn.getAttribute('data-period') : 'daily';
+  }
+  
+  getCurrentGameMode() {
+    const select = this.container.querySelector('.game-mode-select');
+    return select ? select.value : 'all';
+  }
+}
 
 describe('RankingUI', () => {
   let container;

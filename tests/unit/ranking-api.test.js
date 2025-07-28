@@ -21,22 +21,73 @@ const createMockClass = (className, defaultMethods = {}) => {
 };
 
 
-export class RankingAPI {
+class RankingAPI {
   constructor(apiBaseUrl) {
     this.apiBaseUrl = apiBaseUrl || 'http://localhost:3000';
+    this.secretKey = 'default-secret-key-change-in-production';
     this.headers = {
       'Content-Type': 'application/json'
     };
   }
   
-  async submitScore(score, playerName) {
-    // Mock API response
-    return Promise.resolve({
-      success: true,
-      rank: Math.floor(Math.random() * 100) + 1,
-      scoreId: 'score-' + Date.now(),
-      timestamp: new Date().toISOString()
-    });
+  async fetchRankings(period = 'daily', gameMode = 'all', limit = 10) {
+    try {
+      const url = `${this.apiBaseUrl}/get?period=${period}&gameMode=${gameMode}&limit=${limit}`;
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error('ランキング取得に失敗しました');
+      }
+      
+      const data = await response.json();
+      return data.rankings;
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  async submitScore(gameData, gameHash) {
+    try {
+      const response = await fetch(`${this.apiBaseUrl}/submit`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          gameData: gameData,
+          gameHash: gameHash
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'スコア送信に失敗しました');
+      }
+      
+      return data;
+    } catch (error) {
+      throw error;
+    }
+  }
+  
+  async generateGameHash(gameData) {
+    const dataString = `${gameData.playerName}:${gameData.score}:${gameData.gameMode}:${gameData.duration}:${gameData.timestamp}`;
+    const encoder = new TextEncoder();
+    const data = encoder.encode(dataString);
+    const keyData = encoder.encode(this.secretKey);
+    
+    const key = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature = await crypto.subtle.sign('HMAC', key, data);
+    const hashArray = Array.from(new Uint8Array(signature));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    
+    return hashHex;
   }
   
   async getLeaderboard(limit = 10) {

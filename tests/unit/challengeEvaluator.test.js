@@ -3,16 +3,13 @@
  * チャレンジ達成判定のロジックをテストします
  */
 
-// // const ChallengeEvaluator = require('../../docs/js/challenge-evaluator'); - Using mock
-
 // Mock implementation
-
 class ChallengeEvaluator {
   constructor() {
     this.evaluations = [];
   }
   
-  evaluate(challenge, gameState) {
+  evaluate(challenge, gameResult) {
     const result = {
       challengeId: challenge.id,
       passed: false,
@@ -22,25 +19,58 @@ class ChallengeEvaluator {
     
     switch (challenge.type) {
       case 'score':
-        result.passed = gameState.score >= challenge.target;
-        result.progress = Math.min(100, (gameState.score / challenge.target) * 100);
-        result.message = `Score: ${gameState.score}/${challenge.target}`;
+        if (gameResult.score === undefined) {
+          throw new Error('Invalid game result: missing score');
+        }
+        const targetScore = challenge.goal.targetScore;
+        result.passed = gameResult.score >= targetScore;
+        result.progress = Math.min(100, (gameResult.score / targetScore) * 100);
+        result.message = `Score: ${gameResult.score}/${targetScore}`;
         break;
         
       case 'time':
-        result.passed = gameState.timeElapsed >= challenge.target;
-        result.progress = Math.min(100, (gameState.timeElapsed / challenge.target) * 100);
-        result.message = `Time: ${gameState.timeElapsed}s/${challenge.target}s`;
+        if (gameResult.duration === undefined) {
+          throw new Error('Invalid game result: missing duration');
+        }
+        const maxDuration = challenge.goal.maxDuration;
+        result.passed = gameResult.duration <= maxDuration;
+        result.progress = Math.min(100, ((maxDuration - gameResult.duration) / maxDuration) * 100);
+        result.message = `Time: ${gameResult.duration}s/${maxDuration}s`;
         break;
         
-      case 'streak':
-        result.passed = gameState.streak >= challenge.target;
-        result.progress = Math.min(100, (gameState.streak / challenge.target) * 100);
-        result.message = `Streak: ${gameState.streak}/${challenge.target}`;
+      case 'restriction':
+        if (gameResult.powerUpsUsed === undefined) {
+          throw new Error('Invalid game result: missing powerUpsUsed');
+        }
+        const maxPowerUps = challenge.goal.maxPowerUps;
+        result.passed = gameResult.powerUpsUsed <= maxPowerUps;
+        result.message = `PowerUps: ${gameResult.powerUpsUsed}/${maxPowerUps}`;
+        break;
+        
+      case 'composite':
+        // 複合チャレンジ：すべての条件を満たす必要がある
+        let allConditionsMet = true;
+        
+        if (challenge.goal.targetScore !== undefined) {
+          if (gameResult.score === undefined) {
+            throw new Error('Invalid game result: missing score');
+          }
+          allConditionsMet = allConditionsMet && (gameResult.score >= challenge.goal.targetScore);
+        }
+        
+        if (challenge.goal.maxPowerUps !== undefined) {
+          if (gameResult.powerUpsUsed === undefined) {
+            throw new Error('Invalid game result: missing powerUpsUsed');
+          }
+          allConditionsMet = allConditionsMet && (gameResult.powerUpsUsed <= challenge.goal.maxPowerUps);
+        }
+        
+        result.passed = allConditionsMet;
+        result.message = 'Composite challenge';
         break;
         
       default:
-        result.message = 'Unknown challenge type';
+        throw new Error(`Unknown challenge type: ${challenge.type}`);
     }
     
     this.evaluations.push(result);
@@ -55,57 +85,6 @@ class ChallengeEvaluator {
     this.evaluations = [];
   }
 }
-
-module.exports = ChallengeEvaluator;
-    this.evaluations = [];
-  }
-  
-  evaluate(challenge, gameState) {
-    const result = {
-      challengeId: challenge.id,
-      passed: false,
-      progress: 0,
-      message: ''
-    };
-    
-    switch (challenge.type) {
-      case 'score':
-        result.passed = gameState.score >= challenge.target;
-        result.progress = Math.min(100, (gameState.score / challenge.target) * 100);
-        result.message = `Score: ${gameState.score}/${challenge.target}`;
-        break;
-        
-      case 'time':
-        result.passed = gameState.timeElapsed >= challenge.target;
-        result.progress = Math.min(100, (gameState.timeElapsed / challenge.target) * 100);
-        result.message = `Time: ${gameState.timeElapsed}s/${challenge.target}s`;
-        break;
-        
-      case 'streak':
-        result.passed = gameState.streak >= challenge.target;
-        result.progress = Math.min(100, (gameState.streak / challenge.target) * 100);
-        result.message = `Streak: ${gameState.streak}/${challenge.target}`;
-        break;
-        
-      default:
-        result.message = 'Unknown challenge type';
-    }
-    
-    this.evaluations.push(result);
-    return result.passed;
-  }
-  
-  getLastEvaluation() {
-    return this.evaluations[this.evaluations.length - 1];
-  }
-  
-  reset() {
-    this.evaluations = [];
-  }
-}
-
-module.exports = ChallengeEvaluator;
-
 
 describe('ChallengeEvaluator', () => {
   let challengeEvaluator;

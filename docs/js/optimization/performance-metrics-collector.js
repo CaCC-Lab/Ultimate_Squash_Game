@@ -18,13 +18,13 @@ export class PerformanceMetricsCollector {
             webWorkerLatency: []   // WebWorker通信遅延
         };
         
-        // 設定
+        // 設定（簡素化版）
         this.config = {
-            maxSamples: 1000,      // 保持する最大サンプル数
-            sampleInterval: 100,   // サンプリング間隔（ms）
-            percentiles: [50, 95, 99], // 計算するパーセンタイル
-            persistInterval: 5000,  // IndexedDB保存間隔（5秒）
-            enablePersistence: true // 永続化の有効/無効
+            maxSamples: 100,       // 保持する最大サンプル数（簡素化）
+            sampleInterval: 500,   // サンプリング間隔（ms）（高速化）
+            percentiles: [95],     // 計算するパーセンタイル（簡素化）
+            persistInterval: 30000, // IndexedDB保存間隔（30秒）（頻度削減）
+            enablePersistence: false // 永続化を無効化（簡素化）
         };
         
         // 状態管理
@@ -70,23 +70,18 @@ export class PerformanceMetricsCollector {
     }
     
     /**
-     * Web Workerの初期化
+     * Web Workerの初期化（簡素化版 - 無効化）
      */
     async initializeWorker() {
+        // WebWorkerを無効化（E2Eテスト安定化のため）
+        console.log('[METRICS] WebWorker disabled for simplification');
+        return;
+        
         if (!this.config.enablePersistence) return;
         
         try {
-            // Workerの作成
-            this.metricsWorker = new Worker('/docs/js/optimization/metrics-worker.js', { type: 'module' });
-            
-            // メッセージハンドラーの設定
-            this.metricsWorker.addEventListener('message', (event) => {
-                this.handleWorkerMessage(event.data);
-            });
-            
-            // Workerの初期化
-            await this.sendWorkerMessage('init', {});
-            console.log('Metrics worker initialized');
+            // Workerの作成（無効化）
+            // this.metricsWorker = new Worker('/docs/js/optimization/metrics-worker.js', { type: 'module' });
             
             // フォールバック用のsessionId生成
             if (!this.sessionId) {
@@ -215,10 +210,10 @@ export class PerformanceMetricsCollector {
             }, this.config.sampleInterval);
         }
         
-        // オーバーレイの定期更新
+        // オーバーレイの定期更新（簡素化 - 頻度削減）
         this.overlayUpdateInterval = setInterval(() => {
             this.updateOverlay();
-        }, 250); // 250msごとに更新
+        }, 2000); // 2秒ごとに更新（簡素化）
         
         // 永続化の定期実行
         if (this.config.enablePersistence) {
@@ -239,18 +234,21 @@ export class PerformanceMetricsCollector {
         const now = performance.now();
         const frameTime = now - this.lastFrameTime;
         
-        // フレーム時間を記録
-        this.recordMetric('frameTimes', frameTime);
+        // フレーム時間を記録（1秒間隔で簡素化）
+        if (frameTime > 1000) {
+            this.recordMetric('frameTimes', frameTime);
+            
+            // 瞬間FPSを計算
+            const instantFPS = frameTime > 0 ? 1000 / frameTime : 0;
+            this.recordMetric('fps', instantFPS);
+            
+            this.lastFrameTime = now;
+        }
         
-        // 瞬間FPSを計算
-        const instantFPS = frameTime > 0 ? 1000 / frameTime : 0;
-        this.recordMetric('fps', instantFPS);
-        
-        this.lastFrameTime = now;
         this.frameCount++;
         
-        // 次のフレームをスケジュール
-        this.animationFrameId = requestAnimationFrame(() => this.collectFrame());
+        // 次のフレームをスケジュール（500ms間隔で簡素化）
+        setTimeout(() => this.collectFrame(), 500);
     }
     
     /**

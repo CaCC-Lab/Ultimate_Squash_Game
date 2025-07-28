@@ -29,7 +29,7 @@ const createMockClass = (className, defaultMethods = {}) => {
 };
 
 
-export class ChallengeProgress {
+class ChallengeProgress {
   constructor(config = {}) {
     this.challengeId = config.challengeId || '';
     this.startedAt = config.startedAt || new Date();
@@ -76,7 +76,7 @@ export class ChallengeProgress {
   }
 }
 
-export class ProgressTracker {
+class ProgressTracker {
   constructor() {
     this.sessions = {};
     this.currentSession = null;
@@ -421,10 +421,33 @@ describe('ProgressTracker', () => {
       const mockHistory = [
         {
           challengeId: 'weekly-challenge-3',
-          attempts: 5,
-          highScore: 1500,
-          completed: true,
-          totalPlayTime: 600000 // 10分
+          status: 'COMPLETED',
+          finalScore: 1500,
+          duration: 120000
+        },
+        {
+          challengeId: 'weekly-challenge-3',
+          status: 'FAILED',
+          finalScore: 800,
+          duration: 90000
+        },
+        {
+          challengeId: 'weekly-challenge-3',
+          status: 'FAILED',
+          finalScore: 1000,
+          duration: 100000
+        },
+        {
+          challengeId: 'weekly-challenge-3',
+          status: 'FAILED',
+          finalScore: 900,
+          duration: 150000
+        },
+        {
+          challengeId: 'weekly-challenge-3',
+          status: 'FAILED',
+          finalScore: 1200,
+          duration: 140000
         }
       ];
 
