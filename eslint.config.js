@@ -99,9 +99,9 @@ module.exports = [
       }
     },
     rules: {
-      'no-unused-vars': ['error', {
+      'no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_'
+        varsIgnorePattern: '^_|^dummy'
       }],
       'no-console': 'off',
       'no-debugger': 'warn',
